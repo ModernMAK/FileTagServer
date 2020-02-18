@@ -4,7 +4,11 @@
   <!--<link rel="stylesheet" href="../stylesheets/styles.css">-->
 </head>
 <body>
-<form action="/upload/img" method="post" enctype="multipart/form-data">
+<div id="header">
+    <a href="/">Main Page</a>
+    <a href="/show/image/index">Images</a>
+</div>
+<form action="/action/upload_image" method="post" enctype="multipart/form-data">
   <label for="img">Select image:</label>
   <input type="file" id="img" name="img" accept="image/*">
   <input type="submit">

@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>{{TITLE}}</title>
+    <meta charset='utf-8'>
+    <link rel="top" title="{{TITLE}}" href="/">
+    <link class="main-stylesheet" href="/stylesheets/common.css" media="screen" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div id="header">
+    <a href="/">Main Page</a>
+    <a href="/show/image/index">Images</a>
+    <a href="/upload/image">Upload</a>
+</div>
+<div id="content">
+    <div id="post-view">
+        <div class="content" id="right-col">
+{{#IMG_LIST}}
+                <a href="{{PAGE_PATH}}">
+                    <img alt="{{IMG_ALT}}" height = "{{IMG_HEIGHT}}" width = "{{IMG_WIDTH}}" src="/{{IMG_PATH}}">
+                </a>
+{{/IMG_LIST}}
+        </div>
+    </div>
+</div>
+</body>
+</html>
