@@ -1,25 +1,44 @@
 from io import open
 from os.path import dirname, join
-from webserver.server import route, start_with_args
+from webserver.server import route, start_with_args, serve
+from pystache import Renderer
 
 if __name__ == '__main__':
+    renderer = Renderer()
+
+
     @route()
     def index(request):
-        desired_file = "html/example.html"
-        current_directory = dirname(__file__)
-        desired_path = desired_file#join(current_directory, desired_file)
+        return serve("html/upload.html")
 
-        with open(desired_path) as file:
-            return file.read()
-#        return [b'Not Implemented']
+        # desired_file = "html/example.html"
+        desired_file = "html/testpost.html"
+        content, status, header = serve(desired_file)
+        fixed_content = renderer.render(content, {'TITLE': "Title", 'IMG_ALT': "Misdreavous", 'IMG_HEIGHT': 330,
+                                                  'IMG_WIDTH': 360, 'IMG_PATH': "misdreavus.jpg"})
+        return fixed_content, status, header
 
 
+    @route("stylesheets/(.*)")
+    def stylesheets(request, file):
+        return serve(f"stylesheets/{file}")
 
-    @route("/stylesheets/(\w*).css*")
-    def stylesheets(request,sheet_requested):
-        with open(f"stylesheets/{sheet_requested}.css") as file:
-            return file.read()
 
+    @route("images/dynamic/(.*)")
+    def dynamic_images(request, file):
+        return serve(f"images/dynamic/{file}")
+
+
+    @route("images/static/(.*)")
+    def dynamic_images(request, file):
+        return serve(f"images/static/{file}")
+
+
+    @route("upload/img", methods=['POST'])
+    def dynamic_images(request):
+        img = request['POST']
+
+        pass
 
 
     start_with_args()
