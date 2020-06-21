@@ -1,5 +1,5 @@
 from os.path import dirname, join, splitext
-from webserver.server import route, start_with_args, serve
+from litespeed import serve, route, start_with_args
 from typing import Optional, Tuple, List, Dict, Union, Any, Iterable
 from pystache import Renderer
 from PIL import Image
