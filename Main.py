@@ -13,8 +13,8 @@ if __name__ == '__main__':
     def initialize_db():
         con = sqlite3.connect(database_path)
         cursor = con.cursor()
-        cursor.execute(
-            "CREATE TABLE IF NOT EXISTS images(img_id integer PRIMARY KEY AUTOINCREMENT, img_path text, img_width integer, img_height integer )")
+
+        cursor.execute("CREATE TABLE IF NOT EXISTS images(img_id integer PRIMARY KEY AUTOINCREMENT, img_path text, img_width integer, img_height integer )")
         cursor.execute("CREATE TABLE IF NOT EXISTS tags(tag_id integer PRIMARY KEY AUTOINCREMENT, tag_name text)")
         con.commit()
         con.close()
