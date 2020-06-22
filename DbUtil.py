@@ -34,6 +34,7 @@ def add_img(img_path: str, img: Image, root_path: str) -> int:
     import ImageUtil
     _, img_ext = splitext(img_path)
     stripped_img_ext = img_ext.strip('.')
+    stripped_img_ext = stripped_img_ext.replace("'", "''")
     with Conwrapper(database_path) as (con, cursor):
         cursor.execute(
             f"INSERT INTO images(img_width, img_height, img_ext) VALUES({img.width},{img.height}, '{stripped_img_ext}')")
@@ -48,7 +49,8 @@ def add_missing_tags(tag_list: List[str]):
     with Conwrapper(database_path) as (con, cursor):
         formatted_tag = []
         for tag in tag_list:
-            formatted_tag.append(f"('{tag}')")
+            escaped_tag = tag.replace("'", "''")
+            formatted_tag.append(f"('{escaped_tag}')")
         # Should be one execute, but this is easier to code
         # tag_name is a unique column, and should err if we insert an illegal value
         cursor.execute(f"INSERT OR IGNORE INTO tags(tag_name) VALUES {','.join(formatted_tag)}")
@@ -58,8 +60,9 @@ def add_missing_tags(tag_list: List[str]):
 def set_img_tags(img_id: int, tag_list: List[str]) -> None:
     with Conwrapper(database_path) as (con, cursor):
         formatted_tag_list = []
-        for i in range(0, len(tag_list)):
-            formatted_tag_list.append(f"'{tag_list[i]}'")
+        for tag in tag_list:
+            escaped_tag = tag.replace("'", "''")
+            formatted_tag_list.append(f"'{escaped_tag}'")
 
         # Get tag_ids to set
         cursor.execute(f"SELECT tag_id FROM tags WHERE tag_name IN ({','.join(formatted_tag_list)})")

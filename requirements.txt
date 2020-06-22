@@ -1,4 +1,4 @@
-EasyConnect==1.0.5
-LiteSpeed==1.0.2
-Pillow==7.0.0
-pystache==0.5.4
+EasyConnect
+LiteSpeed
+Pillow
+pystache
