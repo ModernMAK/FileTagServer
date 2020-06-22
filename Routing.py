@@ -157,10 +157,12 @@ def serve_formatted(file: str, context: Dict[str, object], cache_age: int = 0,
 def serve_error(error_code) -> Tuple[bytes, int, Dict[str, str]]:
     result = serve(f"html/{error_code}.html", status_override=error_code)
     if error_code != 404 and result[1] == 404:
-        result = serve(f"html/{404}.html", status_override=error_code)
+        result = serve(f"html/{404}.html", status_override=404)
     return result
 
 
+# has to be loaded LAST
+# Will capture EVERYTHING meant for declerations after it
 @route("(.*)")
 def catchall(request, catch):
     return serve_error(404)
