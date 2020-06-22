@@ -10,19 +10,13 @@
 <div id="header">
     <a href="/">Main Page</a>
     <a href="/show/image/index">Images</a>
+    <a href="/show/tag/index">Tags</a>
     <a href="/upload/image">Upload</a>
 </div>
 <div id="content">
     <div id="post-view">
         <div class="content" id="right-col">
-            {{#IMG_LIST}}
-            <a href="/show/image/{{IMG_ID}}">
-                <div style="width: 256px; height: 256px; display: inline; vertical-align: middle; horiz-align: center">
-                    <img alt="{{IMG_ALT}}" src="/images/dynamic/posts/{{IMG_ID}}/thumb.{{IMG_EXT}}"
-                         style="margin-left: auto; margin-right: auto">
-                </div>
-            </a>
-            {{/IMG_LIST}}
+            {{TAG_NAME}}
         </div>
     </div>
 </div>

@@ -23,15 +23,11 @@
         </div>
         <div>
             <b>Tag List</b>
-            <ul>
-                {{#TAG_LIST}}
-                <li><a href="/show/tag/{{TAG_ID}}">{{TAG_NAME}}</a></li>
-                {{/TAG_LIST}}
-                {{^TAG_LIST}}
-                <li>No Tags Present</li>
-                {{/TAG_LIST}}
-            </ul>
-            <a href="/show/image/{{IMG_ID}}/edit">Edit Tags</a>
+            <form action="/action/update_tags/{{IMG_ID}}" method="post">
+                <label for="tags">Enter one tag per new line:</label>
+                <textarea  rows="10" cols="100" id="tags" name="tags">{{#TAG_LIST}}{{TAG_NAME}}&#13;&#10;{{/TAG_LIST}}</textarea>
+                <input type="submit">
+            </form>
         </div>
     </div>
 </div>
