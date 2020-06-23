@@ -26,15 +26,19 @@ def js_path(requested_path: str = None) -> str:
     return path.join(root_dir, html_dir, requested_path)
 
 
-# Preferably id move some things to a media path
 def media_path(requested_path: str = None) -> str:
-    raise Exception
-    # root_dir = project_root()
-    # html_dir = "media"
-    # return path.join(root_dir, html_dir, requested_path)
-
-
-def post_path(requested_path: str = None) -> str:
     root_dir = project_root()
-    html_dir = "images/dynamic/posts"
+    html_dir = "web/media"
+    return path.join(root_dir, html_dir, requested_path)
+
+
+def image_path(requested_path: str = None) -> str:
+    root_dir = project_root()
+    html_dir = "web/media/images"
+    return path.join(root_dir, html_dir, requested_path)
+
+
+def data_path(requested_path: str = None) -> str:
+    root_dir = project_root()
+    html_dir = "web/data"
     return path.join(root_dir, html_dir, requested_path)

@@ -3,11 +3,17 @@ from typing import Dict, Optional, Tuple
 from litespeed import serve, route
 from PIL import Image
 from pystache import Renderer
-
+import src.PathUtil as PathUtil
 from src.DbUtil import add_img, get_imgs, get_img, get_img_tags, add_missing_tags, set_img_tags
 
-# hardcoded for now
+#define renderer
 renderer = Renderer()
+
+
+# hardcoded for now
+def initializeModule():
+    global renderer
+    renderer = Renderer()
 
 
 @route("/")
@@ -17,22 +23,19 @@ def index(request):
 
 @route("stylesheets/(.*)")
 def stylesheets(request, file):
-    return serve(f"stylesheets/{file}")
+    desired_file = PathUtil.css_path(file)
+    return serve(desired_file)
 
 
-@route("images/dynamic/(.*)")
-def dynamic_images(request, file):
-    return serve(f"images/dynamic/{file}")
-
-
-@route("images/static/(.*)")
-def static_images(request, file):
-    return serve(f"images/static/{file}")
+@route("images/(.*)")
+def images(request, file):
+    desired_file = PathUtil.image_path(file)
+    return serve(desired_file)
 
 
 @route("show/image/index")
 def show_post_list(request):
-    desired_file = "../web/html/imageIndexPage.html"
+    desired_file = PathUtil.html_path("imageIndexPage.html")
     rows = get_imgs(50)
 
     def parse_rows(input_rows):
@@ -57,7 +60,7 @@ def show_post_list(request):
 
 @route("show/image/(\d*)/")
 def show_post(request, img_id):
-    desired_file = "../web/html/imagePage.html"
+    desired_file = PathUtil.html_path("imagePage.html")
     img_data = get_img(img_id)
     if not img_data:
         return serve_error(404)
@@ -89,7 +92,7 @@ def show_post(request, img_id):
 
 @route("show/image/(\d*)/edit")
 def show_post_edit(request, img_id):
-    desired_file = "../web/html/imagePageEdit.html"
+    desired_file = PathUtil.html_path("imagePageEdit.html")
     img_data = get_img(img_id)
     if not img_data:
         return serve_error(404)
@@ -97,8 +100,7 @@ def show_post_edit(request, img_id):
 
     def parse_tag_rows(input_rows):
         output_rows = []
-        for temp_row in input_rows:
-            tag_id, tag_name = temp_row
+        for tag_id, tag_name in input_rows:
             temp_dict = {
                 'TAG_ID': tag_id,
                 'TAG_NAME': tag_name
@@ -121,21 +123,24 @@ def show_post_edit(request, img_id):
 
 @route("upload/image")
 def uploading_image(request):
-    return serve("../web/html/upload.html")
+    desired_file = PathUtil.html_path("upload.html")
+    return serve(desired_file)
 
 
 @route("action/upload_image", methods=['POST'])
 def uploading_image(request):
+    desired_file = PathUtil.html_path("redirect.html")
     req = request['FILES']
     filename, filestream = req['img']
     img = Image.open(filestream)
-    img_id = add_img(filename, img, "images/dynamic/posts")
+    img_id = add_img(filename, img, PathUtil.image_path("posts"))
     img.close()
-    return serve_formatted("../web/html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
+    return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{img_id}"}, )
 
 
 @route("action/update_tags/(\d*)", methods=['POST'])
 def updating_tags(request, img_id: int):
+    desired_file = PathUtil.html_path("redirect.html")
     req = request['POST']
     tag_box = req['tags']
     lines = tag_box.splitlines()
@@ -143,7 +148,7 @@ def updating_tags(request, img_id: int):
         lines[i] = lines[i].strip()
     add_missing_tags(lines)
     set_img_tags(img_id, lines)
-    return serve_formatted("../web/html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
+    return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{img_id}"}, )
 
 
 def serve_formatted(file: str, context: Dict[str, object], cache_age: int = 0, headers: Optional[Dict[str, str]] = None,
@@ -154,9 +159,9 @@ def serve_formatted(file: str, context: Dict[str, object], cache_age: int = 0, h
 
 
 def serve_error(error_code) -> Tuple[bytes, int, Dict[str, str]]:
-    result = serve(f"html/{error_code}.html", status_override=error_code)
+    result = serve(PathUtil.html_path(f"{error_code}.html"), status_override=error_code)
     if error_code != 404 and result[1] == 404:
-        result = serve(f"html/{404}.html", status_override=404)
+        result = serve(PathUtil.html_path(f"{404}.html"), status_override=404)
     return result
 
 

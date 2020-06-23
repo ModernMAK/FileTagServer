@@ -1,12 +1,12 @@
 import sqlite3
 from os.path import splitext, join
-
-# hardcoded for now, consider moving to a settings dict
+import src.PathUtil as PathUtil
 from typing import Tuple, List, Union
 
 from PIL import Image
 
-database_path = '../imgserver.db'
+# hardcoded for now, consider moving to a settings dict
+database_path = PathUtil.data_path('imgserver.db')
 
 
 class Conwrapper():
@@ -43,9 +43,30 @@ def sanitize(data: Union[str, List, Tuple]) -> Union[str, List, Tuple]:
         return sanatize_single(data)
 
 
-def to_value_list(value):
+def create_entry_string(data: Union[object, List[object]]) -> List[str]:
+    if isinstance(data, (List, Tuple)):
+        for i in range(len(data)):
+            data[i] = sanitize(str(data[i]))
+        return [f"({','.join(data)})"]
+    else:
+        return [f"({sanitize(str(data))})"]
 
 
+def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
+    if isinstance(values, (List, Tuple)):
+        values = values.copy()
+        for i in range(len(values)):
+            values[i] = create_entry_string(values[i])
+    else:
+        values = create_entry_string(values)
+    return ','.join(values)
+
+
+def convert_tuple_to_list(values: List[Tuple[object]]) -> List[object]:
+    result = []
+    for (value,) in values:
+        result.append(value)
+    return result
 
 
 def add_img(img_path: str, img: Image, root_path: str) -> int:
@@ -65,38 +86,28 @@ def add_img(img_path: str, img: Image, root_path: str) -> int:
 
 def add_missing_tags(tag_list: List[str]):
     with Conwrapper(database_path) as (con, cursor):
-        formatted_tag = []
-        for tag in tag_list:
-            escaped_tag = sanitize(escaped_tag)
-            formatted_tag.append(f"('{escaped_tag}')")
+        values = create_value_string(tag_list)
         # Should be one execute, but this is easier to code
         # tag_name is a unique column, and should err if we insert an illegal value
-        cursor.execute(f"INSERT OR IGNORE INTO tags(tag_name) VALUES {','.join(formatted_tag)}")
+        cursor.execute(f"INSERT OR IGNORE INTO tags(tag_name) VALUES {values}")
         con.commit()
 
 
 def set_img_tags(img_id: int, tag_list: List[str]) -> None:
     with Conwrapper(database_path) as (con, cursor):
-        formatted_tag_list = []
-        for tag in tag_list:
-            escaped_tag = tag.replace("'", "''")
-            formatted_tag_list.append(f"'{escaped_tag}'")
+        values = create_value_string(tag_list)
 
         # Get tag_ids to set
-        cursor.execute(f"SELECT tag_id FROM tags WHERE tag_name IN ({','.join(formatted_tag_list)})")
+        cursor.execute(f"SELECT tag_id FROM tags WHERE tag_name IN ({values})")
         rows = cursor.fetchall()
-        tag_id_list = []
-        for (row,) in rows:
-            tag_id_list.append(str(row))
-
-        cursor.execute(
-            f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN ({','.join(tag_id_list)})")
+        tag_id_list = create_entry_string(convert_tuple_to_list(rows))
+        cursor.execute(f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN {tag_id_list}")
 
         pairs = []
         for tag_id in tag_id_list:
-            pairs.append(f"({img_id},{tag_id})")
-
-        cursor.execute(f"INSERT OR IGNORE INTO image_tag_map (map_img_id, map_tag_id) VALUES {','.join(pairs)}")
+            pairs.append(({img_id}, {tag_id}))
+        values = create_value_string(pairs)
+        cursor.execute(f"INSERT OR IGNORE INTO image_tag_map (map_img_id, map_tag_id) VALUES {values}")
 
         con.commit()
 
