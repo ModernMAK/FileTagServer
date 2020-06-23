@@ -2,11 +2,11 @@ import sqlite3
 from os.path import splitext, join
 
 # hardcoded for now, consider moving to a settings dict
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 from PIL import Image
 
-database_path = 'imgserver.db'
+database_path = '../imgserver.db'
 
 
 class Conwrapper():
@@ -30,11 +30,29 @@ def initialize_db() -> None:
         con.commit()
 
 
+def sanitize(data: Union[str, List, Tuple]) -> Union[str, List, Tuple]:
+    def sanatize_single(single_data: str) -> str:
+        sanatized = single_data.replace("'", "''")
+        return sanatized
+
+    if isinstance(data, (list, tuple)):
+        for i in range(len(data)):
+            data[i] = sanatize_single(data[i])
+        return data
+    else:
+        return sanatize_single(data)
+
+
+def to_value_list(value):
+
+
+
+
 def add_img(img_path: str, img: Image, root_path: str) -> int:
-    import ImageUtil
+    from src import ImageUtil
     _, img_ext = splitext(img_path)
     stripped_img_ext = img_ext.strip('.')
-    stripped_img_ext = stripped_img_ext.replace("'", "''")
+    stripped_img_ext = sanitize(stripped_img_ext)
     with Conwrapper(database_path) as (con, cursor):
         cursor.execute(
             f"INSERT INTO images(img_width, img_height, img_ext) VALUES({img.width},{img.height}, '{stripped_img_ext}')")
@@ -49,7 +67,7 @@ def add_missing_tags(tag_list: List[str]):
     with Conwrapper(database_path) as (con, cursor):
         formatted_tag = []
         for tag in tag_list:
-            escaped_tag = tag.replace("'", "''")
+            escaped_tag = sanitize(escaped_tag)
             formatted_tag.append(f"('{escaped_tag}')")
         # Should be one execute, but this is easier to code
         # tag_name is a unique column, and should err if we insert an illegal value

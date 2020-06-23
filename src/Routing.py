@@ -4,7 +4,7 @@ from litespeed import serve, route
 from PIL import Image
 from pystache import Renderer
 
-from DbUtil import add_img, get_imgs, get_img, get_img_tags, add_missing_tags, set_img_tags
+from src.DbUtil import add_img, get_imgs, get_img, get_img_tags, add_missing_tags, set_img_tags
 
 # hardcoded for now
 renderer = Renderer()
@@ -32,7 +32,7 @@ def static_images(request, file):
 
 @route("show/image/index")
 def show_post_list(request):
-    desired_file = "html/imageIndexPage.html"
+    desired_file = "../web/html/imageIndexPage.html"
     rows = get_imgs(50)
 
     def parse_rows(input_rows):
@@ -57,7 +57,7 @@ def show_post_list(request):
 
 @route("show/image/(\d*)/")
 def show_post(request, img_id):
-    desired_file = "html/imagePage.html"
+    desired_file = "../web/html/imagePage.html"
     img_data = get_img(img_id)
     if not img_data:
         return serve_error(404)
@@ -89,7 +89,7 @@ def show_post(request, img_id):
 
 @route("show/image/(\d*)/edit")
 def show_post_edit(request, img_id):
-    desired_file = "html/imagePageEdit.html"
+    desired_file = "../web/html/imagePageEdit.html"
     img_data = get_img(img_id)
     if not img_data:
         return serve_error(404)
@@ -121,7 +121,7 @@ def show_post_edit(request, img_id):
 
 @route("upload/image")
 def uploading_image(request):
-    return serve("html/upload.html")
+    return serve("../web/html/upload.html")
 
 
 @route("action/upload_image", methods=['POST'])
@@ -131,7 +131,7 @@ def uploading_image(request):
     img = Image.open(filestream)
     img_id = add_img(filename, img, "images/dynamic/posts")
     img.close()
-    return serve_formatted("html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
+    return serve_formatted("../web/html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
 
 
 @route("action/update_tags/(\d*)", methods=['POST'])
@@ -143,12 +143,11 @@ def updating_tags(request, img_id: int):
         lines[i] = lines[i].strip()
     add_missing_tags(lines)
     set_img_tags(img_id, lines)
-    return serve_formatted("html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
+    return serve_formatted("../web/html/redirect.html", {"REDIRECT_URL": f"/show/image/{img_id}"}, )
 
 
-def serve_formatted(file: str, context: Dict[str, object], cache_age: int = 0,
-                    headers: Optional[Dict[str, str]] = None, status_override: int = None) -> Tuple[
-    bytes, int, Dict[str, str]]:
+def serve_formatted(file: str, context: Dict[str, object], cache_age: int = 0, headers: Optional[Dict[str, str]] = None,
+                    status_override: int = None) -> Tuple[bytes, int, Dict[str, str]]:
     content, status, header = serve(file, cache_age, headers, status_override)
     fixed_content = renderer.render(content, context)
     return fixed_content, status, header
