@@ -1,30 +1,68 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>{{TITLE}}</title>
-    <meta charset='utf-8'>
-    <link rel="top" title="{{TITLE}}" href="/">
-    <link class="main-stylesheet" href="/stylesheets/common.css" media="screen" rel="stylesheet" type="text/css">
+
+    <!-- Bootstrap -->
+    <link href="/css/bootstrap.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--&lt;!&ndash;[if lt IE 9]>-->
+    <!-- <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>-->
+    <!--<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>-->
+    <!--<![endif]&ndash;&gt;-->
 </head>
 <body>
-<div id="header">
-    <a href="/">Main Page</a>
-    <a href="/show/image/index">Images</a>
-    <a href="/upload/image">Upload</a>
-</div>
+<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Top</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="/">Main</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/show/image/index">Images</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/show/tag/index">Tags</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/upload/image">Upload</a>
+            </li>
+        </ul>
+    </div>
+</nav>
 <div id="content">
-    <div id="post-view">
-        <div class="content" id="right-col">
-            {{#IMG_LIST}}
-            <a href="/show/image/{{IMG_ID}}">
-                <div style="width: 256px; height: 256px; display: inline; vertical-align: middle; horiz-align: center">
-                    <img alt="{{IMG_ALT}}" src="/images/posts/{{IMG_ID}}/thumb.{{IMG_EXT}}"
-                         style="margin-left: auto; margin-right: auto">
+    <div class="row">
+        <div class="col-md-2">.col-md-2</div>
+        <div class="col-md-10">
+            <div class="row">
+                {{#IMG_LIST}}
+                <div class="col-md-3 col-sm-4 col-xs-6"
+                     style="background:#ffc107;border: 2px solid #0f0f0f">
+                    <a href="/show/image/{{IMG_ID}}" class="d-flex">
+                        <img alt="{{IMG_ALT}}" src="/images/posts/{{IMG_ID}}/thumb.{{IMG_EXT}}"
+                             style="max-width: 100%; max-height: 100%;">
+                    </a>
                 </div>
-            </a>
-            {{/IMG_LIST}}
+                {{/IMG_LIST}}
+            </div>
         </div>
     </div>
 </div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
 </body>
 </html>

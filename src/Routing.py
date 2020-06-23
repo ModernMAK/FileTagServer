@@ -18,14 +18,15 @@ def initializeModule():
 
 @route("/debug(.*)")
 def debug(request, path):
-    return serve(PathUtil.html_path("album.html"))
+    # return serve(PathUtil.html_path("album.html"))
+    return serve(PathUtil.html_path("bootstrap_template.html"))
 
 
 @route("/")
 def index(request):
     return show_post_list(request)
 
-
+### START OF VIRTUAL ACCESS POINTS
 @route("css/(.*).map/")
 def css_map(request, file):
     file = dirname(file) + ".map"
@@ -60,7 +61,7 @@ def javascript(request, file):
 def images(request, file):
     desired_file = PathUtil.image_path(file)
     return serve(desired_file)
-
+### END OF VIRTUAL ACCESS POINTS
 
 @route("show/image/index")
 def show_post_list(request):
