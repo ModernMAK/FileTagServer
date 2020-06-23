@@ -1,12 +1,12 @@
 from typing import Dict, Optional, Tuple
-
+from os.path import splitext, dirname
 from litespeed import serve, route
 from PIL import Image
 from pystache import Renderer
 import src.PathUtil as PathUtil
 from src.DbUtil import add_img, get_imgs, get_img, get_img_tags, add_missing_tags, set_img_tags
 
-#define renderer
+# define renderer
 renderer = Renderer()
 
 
@@ -16,14 +16,43 @@ def initializeModule():
     renderer = Renderer()
 
 
+@route("/debug(.*)")
+def debug(request, path):
+    return serve(PathUtil.html_path("album.html"))
+
+
 @route("/")
 def index(request):
     return show_post_list(request)
 
 
-@route("stylesheets/(.*)")
-def stylesheets(request, file):
+@route("css/(.*).map/")
+def css_map(request, file):
+    file = dirname(file) + ".map"
     desired_file = PathUtil.css_path(file)
+    return serve(desired_file)
+
+
+@route("css/(.*)")
+def css(request, file):
+    desired_file = PathUtil.css_path(file)
+    content, code, headers = serve(desired_file)
+    _, ext = splitext(file.strip('/'))
+    if ext.lower() == ".css":
+        headers['Content-Type'] = "text/css"
+    return content, code, headers
+
+
+@route("js/(.*).map/")
+def javascript_map(request, file):
+    file = dirname(file) + ".map"
+    desired_file = PathUtil.js_path(file)
+    return serve(desired_file)
+
+
+@route("js/(.*)")
+def javascript(request, file):
+    desired_file = PathUtil.js_path(file)
     return serve(desired_file)
 
 

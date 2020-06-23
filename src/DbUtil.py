@@ -30,10 +30,13 @@ def initialize_db() -> None:
         con.commit()
 
 
-def sanitize(data: Union[str, List, Tuple]) -> Union[str, List, Tuple]:
-    def sanatize_single(single_data: str) -> str:
-        sanatized = single_data.replace("'", "''")
-        return sanatized
+def sanitize(data: Union[object, List[object], Tuple[object]]) -> Union[str, List[str], Tuple[str]]:
+    def sanatize_single(single_data: object) -> str:
+        sanitized = str(single_data)
+        sanitized = sanitized.replace("'", "''")
+        if isinstance(single_data, str):
+            sanitized = f"'{sanitized}'"  # SQL wraps strings in quotes
+        return sanitized
 
     if isinstance(data, (list, tuple)):
         for i in range(len(data)):
@@ -43,13 +46,14 @@ def sanitize(data: Union[str, List, Tuple]) -> Union[str, List, Tuple]:
         return sanatize_single(data)
 
 
-def create_entry_string(data: Union[object, List[object]]) -> List[str]:
+def create_entry_string(data: Union[object, List[object]]) -> str:
     if isinstance(data, (List, Tuple)):
+        temp = []  # in the case of tuples, we cant assign back to data, so we use temp instead
         for i in range(len(data)):
-            data[i] = sanitize(str(data[i]))
-        return [f"({','.join(data)})"]
+            temp.append(sanitize(data[i]))
+        return f"({','.join(temp)})"
     else:
-        return [f"({sanitize(str(data))})"]
+        return f"({sanitize(data)})"
 
 
 def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
@@ -100,12 +104,13 @@ def set_img_tags(img_id: int, tag_list: List[str]) -> None:
         # Get tag_ids to set
         cursor.execute(f"SELECT tag_id FROM tags WHERE tag_name IN ({values})")
         rows = cursor.fetchall()
-        tag_id_list = create_entry_string(convert_tuple_to_list(rows))
-        cursor.execute(f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN {tag_id_list}")
+        tag_id_list = convert_tuple_to_list(rows)
+        tag_id_collection = create_entry_string(tag_id_list)
+        cursor.execute(f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN {tag_id_collection}")
 
         pairs = []
         for tag_id in tag_id_list:
-            pairs.append(({img_id}, {tag_id}))
+            pairs.append((img_id, tag_id))
         values = create_value_string(pairs)
         cursor.execute(f"INSERT OR IGNORE INTO image_tag_map (map_img_id, map_tag_id) VALUES {values}")
 
