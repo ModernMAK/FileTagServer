@@ -106,7 +106,8 @@ def set_img_tags(img_id: int, tag_list: List[str]) -> None:
         rows = cursor.fetchall()
         tag_id_list = convert_tuple_to_list(rows)
         tag_id_collection = create_entry_string(tag_id_list)
-        cursor.execute(f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN {tag_id_collection}")
+        cursor.execute(
+            f"DELETE FROM image_tag_map where map_img_id = {img_id} and map_tag_id NOT IN {tag_id_collection}")
 
         pairs = []
         for tag_id in tag_id_list:
@@ -141,3 +142,21 @@ def get_imgs(count: int, offset: int = 0) -> List[Tuple[int, str, int, int]]:
         rows = cursor.fetchall()
         con.close()
     return rows
+
+
+def get_tags(count: int, offset: int = 0) -> List[Tuple[int, str]]:
+    with Conwrapper(database_path) as (con, cursor):
+        cursor.execute(
+            f"SELECT tag_id, tag_name FROM tags ORDER BY tag_id DESC LIMIT {count} OFFSET {offset}")
+        rows = cursor.fetchall()
+        con.close()
+    return rows
+
+
+def get_tag(tag_id: int) -> Union[Tuple[str], None]:
+    with Conwrapper(database_path) as (con, cursor):
+        cursor.execute(
+            f"SELECT tag_name FROM tags WHERE tag_id = {tag_id}")
+        row = cursor.fetchone()
+        con.close()
+    return row
