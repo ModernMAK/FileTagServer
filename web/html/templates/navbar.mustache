@@ -1,21 +1,21 @@
 
 <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">Top</a>
+    <a class="navbar-brand" href="#">ImageServer</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
+            <li class="nav-item {{PAGE_HOME_ACTIVE}}">
                 <a class="nav-link" href="/">Home</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item {{PAGE_IMAGE_ACTIVE}}">
                 <a class="nav-link" href="/show/image/index">Images</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item {{PAGE_TAG_ACTIVE}}">
                 <a class="nav-link" href="/show/tag/index">Tags</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item {{PAGE_UPLOAD_ACTIVE}}">
                 <a class="nav-link" href="/upload/image">Upload</a>
             </li>
         </ul>

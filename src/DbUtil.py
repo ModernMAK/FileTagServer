@@ -46,14 +46,20 @@ def sanitize(data: Union[object, List[object], Tuple[object]]) -> Union[str, Lis
         return sanatize_single(data)
 
 
-def create_entry_string(data: Union[object, List[object]]) -> str:
+def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool = False) -> str:
     if isinstance(data, (List, Tuple)):
         temp = []  # in the case of tuples, we cant assign back to data, so we use temp instead
         for i in range(len(data)):
-            temp.append(sanitize(data[i]))
+            if skip_sanitize:
+                temp.append(data[i])
+            else:
+                temp.append(sanitize(data[i]))
         return f"({','.join(temp)})"
     else:
-        return f"({sanitize(data)})"
+        if skip_sanitize:
+            return f"({data})"
+        else:
+            return f"({sanitize(data)})"
 
 
 def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
@@ -78,9 +84,9 @@ def add_img(img_path: str, img: Image, root_path: str) -> int:
     _, img_ext = splitext(img_path)
     stripped_img_ext = img_ext.strip('.')
     stripped_img_ext = sanitize(stripped_img_ext)
+    query = f"INSERT INTO images(img_width, img_height, img_ext) VALUES({img.width},{img.height}, {stripped_img_ext})"
     with Conwrapper(database_path) as (con, cursor):
-        cursor.execute(
-            f"INSERT INTO images(img_width, img_height, img_ext) VALUES({img.width},{img.height}, '{stripped_img_ext}')")
+        cursor.execute(query)
         img_id = cursor.lastrowid
         img_save_path = join(root_path, str(img_id) + img_ext)
         ImageUtil.convert_to_imageset(img, img_save_path)
@@ -139,6 +145,104 @@ def get_imgs(count: int, offset: int = 0) -> List[Tuple[int, str, int, int]]:
     with Conwrapper(database_path) as (con, cursor):
         cursor.execute(
             f"SELECT img_id, img_ext, img_width, img_height FROM images ORDER BY img_id DESC LIMIT {count} OFFSET {offset}")
+        rows = cursor.fetchall()
+        con.close()
+    return rows
+
+
+def get_imgs_tags(count: int, offset: int = 0) -> List[Tuple[int, str, int, int]]:
+    with Conwrapper(database_path) as (con, cursor):
+        '''
+        Falcon's suggestion, i'm pretty sure mine does the same thing, and since i wrote it i understand it
+        cursor.execute(f'SELECT map_tag_id, COUNT(map_tag_id) AS times FROM image_tag_map WHERE map_img_id IN (SELECT img_id FROM images ORDER BY img_id DESC LIMIT {count} OFFSET {offset}) GROUP BY map_tag_id ORDER BY times DESC')
+        rows = cursor.fetchall()
+        '''
+        query_images = f"SELECT img_id FROM images ORDER BY img_id DESC LIMIT {count} OFFSET {offset}"
+        query_image_tags = f"SELECT map_tag_id FROM image_tag_map where map_img_id in ({query_images})"
+        query_image_tag_groups = f"SELECT map_tag_id, count(map_tag_id) as frequency FROM ({query_image_tags}) GROUP BY map_tag_id order by frequency DESC"
+        query_image_tag_final = f"SELECT map_tag_id, tag_name, frequency from ({query_image_tag_groups}) inner join tags on map_tag_id = tag_id"
+        cursor.execute(query_image_tag_final)
+        rows = cursor.fetchall()
+        con.close()
+        return rows
+
+
+def get_imgs_tags_from_ids(imgs: List[int]) -> List[Tuple[int, str, int, int]]:
+    with Conwrapper(database_path) as (con, cursor):
+        '''
+        Falcon's suggestion, i'm pretty sure mine does the same thing, and since i wrote it i understand it
+        cursor.execute(f'SELECT map_tag_id, COUNT(map_tag_id) AS times FROM image_tag_map WHERE map_img_id IN (SELECT img_id FROM images ORDER BY img_id DESC LIMIT {count} OFFSET {offset}) GROUP BY map_tag_id ORDER BY times DESC')
+        rows = cursor.fetchall()
+        '''
+        # query_images = f"SELECT img_id FROM images ORDER BY img_id DESC LIMIT {count} OFFSET {offset}"
+        query_image_tags = f"SELECT map_tag_id FROM image_tag_map where map_img_id in {create_entry_string(imgs)}"
+        query_image_tag_groups = f"SELECT map_tag_id, count(map_tag_id) as frequency FROM ({query_image_tags}) GROUP BY map_tag_id order by frequency DESC"
+        query_image_tag_final = f"SELECT map_tag_id, tag_name, frequency from ({query_image_tag_groups}) inner join tags on map_tag_id = tag_id"
+        cursor.execute(query_image_tag_final)
+        rows = cursor.fetchall()
+        con.close()
+        return rows
+
+
+# Does not include untagged images -> Probably wont be supported, as it's a fringe case and has to be done intentially 'NOT A OR NOT B'
+def search_imgs(search: str, count: int, offset: int = 0) -> List[Tuple[int, str, int, int]]:
+    if not search:
+        return get_imgs(count, offset)
+
+    def parse_search(input: str):
+        phrases = input.split()
+        first_parse = []
+        # first pass, fix tags and allow OR/NOT/AND
+        for phrase in phrases:
+            if phrase.upper() in ['OR', 'NOT', 'AND']:
+                first_parse.append(('op', phrase.upper()))
+                continue
+            phrase = phrase.replace('_', ' ')
+            phrase = sanitize(phrase)
+            first_parse.append(('tag', phrase))
+
+        second_parse = []
+        second_parse_inv = []
+        prev_tag = False
+        prev_op = False
+        negate_tag = False
+        for code, content in first_parse:
+            if code == 'op':
+                if content == 'NOT':
+                    negate_tag = not negate_tag
+                else:
+                    second_parse.append(content)
+                    if content == 'AND':
+                        second_parse_inv.append('OR')
+                    else:
+                        second_parse_inv.append('AND')
+                    prev_op = True
+                    prev_tag = False
+            else:
+                if not prev_op and prev_tag:  # prev_tag prevents this from running when we start with a tag
+                    second_parse.append('AND')
+                    second_parse_inv.append('OR')
+                compare = "="
+                inv_compare = "!="
+                if negate_tag:
+                    compare = "!="
+                    inv_compare = "="
+                    negate_tag = False
+                second_parse.append(f'tag_name {compare} {content}')
+                second_parse_inv.append(f'tag_name {inv_compare} {content}')
+                prev_op = False
+                prev_tag = True
+        return ' '.join(second_parse), ' '.join(second_parse_inv)
+
+    search_clause, search_clause_inv = parse_search(search)
+    # Grabs a table with img_id, tag_id, and tag_name
+    map_query = f"SELECT map_img_id, tag_id, tag_name from image_tag_map inner join tags on map_tag_id = tag_id"
+    # Grabs only records which match the tags
+    search_query = f"SELECT map_img_id FROM ({map_query}) where {search_clause}  group by map_img_id order by map_img_id"
+    search_query_inv = f"SELECT map_img_id FROM ({map_query}) where {search_clause_inv} group by map_img_id order by map_img_id"
+    img_query = f"SELECT img_id, img_ext, img_width, img_height FROM images where img_id in ({search_query}) and img_id not in ({search_query_inv}) ORDER BY img_id DESC LIMIT {count} OFFSET {offset}"
+    with Conwrapper(database_path) as (con, cursor):
+        cursor.execute(img_query)
         rows = cursor.fetchall()
         con.close()
     return rows

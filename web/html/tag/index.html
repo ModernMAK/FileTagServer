@@ -18,28 +18,7 @@
     <!--<![endif]&ndash;&gt;-->
 </head>
 <body>
-<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">Top</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link" href="/">Main</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/show/image/index">Images</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/show/tag/index">Tags</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/upload/image">Upload</a>
-            </li>
-        </ul>
-    </div>
-</nav>
+{{> navbar}}
 <div id="content">
     <div class="row">
         <div class="col-md-2">.col-md-2</div>
@@ -50,8 +29,6 @@
                      style="background:#ffc107;border: 2px solid #0f0f0f">
                     <a href="/show/tag/{{TAG_ID}}" class="mx-auto my-auto">
                         {{TAG_NAME}}
-                       <!-- <img alt="{{IMG_ALT}}" src="/images/posts/{{IMG_ID}}/thumb.{{IMG_EXT}}"
-                             style="max-width: 100%; max-height: 100%;">-->
                     </a>
                 </div>
                 {{/TAG_LIST}}
