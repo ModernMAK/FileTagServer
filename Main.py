@@ -1,7 +1,7 @@
 from litespeed import start_with_args
-from src import DbUtil, RoutingSetup
+from src import DbMediator, RoutingSetup
 
 if __name__ == '__main__':
-    DbUtil.initialize_db()
+    DbMediator.initialize_db()
     RoutingSetup.init()
     start_with_args()

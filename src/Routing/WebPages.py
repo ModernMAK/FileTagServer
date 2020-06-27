@@ -1,13 +1,15 @@
-from typing import Dict, Optional, Tuple, Union, Callable
+from typing import Dict, Optional, Tuple, Union, Callable, List
 
 from PIL import Image
 from litespeed import serve, route, register_error_page
 from pystache import Renderer
 
 import src.PathUtil as PathUtil
-import src.DbUtil as DbUtil
+import src.DbMediator as DbUtil
 
 # define renderer
+from src.REST import DbRest
+
 renderer = None
 
 
@@ -44,41 +46,10 @@ def show_image_list_index(request):
 def show_image_list(request, page: int):
     desired_file = PathUtil.html_image_path("index.html")
     req_imgs = DbUtil.get_imgs(50, page)
-    req_tags = DbUtil.get_imgs_tags(50, page)
+    req_tags = DbUtil.get_imgs_tags_from_imgs(req_imgs)
 
-    def parse_img_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            img_id, temp_ext, temp_w, temp_h = temp_row
-            temp_dict = {
-                'PAGE_PATH': f"/show/image/{img_id}",
-                'IMG_HEIGHT': temp_h,
-                'IMG_WIDTH': temp_w,
-                'IMG_ID': img_id,
-                'IMG_EXT': temp_ext
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    def parse_tag_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            tag_id, tag_name, tag_count = temp_row
-            temp_dict = {
-                'PAGE_PATH': f"/show/tag/{tag_id}",
-                'TAG_COUNT': tag_count,
-                'TAG_NAME': tag_name,
-                'TAG_ID': tag_id,
-                'TAG_SEARCH_SUPPORT': {
-                    'SEARCH_ID': 'tagsearchbox',
-                    'ESC_TAG_NAME': escape_js_string(tag_name.replace(' ', '_'))
-                }
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    img_context = parse_img_rows(req_imgs)
-    tag_context = parse_tag_rows(req_tags)
+    img_context = parse_rest_image(req_imgs)
+    tag_context = parse_rest_tags(req_tags, support_search=True)
     context = {
         'TITLE': "Title",
         'IMG_LIST': img_context,
@@ -97,40 +68,11 @@ def show_image_list_paged_search(request, page: int, search: str):
     desired_file = PathUtil.html_image_path("index.html")
     req_imgs = DbUtil.search_imgs(search, 50, page)
     img_id_list = []
-    for img_id, _, _, _ in req_imgs:
-        img_id_list.append(img_id)
 
-    req_tags = DbUtil.get_imgs_tags_from_ids(img_id_list)
+    req_tags = DbUtil.get_imgs_tags_from_imgs(req_imgs)
 
-    def parse_img_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            img_id, temp_ext, temp_w, temp_h = temp_row
-            temp_dict = {
-                'PAGE_PATH': f"/show/image/{img_id}",
-                'IMG_HEIGHT': temp_h,
-                'IMG_WIDTH': temp_w,
-                'IMG_ID': img_id,
-                'IMG_EXT': temp_ext
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    def parse_tag_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            tag_id, tag_name, tag_count = temp_row
-            temp_dict = {
-                'PAGE_PATH': f"/show/tag/{tag_id}",
-                'TAG_COUNT': tag_count,
-                'TAG_NAME': tag_name,
-                'TAG_ID': tag_id,
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    img_context = parse_img_rows(req_imgs)
-    tag_context = parse_tag_rows(req_tags)
+    img_context = parse_rest_image(req_imgs)
+    tag_context = parse_rest_tags(req_tags, support_search=True)
     context = {
         'TITLE': "Title",
         'IMG_LIST': img_context,
@@ -147,28 +89,12 @@ def show_image(request, img_id):
     if not img_data:
         return serve_error(404)
     tag_data = DbUtil.get_img_tags(img_id)
-
-    def parse_tag_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            tag_id, tag_name = temp_row
-            temp_dict = {
-                'TAG_ID': tag_id,
-                'TAG_NAME': tag_name
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    img_ext, img_w, img_h = img_data
+    img_context = parse_rest_image(img_data)
     context = {
         'TITLE': "Title",
-        'IMG_ALT': "???",
-        'IMG_HEIGHT': img_h,
-        'IMG_WIDTH': img_w,
-        'IMG_ID': img_id,
-        'IMG_EXT': img_ext,
-        'TAG_LIST': parse_tag_rows(tag_data)
+        'TAG_LIST': parse_rest_tags(tag_data, support_search=True)
     }
+    context.update(img_context)
     return serve_formatted(desired_file, context)
 
 
@@ -180,26 +106,12 @@ def show_image_edit(request, img_id):
         return serve_error(404)
     tag_data = DbUtil.get_img_tags(img_id)
 
-    def parse_tag_rows(input_rows):
-        output_rows = []
-        for tag_id, tag_name in input_rows:
-            temp_dict = {
-                'TAG_ID': tag_id,
-                'TAG_NAME': tag_name
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
     img_ext, img_w, img_h = img_data
     context = {
         'TITLE': "Title",
-        'IMG_ALT': "???",
-        'IMG_HEIGHT': img_h,
-        'IMG_WIDTH': img_w,
-        'IMG_ID': img_id,
-        'IMG_EXT': img_ext,
-        'TAG_LIST': parse_tag_rows(tag_data)
+        'TAG_LIST': parse_rest_tags(tag_data)
     }
+    context.update(parse_rest_image(img_data))
     return serve_formatted(desired_file, context)
 
 
@@ -208,24 +120,58 @@ def show_tag_list_index(request):
     return show_tag_list(request, 0)
 
 
+def parse_rest_image(imgs: Union[DbRest.RestImage, List[DbRest.RestImage]]) -> Union[
+    Dict[str, object], List[Dict[str, object]]]:
+    def parse(input_img: DbRest.RestImage):
+        return {
+            'PAGE_PATH': f"/show/image/{input_img.id}",
+            'IMG_ALT': '???',
+            'IMG_HEIGHT': input_img.height,
+            'IMG_WIDTH': input_img.width,
+            'IMG_ID': input_img.id,
+            'IMG_EXT': input_img.extension
+        }
+
+    if not isinstance(imgs, List):
+        return parse(imgs)
+
+    output_rows = []
+    for img in imgs:
+        output_rows.append(parse(img))
+    return output_rows
+
+
+def parse_rest_tags(tags: Union[DbRest.RestTag, List[DbRest.RestTag]], support_search: bool = False) -> Union[
+    Dict[str, object], List[Dict[str, object]]]:
+    def parse(input_tag: DbRest.RestTag):
+        result = {
+            'PAGE_PATH': f"/show/tag/{input_tag.id}",
+            'TAG_ID': input_tag.id,
+            'TAG_NAME': input_tag.name,
+            'TAG_COUNT': input_tag.count,
+        }
+        if support_search:
+            result['TAG_SEARCH_SUPPORT'] = {
+                'SEARCH_ID': 'tagsearchbox',
+                'ESC_TAG_NAME': escape_js_string(input_tag.name.replace(' ', '_'))
+            }
+        return result
+
+    if not isinstance(tags, List):
+        return parse(tags)
+
+    output_rows = []
+    for tag in tags:
+        output_rows.append(parse(tag))
+    return output_rows
+
+
 @route("show/tag/index/(\d*)")
 def show_tag_list(request, page: int):
     desired_file = PathUtil.html_tag_path("index.html")
     rows = DbUtil.get_tags(50, page)
 
-    def parse_rows(input_rows):
-        output_rows = []
-        for temp_row in input_rows:
-            tag_id, tag_name = temp_row
-            temp_dict = {
-                'PAGE_PATH': f"/show/tag/{tag_id}",
-                'TAG_ID': tag_id,
-                'TAG_NAME': tag_name,
-            }
-            output_rows.append(temp_dict)
-        return output_rows
-
-    fixed_rows = parse_rows(rows)
+    fixed_rows = parse_rest_tags(rows)
     context = {'TITLE': "Tags",
                'TAG_LIST': fixed_rows}
     return serve_formatted(desired_file, context)
@@ -245,67 +191,11 @@ def show_tag(request, tag_id):
         'TAG_NAME': tag_name,
     }
     return serve_formatted(desired_file, context)
-    # return serve_error(404)
-    # desired_file = PathUtil.html_path("page.html")
-    # img_data = DbUtil.get_img(img_id)
-    # if not img_data:
-    #     return serve_error(404)
-    # tag_data = DbUtil.get_img_tags(img_id)
-    #
-    # def parse_tag_rows(input_rows):
-    #     output_rows = []
-    #     for temp_row in input_rows:
-    #         tag_id, tag_name = temp_row
-    #         temp_dict = {
-    #             'TAG_ID': tag_id,
-    #             'TAG_NAME': tag_name
-    #         }
-    #         output_rows.append(temp_dict)
-    #     return output_rows
-    #
-    # img_ext, img_w, img_h = img_data
-    # context = {
-    #     'TITLE': "Title",
-    #     'IMG_ALT': "???",
-    #     'IMG_HEIGHT': img_h,
-    #     'IMG_WIDTH': img_w,
-    #     'IMG_ID': img_id,
-    #     'IMG_EXT': img_ext,
-    #     'TAG_LIST': parse_tag_rows(tag_data)
-    # }
-    # return serve_formatted(desired_file, context)
 
 
 @route("show/tag/(\d*)/edit")
 def show_tag_edit(request, img_id):
     serve_error(404)
-    # desired_file = PathUtil.html_path("edit.html")
-    # img_data = DbUtil.get_img(img_id)
-    # if not img_data:
-    #     return serve_error(404)
-    # tag_data = DbUtil.get_img_tags(img_id)
-    #
-    # def parse_tag_rows(input_rows):
-    #     output_rows = []
-    #     for tag_id, tag_name in input_rows:
-    #         temp_dict = {
-    #             'TAG_ID': tag_id,
-    #             'TAG_NAME': tag_name
-    #         }
-    #         output_rows.append(temp_dict)
-    #     return output_rows
-    #
-    # img_ext, img_w, img_h = img_data
-    # context = {
-    #     'TITLE': "Title",
-    #     'IMG_ALT': "???",
-    #     'IMG_HEIGHT': img_h,
-    #     'IMG_WIDTH': img_w,
-    #     'IMG_ID': img_id,
-    #     'IMG_EXT': img_ext,
-    #     'TAG_LIST': parse_tag_rows(tag_data)
-    # }
-    # return serve_formatted(desired_file, context)
 
 
 @route("upload/image")
@@ -361,16 +251,13 @@ def serve_formatted(file: str, context: Dict[str, object] = None, cache_age: int
     return fixed_content, status, header
 
 
-def serve_error(error_code) -> Tuple[bytes, int, Dict[str, str]]:
-    result = serve(PathUtil.html_path(f"{error_code}.html"), status_override=error_code)
-    if error_code != 404 and result[1] == 404:
-        result = serve(PathUtil.html_path(f"{404}.html"), status_override=404)
-    return result
+def serve_error(error_path, context=None) -> Tuple[bytes, int, Dict[str, str]]:
+    return serve_formatted(PathUtil.html_path(f"error/{error_path}.html", context))
 
 
 @register_error_page(404)
 def error_404(request, *args, **kwargs):
-    return serve_formatted(PathUtil.html_path(f"error/{404}.html"))
+    return serve(PathUtil.html_path(f"error/{404}.html"))
 
 
 # has to be loaded LAST
