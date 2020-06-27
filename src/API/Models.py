@@ -2,11 +2,17 @@ from typing import List
 
 
 class BaseModel:
+
+    def __iter__(self):
+        d =  self.to_dictionary()
+        for k in d:
+            yield k, d[k]
+
     def to_dictionary(self):
-        pass
+        raise NotImplementedError
 
     def from_dictionary(self, **kwargs):
-        pass
+        raise NotImplementedError
 
 
 class ImageModel(BaseModel):
@@ -54,6 +60,7 @@ class ImageModel(BaseModel):
             result = []
             for tag in tags:
                 result.append(tag.to_dictionary())
+            return result
 
         return {
             'id': self.id,

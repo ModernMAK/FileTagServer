@@ -79,12 +79,17 @@ class ImageClient:
                 }
                 current_image.tags.append(TagModel(**tag_args))
 
+        if current_image is not  None:
+            results.append(current_image)
+
+
         return results
 
     # noinspection SqlResolve
     def __get_image_info(self, selection_query: str):
-        query = f"SELECT img_id, img_ext, img_width, img_height, map_img_id, map_tag_id from ({selection_query}) left join image_tag_map on map_img_id = img_id"
-        query = f"SELECT img_id, img_ext, img_width, img_height, tag_id, tag_name, count(map_img_id) as tag_count from ({query}) left join tags on map_tag_id = tag_id group by img_id"
+        query = f"SELECT img_id, img_ext, img_width, img_height, tag_id, tag_name from ({selection_query}) left join image_tag_map on map_img_id = img_id left join tags on map_tag_id = tag_id"
+        nested_query = "SELECT map_tag_id, count(map_img_id) as tag_count from image_tag_map group by map_tag_id"
+        query = f"SELECT img_id, img_ext, img_width, img_height, tag_id, tag_name, tag_count from ({query}) left join ({nested_query}) on map_tag_id = tag_id"
 
         try:
             with Conwrapper(self.db_path) as (con, cursor):
@@ -92,14 +97,14 @@ class ImageClient:
                 rows = cursor.fetchall()
                 return ImageClient.__parse_image_rows(rows)
         except sqlite3.DatabaseError:
-            return None
+            raise
 
     # noinspection SqlResolve
     def get_images(self, **kwargs) -> List[ImageModel]:
         # Never trust user input; sanatize args
         img_id_array = kwargs.get('image_ids', [])
         entries = create_entry_string(img_id_array)  # sanatizes for us
-        query = f"SELECT img_id, img_ext, img_width, img_height FROM images ORDER BY img_id DESC where img_id in {entries}"
+        query = f"SELECT img_id, img_ext, img_width, img_height FROM images where img_id in {entries} ORDER BY img_id DESC"
         return self.__get_image_info(query)
 
     # noinspection SqlResolve
@@ -160,7 +165,7 @@ class TagClient:
 
     # noinspection SqlResolve
     def __get_tag_info(self, select_query: str) -> Union[None, List[TagModel]]:
-        query = f"SELECT tag_id, tag_name, count(map_img_id) as tag_count FROM ({select_query} left join image_tag_map on tag_id = map_tag_id group by tag_id"
+        query = f"SELECT tag_id, tag_name, count(map_img_id) as tag_count FROM ({select_query}) left join image_tag_map on tag_id = map_tag_id group by tag_id"
 
         try:
             with Conwrapper(self.db_path) as (con, cursor):
@@ -168,7 +173,7 @@ class TagClient:
                 rows = cursor.fetchall()
             return TagClient.__parse_tag_rows(rows)
         except sqlite3.DatabaseError:
-            return None
+            raise
 
     # noinspection SqlResolve
     def get_tags(self, **kwargs) -> Union[None, List[ImageModel]]:

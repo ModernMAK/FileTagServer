@@ -16,7 +16,7 @@ JSON_HEADERS = "Content-Type: application/json"
 
 
 def add_routes():
-    route(f'/rest/image/get', no_end_slash=True, f=rest_image_get, methods=GET_ONLY)
+    route(f'/api/image/get', no_end_slash=True, f=api_image_get, methods=GET_ONLY)
     pass
 
 
@@ -29,7 +29,7 @@ def __convert_to_dict_list(info_list: List[BaseModel]) -> List[Dict[str, Any]]:
     return results
 
 
-def rest_image_get(request):
+def api_image_get(request):
     client = ImageClient(database_path)
     get = request['GET']
     context = client.get_images(**get)
