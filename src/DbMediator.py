@@ -2,7 +2,7 @@ import sqlite3
 from os.path import splitext, join
 import src.PathUtil as PathUtil
 from typing import Tuple, List, Union
-import src.REST.DbRest as DbRest
+import src.API.Clients as DbRest
 from src.DbUtil import Conwrapper, sanitize, create_value_string, create_entry_string, convert_tuple_to_list
 from PIL import Image
 
@@ -63,29 +63,29 @@ def set_img_tags(img_id: int, tag_list: List[str]) -> None:
         con.commit()
 
 
-def get_img(img_id: int) -> Union[None, DbRest.RestImage]:
-    r_client = DbRest.RestClient(database_path)
+def get_img(img_id: int) -> Union[None, DbRest.ImageModel]:
+    r_client = DbRest.ApiClient(database_path)
     return r_client.image_client.get_images(image_ids=[img_id])
 
 
-def get_img_tags(img_id: int) -> List[DbRest.RestTag]:
-    r_client = DbRest.RestClient(database_path)
+def get_img_tags(img_id: int) -> List[DbRest.TagModel]:
+    r_client = DbRest.ApiClient(database_path)
     return r_client.tag_client.get_tags(tag_ids=[img_id])
 
 
-def get_imgs(count: int, offset: int = 0) -> List[DbRest.RestImage]:
-    r_client = DbRest.RestClient(database_path)
+def get_imgs(count: int, offset: int = 0) -> List[DbRest.ImageModel]:
+    r_client = DbRest.ApiClient(database_path)
     return r_client.image_client.get_images_paged(page=offset, page_size=count)
 
 
-def get_imgs_tags_from_imgs(imgs: List[DbRest.RestImage]) -> List[DbRest.RestTag]:
+def get_imgs_tags_from_imgs(imgs: List[DbRest.ImageModel]) -> List[DbRest.TagModel]:
     unique_tags = set()
     for img in imgs:
         for tag in img.tags:
             unique_tags.add(tag)
     tag_list = list(unique_tags)
 
-    def get_sort_key(element: DbRest.RestTag):
+    def get_sort_key(element: DbRest.TagModel):
         return element.count
 
     tag_list.sort(reverse=True, key=get_sort_key)
@@ -158,11 +158,11 @@ def search_imgs(search: str, count: int, offset: int = 0) -> List[Tuple[int, str
     return rows
 
 
-def get_tags(count: int, offset: int = 0) -> Union[List[DbRest.RestTag], None]:
-    r_client = DbRest.RestClient(database_path)
+def get_tags(count: int, offset: int = 0) -> Union[List[DbRest.TagModel], None]:
+    r_client = DbRest.ApiClient(database_path)
     return r_client.tag_client.get_tags_paged({'page': offset, 'page_size': count})
 
 
-def get_tag(tag_id: int) -> Union[DbRest.RestTag, None]:
-    r_client = DbRest.RestClient(database_path)
+def get_tag(tag_id: int) -> Union[DbRest.TagModel, None]:
+    r_client = DbRest.ApiClient(database_path)
     return r_client.tag_client.get_tags({'tag_ids': [tag_id]})

@@ -8,7 +8,7 @@ import src.PathUtil as PathUtil
 import src.DbMediator as DbUtil
 
 # define renderer
-from src.REST import DbRest
+from src.API import Clients
 
 renderer = None
 
@@ -120,9 +120,9 @@ def show_tag_list_index(request):
     return show_tag_list(request, 0)
 
 
-def parse_rest_image(imgs: Union[DbRest.RestImage, List[DbRest.RestImage]]) -> Union[
+def parse_rest_image(imgs: Union[Clients.ImageModel, List[Clients.ImageModel]]) -> Union[
     Dict[str, object], List[Dict[str, object]]]:
-    def parse(input_img: DbRest.RestImage):
+    def parse(input_img: Clients.ImageModel):
         return {
             'PAGE_PATH': f"/show/image/{input_img.id}",
             'IMG_ALT': '???',
@@ -141,9 +141,9 @@ def parse_rest_image(imgs: Union[DbRest.RestImage, List[DbRest.RestImage]]) -> U
     return output_rows
 
 
-def parse_rest_tags(tags: Union[DbRest.RestTag, List[DbRest.RestTag]], support_search: bool = False) -> Union[
+def parse_rest_tags(tags: Union[Clients.TagModel, List[Clients.TagModel]], support_search: bool = False) -> Union[
     Dict[str, object], List[Dict[str, object]]]:
-    def parse(input_tag: DbRest.RestTag):
+    def parse(input_tag: Clients.TagModel):
         result = {
             'PAGE_PATH': f"/show/tag/{input_tag.id}",
             'TAG_ID': input_tag.id,
@@ -252,16 +252,9 @@ def serve_formatted(file: str, context: Dict[str, object] = None, cache_age: int
 
 
 def serve_error(error_path, context=None) -> Tuple[bytes, int, Dict[str, str]]:
-    return serve_formatted(PathUtil.html_path(f"error/{error_path}.html", context))
+    return serve_formatted(PathUtil.html_path(f"error/{error_path}.html"), context)
 
 
 @register_error_page(404)
 def error_404(request, *args, **kwargs):
     return serve(PathUtil.html_path(f"error/{404}.html"))
-
-
-# has to be loaded LAST
-# Will capture EVERYTHING meant for declerations after it
-@route("(.*)")
-def catchall(request, catch):
-    return serve_error(404)
