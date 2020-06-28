@@ -21,29 +21,34 @@ def escape_js_string(input: str) -> str:
 
 
 # hardcoded for now
-def init():
+def add_routes():
     global renderer
     renderer = Renderer(search_dirs=PathUtil.html_path("templates"))
+    route(r"/", f=index, methods=['GET'])
+    route(r"show/image/index", f=show_image_index, methods=['GET'])
+    route(r"show/image/index/(\d*)", f=show_image_index_paged, methods=['GET'])
+    route(r"show/image/(\d*)", f=show_image, methods=['GET'])
+    route(r"show/image/(\d*)/edit", f=show_image_edit, methods=['GET'])
+    route(r"show/tag/index", f=show_tag_index, methods=['GET'])
+    route(r"show/tag/index/(\d*)", f=show_tag_index_paged, methods=['GET'])
+    route(r"show/tag/(\d*)/", f=show_tag, methods=['GET'])
+    route(r"show/tag/(\d*)/edit", f=show_tag_edit, methods=['GET'])
+
+    route(r"show/upload/image", f=show_image_upload, methods=['GET'])
+    route(r"action/upload_image", f=action_image_upload, methods=['POST'])
+    route(r"action/update_tags/(\d*)", f=action_update_tags, methods=['POST'])
+    route(r"action/image/search", f=action_image_search, methods=['POST'])
 
 
-@route("/debug(.*)")
-def debug(request, path):
-    return None
-    return serve(PathUtil.html_path("bootstrap_template.html"))
-
-
-@route("/")
 def index(request):
-    return show_image_list_index(request)
+    return show_image_index(request)
 
 
-@route("show/image/index")
-def show_image_list_index(request):
-    return show_image_list(request, 0)
+def show_image_index(request):
+    return show_image_index_paged(request, 0)
 
 
-@route(f"show/image/index/(\d*)")
-def show_image_list(request, page: int):
+def show_image_index_paged(request, page: int):
     desired_file = PathUtil.html_image_path("index.html")
     req_imgs = DbUtil.get_imgs(50, page)
     req_tags = DbUtil.get_imgs_tags_from_imgs(req_imgs)
@@ -58,12 +63,12 @@ def show_image_list(request, page: int):
     return serve_formatted(desired_file, context)
 
 
-@route("show/image/search/([\w%'\s]*)", no_end_slash=True)
+# @route("show/image/search/([\w%'\s]*)", no_end_slash=True)
 def show_image_list_search(request, search: str):
     return show_image_list_paged_search(request, 0, search)
 
 
-@route(f"show/image/search/(\d*)/([\w%'\s]*)", no_end_slash=True)
+# @route(f"show/image/search/(\d*)/([\w%'\s]*)", no_end_slash=True)
 def show_image_list_paged_search(request, page: int, search: str):
     desired_file = PathUtil.html_image_path("index.html")
     req_imgs = DbUtil.search_imgs(search, 50, page)
@@ -82,14 +87,13 @@ def show_image_list_paged_search(request, page: int, search: str):
     return serve_formatted(desired_file, context)
 
 
-@route(f"show/image/(\d*)")
 def show_image(request, img_id):
     desired_file = PathUtil.html_image_path("page.html")
     img_data = DbUtil.get_img(img_id)
     if not img_data:
         return serve_error(404)
     tag_data = DbUtil.get_img_tags(img_id)
-    img_context = parse_rest_image(img_data)
+    img_context = parse_rest_image(img_data)[0]
     context = {
         'TITLE': "Title",
         'TAG_LIST': parse_rest_tags(tag_data, support_search=True)
@@ -98,7 +102,6 @@ def show_image(request, img_id):
     return serve_formatted(desired_file, context)
 
 
-@route("show/image/(\d*)/edit")
 def show_image_edit(request, img_id):
     desired_file = PathUtil.html_image_path("edit.html")
     img_data = DbUtil.get_img(img_id)
@@ -115,9 +118,8 @@ def show_image_edit(request, img_id):
     return serve_formatted(desired_file, context)
 
 
-@route("show/tag/index")
-def show_tag_list_index(request):
-    return show_tag_list(request, 0)
+def show_tag_index(request):
+    return show_tag_index_paged(request, 0)
 
 
 def parse_rest_image(imgs: Union[Clients.ImageModel, List[Clients.ImageModel]]) -> Union[
@@ -166,8 +168,7 @@ def parse_rest_tags(tags: Union[Clients.TagModel, List[Clients.TagModel]], suppo
     return output_rows
 
 
-@route("show/tag/index/(\d*)")
-def show_tag_list(request, page: int):
+def show_tag_index_paged(request, page: int):
     desired_file = PathUtil.html_tag_path("index.html")
     rows = DbUtil.get_tags(50, page)
 
@@ -177,7 +178,6 @@ def show_tag_list(request, page: int):
     return serve_formatted(desired_file, context)
 
 
-@route("show/tag/(\d*)/")
 def show_tag(request, tag_id):
     desired_file = PathUtil.html_tag_path("page.html")
     result = DbUtil.get_tag(tag_id)
@@ -193,19 +193,16 @@ def show_tag(request, tag_id):
     return serve_formatted(desired_file, context)
 
 
-@route("show/tag/(\d*)/edit")
 def show_tag_edit(request, img_id):
     serve_error(404)
 
 
-@route("upload/image")
-def uploading_image(request):
+def show_image_upload(request):
     desired_file = PathUtil.html_path("upload.html")
     return serve(desired_file)
 
 
-@route("action/upload_image", methods=['POST'])
-def uploading_image(request):
+def action_image_upload(request):
     desired_file = PathUtil.html_path("redirect.html")
     req = request['FILES']
     last_id = None
@@ -219,8 +216,7 @@ def uploading_image(request):
         return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{last_id}"}, )
 
 
-@route("action/update_tags/(\d*)", methods=['POST'])
-def updating_tags(request, img_id: int):
+def action_update_tags(request, img_id: int):
     desired_file = PathUtil.html_path("redirect.html")
     req = request['POST']
     tag_box = req['tags']
@@ -232,7 +228,6 @@ def updating_tags(request, img_id: int):
     return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{img_id}"}, )
 
 
-@route("action/image/search", methods=['POST'])
 def action_image_search(request):
     desired_file = PathUtil.html_path("redirect.html")
     req = request['POST']
@@ -257,4 +252,4 @@ def serve_error(error_path, context=None) -> Tuple[bytes, int, Dict[str, str]]:
 
 @register_error_page(404)
 def error_404(request, *args, **kwargs):
-    return serve(PathUtil.html_path(f"error/{404}.html"))
+    return serve_formatted(PathUtil.html_path(f"error/{404}.html"))

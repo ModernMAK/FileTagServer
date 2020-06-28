@@ -9,14 +9,11 @@ import src.PathUtil as PathUtil
 import src.DbMediator as DbUtil
 
 database_path = DbUtil.database_path
-GET_ONLY = ['GET']
-GET_AND_POST = ['GET', 'POST']
-POST_ONLY = ['POST']
 JSON_HEADERS = "Content-Type: application/json"
 
 
 def add_routes():
-    route(f'/api/image/get', no_end_slash=True, f=api_image_get, methods=GET_ONLY)
+    route(f'/api/image/get', no_end_slash=True, f=api_image_get, methods=['GET'])
     pass
 
 

@@ -160,9 +160,9 @@ def search_imgs(search: str, count: int, offset: int = 0) -> List[Tuple[int, str
 
 def get_tags(count: int, offset: int = 0) -> Union[List[DbRest.TagModel], None]:
     r_client = DbRest.ApiClient(database_path)
-    return r_client.tag_client.get_tags_paged({'page': offset, 'page_size': count})
+    return r_client.tag_client.get_tags_paged(page=offset, page_size=count)
 
 
 def get_tag(tag_id: int) -> Union[DbRest.TagModel, None]:
     r_client = DbRest.ApiClient(database_path)
-    return r_client.tag_client.get_tags({'tag_ids': [tag_id]})
+    return r_client.tag_client.get_tags(tag_ids=[tag_id])

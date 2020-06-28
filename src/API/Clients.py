@@ -46,31 +46,38 @@ class ImageClient:
 
     @staticmethod
     def __parse_image_rows(rows) -> List[ImageModel]:
+        def create_link(name, id, ext):
+            return {
+                'name': name,
+                'path': f"http://localhost:8000/images/posts/{id}/{name}.{ext}"
+            }
+
+        def create_image(id, ext, w, h):
+            args = {
+                'id': id,
+                'width': w,
+                'height': h,
+                'extension': ext,
+                'files': [
+                    create_link('hirez', id, ext),
+                    create_link('lorez', id, ext),
+                    create_link('midrez', id, ext),
+                    create_link('thumb', id, ext)
+                ]
+            }
+            return ImageModel(**args)
+
         results = []
         current_image = None
         for img_id, img_ext, img_w, img_h, tag_id, tag_name, tag_count in rows:
-
             if current_image is None:
-                img_args = {
-                    'id': img_id,
-                    'width': img_w,
-                    'height': img_h,
-                    'extension': img_ext
-                }
-                current_image = ImageModel(**img_args)
+                current_image = create_image(img_id, img_ext, img_w, img_h)
             # Our query ensures img_ids are consecutive
             # This isn't done by  the order-by, but the order of our operations
             # As the left join on img_tag_map groups img_id
             elif current_image.id != img_id:
                 results.append(current_image)
-                img_args = {
-                    'id': img_id,
-                    'width': img_w,
-                    'height': img_h,
-                    'extension': img_ext
-                }
-                current_image = ImageModel(**img_args)
-
+                current_image = create_image(img_id, img_ext, img_w, img_h)
             if tag_id is not None:
                 tag_args = {
                     'id': tag_id,
@@ -79,9 +86,8 @@ class ImageClient:
                 }
                 current_image.tags.append(TagModel(**tag_args))
 
-        if current_image is not  None:
+        if current_image is not None:
             results.append(current_image)
-
 
         return results
 

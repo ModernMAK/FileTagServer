@@ -4,7 +4,7 @@ from typing import List
 class BaseModel:
 
     def __iter__(self):
-        d =  self.to_dictionary()
+        d = self.to_dictionary()
         for k in d:
             yield k, d[k]
 
@@ -22,6 +22,7 @@ class ImageModel(BaseModel):
         self.height = kwargs.get('height', 2)
         self.extension = kwargs.get('extension', '')
         self.tags = kwargs.get('tags', [])
+        self.files = kwargs.get('files', [])
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -67,7 +68,8 @@ class ImageModel(BaseModel):
             'width': self.width,
             'height': self.height,
             'extension': self.extension,
-            'tags': tags_to_list_dict(self.tags)
+            'tags': tags_to_list_dict(self.tags),
+            'files': self.files
         }
 
 
