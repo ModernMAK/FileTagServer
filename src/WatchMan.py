@@ -15,10 +15,12 @@ class Watchman:
     def __init__(self, **kwargs):
         self.observer = kwargs.get('observer', Observer())
         self.watchlist = []
-        self.default_handler = Watchman.__create_handler()
+        self.default_handler = self.__create_default_handler()
 
-    def watch(self, path: str, recursive: bool = False):
-        watch = self.observer.schedule(self.default_handler, path, recursive)
+    def watch(self, path: str, recursive: bool = False, handler: FileSystemEventHandler = None):
+        if handler is None:
+            handler = self.default_handler
+        watch = self.observer.schedule(handler, path, recursive)
         cache_data = {
             'path': path,
             'recursive': recursive,
@@ -26,16 +28,16 @@ class Watchman:
         }
         self.watchlist.append(cache_data)
 
-    def watch_many(self, paths: List[Union[str, Tuple[str, bool]]]):
-        handler = self.default_handler
+    def watch_many(self, paths: List[Union[str, Tuple[str, bool]]], handler:FileSystemEventHandler = None):
+        if handler is None:
+            handler = self.default_handler
         for path_info in paths:
-            path_str = ''
             path_recursive = False
             if isinstance(path_info, tuple):
                 path_str, path_recursive = path_info
             else:
                 path_str = path_info
-            self.watch(path_str, path_recursive)
+            self.watch(path_str, path_recursive, handler)
 
     # Ill come up with a better way of doing this later
     def unwatch(self, path: str, recursive: bool = False):
@@ -56,18 +58,23 @@ class Watchman:
             results.append(self.unwatch(path_str, path_recursive))
         return results
 
-    def __create_handler(self):
+    def unwatch_all(self):
+        self.observer.unschedule_all()
+        self.watchlist.clear()
+        return True
+
+    def __create_default_handler(self):
         handler = FileSystemEventHandler()
-        handler.on_moved += self.on_file_moved
-        handler.on_created += self.on_file_created
-        handler.on_deleted += self.on_file_delete
+        handler.on_moved += self.__default_on_file_moved
+        handler.on_created += self.__default_on_file_created
+        handler.on_deleted += self.__default_on_file_delete
         return handler
 
     # Data-Design wise it seems Dir*Event and File*Event are identical,
     # but i might need to do different logic for directories than files,
     # so i do a check in  each function
 
-    def on_file_moved(self, event: Union[DirMovedEvent, FileMovedEvent]):
+    def __default_on_file_moved(self, event: Union[DirMovedEvent, FileMovedEvent]):
         # Directory moved
         if isinstance(event, DirMovedEvent):
             raise NotImplementedError
@@ -75,7 +82,7 @@ class Watchman:
         else:
             raise NotImplementedError
 
-    def on_file_created(self, event: Union[DirCreatedEvent, FileCreatedEvent]):
+    def __default_on_file_created(self, event: Union[DirCreatedEvent, FileCreatedEvent]):
         # Directory moved
         if isinstance(event, DirCreatedEvent):
             raise NotImplementedError
@@ -83,10 +90,11 @@ class Watchman:
         else:
             raise NotImplementedError
 
-    def on_file_delete(self, event: Union[DirDeletedEvent, FileDeletedEvent]):
+    def __default_on_file_delete(self, event: Union[DirDeletedEvent, FileDeletedEvent]):
         # Directory moved
         if isinstance(event, DirDeletedEvent):
             raise NotImplementedError
         # File moved
         else:
             raise NotImplementedError
+
