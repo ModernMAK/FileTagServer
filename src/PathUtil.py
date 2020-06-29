@@ -9,6 +9,13 @@ def project_root() -> str:
     return path.dirname(path.dirname(__file__))
 
 
+def root_path(requested_path: Union[str, None]) -> str:
+    if requested_path:
+        return path.join(project_root(), requested_path)
+    else:
+        return project_root()
+
+
 def join_helper(root_dir: str, html_dir: str, requested_path: Union[str, None]) -> str:
     if requested_path:
         return path.join(root_dir, html_dir, requested_path)
