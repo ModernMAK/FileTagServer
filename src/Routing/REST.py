@@ -78,6 +78,7 @@ def serve_rest(data, request_format: Tuple[Union[str, None], Union[str, None]], 
             return body, 400
 
 
+
 def rest_tag_get(request, tag_id):
     client = TagClient(database_path)
     request_format = __get_request_format(request)
