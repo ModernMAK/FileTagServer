@@ -1,0 +1,117 @@
+create table if not exists file
+(
+    id        integer PRIMARY KEY autoincrement,
+    path      text,
+    extension tinytext,
+
+    constraint path_u UNIQUE (path)
+);
+create table if not exists image_file
+(
+    id      integer PRIMARY KEY autoincrement,
+    file_id integer,
+    width   integer,
+    height  integer,
+
+    constraint file_id_u UNIQUE (file_id),
+    FOREIGN KEY (file_id) REFERENCES file (id)
+);
+create table if not exists music_file
+(
+    id      integer PRIMARY KEY autoincrement,
+    file_id integer unique,
+    bitrate integer,
+    length  integer,
+
+    constraint file_id_u UNIQUE (file_id),
+    FOREIGN KEY (file_id) REFERENCES file (id)
+);
+create table if not exists image_mipmap
+(
+    id integer PRIMARY KEY autoincrement
+);
+create table if not exists image_mip
+(
+    id       integer PRIMARY KEY autoincrement,
+    image_id integer,
+    map_id   integer,
+    name     tinytext,
+    scale    real,
+
+    constraint image_id_map_id_u UNIQUE (image_id, map_id),
+    constraint name_map_id_u UNIQUE (name, map_id),
+    FOREIGN KEY (image_id) REFERENCES image_file (id),
+    FOREIGN KEY (map_id) REFERENCES image_mipmap (id)
+);
+create table if not exists post
+(
+    id          integer PRIMARY KEY autoincrement,
+    name        text,
+    description mediumtext
+);
+create table if not exists image_post
+(
+    id        integer PRIMARY KEY autoincrement,
+    post_id   integer,
+    mipmap_id integer,
+
+    constraint image_post_u UNIQUE (post_id),
+    constraint mipmap_id_u UNIQUE (mipmap_id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (mipmap_id) REFERENCES image_mipmap (id)
+);
+create table if not exists music_post
+(
+    id        integer PRIMARY KEY autoincrement,
+    post_id   integer,
+    mipmap_id integer,
+    music_id integer,
+
+    constraint image_post_u UNIQUE (post_id),
+    constraint music_id_u UNIQUE (music_id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (mipmap_id) REFERENCES image_mipmap (id),
+    FOREIGN KEY (music_id) REFERENCES music_file (id)
+);
+create table if not exists file_post
+(
+    id        integer PRIMARY KEY autoincrement,
+    post_id   integer,
+    file_id integer,
+
+    constraint image_post_u UNIQUE (post_id),
+    constraint file_id_u UNIQUE (file_id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (file_id) REFERENCES file (id)
+);
+
+create table if not exists tag_class
+(
+    id        integer PRIMARY KEY autoincrement,
+    name   tinytext,
+
+
+    constraint name_u UNIQUE (name)
+);
+create table if not exists tag
+(
+    id        integer PRIMARY KEY autoincrement,
+    name   tinytext,
+    description text,
+    class tinytext,
+
+
+    constraint name_u UNIQUE (name),
+    FOREIGN KEY (class) REFERENCES tag_class (name)
+);
+create table if not exists tag_map
+(
+    id        integer PRIMARY KEY autoincrement,
+    post_id   integer,
+    tag_id integer,
+
+
+    constraint post_id_tag_id_u UNIQUE (post_id,tag_id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (tag_id) REFERENCES tag (id)
+);
