@@ -130,9 +130,13 @@ def parse_rest_image(imgs: Union[Models.ImagePost, List[Models.ImagePost]], mip_
     Dict[str, object], List[Dict[str, object]]]:
     def parse(input_img: Models.ImagePost):
         mip = input_img.mipmap.get_mip_by_name(mip_name)
+        # Fix path on laptop
+        new_path = 'C:\\Users\\moder\\Documents\\GitHub'
+        old_path ='D:\\GitHub'
+        path = mip.path.replace(old_path,new_path)
         return {
             'PAGE_PATH': f"/show/image/{input_img.image_post_id}",
-            'IMG_PATH': f'/file/{mip.file_id}',
+            'IMG_PATH': f'file:///{path}',  # f'/file/{mip.file_id}',
             'IMG_ALT': f'{input_img.description}',
             'IMG_HEIGHT': mip.height,
             'IMG_WIDTH': mip.width,

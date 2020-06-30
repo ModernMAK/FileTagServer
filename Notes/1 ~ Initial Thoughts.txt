@@ -1,0 +1,16 @@
+Im stumbling trying to find a 'GOOD' solution that im not making much headway.
+So instead, lets write about my problems, and work through them.
+
+So, this application needs to address the following problems.
+~ Map FILES to TAGS
+	At it's core this is what the entire project is supposed to do, if i strip away all the bells and whistles, at the end of the day, this is what I want to do
+
+~ Display FILES as WebPages w/ Tags
+	Different webpages require different rules for displaying things
+
+~ Client-Only Mode / Client-Serve Mode / Server-Only Mode
+	~ Clients watch folders and 'uploads' them to the DB, files are tracked by a .meta file 
+	~ Servers request uploads and aren't required to track files (presumably, these files should be considered static)
+	
+~ 
+		

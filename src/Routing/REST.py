@@ -46,7 +46,7 @@ def format_data(data, request_format):
         return json.dumps(data)
     elif request_format == 'xml':
         return dicttoxml.dicttoxml(data)
-    elif request_format == 'ini':  # ~ Why would anyone need this? Nobody would, but somebody issued a challenge and i gave up on said challenge
+    elif request_format == 'ini':
         config = configparser.ConfigParser()
         config.read_dict({'ROOT': data})
         with StringIO() as stream:
