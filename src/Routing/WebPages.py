@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union, Callable, List
+from typing import Dict, Optional, Tuple, Union, Callable, List, Set
 
 from PIL import Image
 from litespeed import serve, route, register_error_page
@@ -6,11 +6,14 @@ from pystache import Renderer
 
 import src.PathUtil as PathUtil
 import src.DbMediator as DbUtil
+import src.API.ModelClients as Clients
+import src.API.Models as Models
 
 # define renderer
-from src.API import Clients
+from src.API import ApiClients
 
 renderer = None
+db_path = PathUtil.data_path('mediaserver.db')
 
 
 def escape_js_string(input: str) -> str:
@@ -50,11 +53,12 @@ def show_image_index(request):
 
 def show_image_index_paged(request, page: int):
     desired_file = PathUtil.html_image_path("index.html")
-    req_imgs = DbUtil.get_imgs(50, page)
-    req_tags = DbUtil.get_imgs_tags_from_imgs(req_imgs)
+    image_client = Clients.ImagePost(db_path=db_path)
+    req_imgs = image_client.get(page_size=50, offset=50 * page)
 
-    img_context = parse_rest_image(req_imgs)
-    tag_context = parse_rest_tags(req_tags, support_search=True)
+    img_context = parse_rest_image(req_imgs, 'thumb')
+    tags = get_unique_tags(req_imgs)
+    tag_context = parse_rest_tags(tags, support_search=True)
     context = {
         'TITLE': "Title",
         'IMG_LIST': img_context,
@@ -122,16 +126,18 @@ def show_tag_index(request):
     return show_tag_index_paged(request, 0)
 
 
-def parse_rest_image(imgs: Union[Clients.ImageModel, List[Clients.ImageModel]]) -> Union[
+def parse_rest_image(imgs: Union[Models.ImagePost, List[Models.ImagePost]], mip_name) -> Union[
     Dict[str, object], List[Dict[str, object]]]:
-    def parse(input_img: Clients.ImageModel):
+    def parse(input_img: Models.ImagePost):
+        mip = input_img.mipmap.get_mip_by_name(mip_name)
         return {
-            'PAGE_PATH': f"/show/image/{input_img.id}",
-            'IMG_ALT': '???',
-            'IMG_HEIGHT': input_img.height,
-            'IMG_WIDTH': input_img.width,
-            'IMG_ID': input_img.id,
-            'IMG_EXT': input_img.extension
+            'PAGE_PATH': f"/show/image/{input_img.image_post_id}",
+            'IMG_PATH': f'/file/{mip.file_id}',
+            'IMG_ALT': f'{input_img.description}',
+            'IMG_HEIGHT': mip.height,
+            'IMG_WIDTH': mip.width,
+            'IMG_ID': input_img.image_post_id,
+            'IMG_EXT': mip.extension
         }
 
     if not isinstance(imgs, List):
@@ -143,13 +149,28 @@ def parse_rest_image(imgs: Union[Clients.ImageModel, List[Clients.ImageModel]]) 
     return output_rows
 
 
-def parse_rest_tags(tags: Union[Clients.TagModel, List[Clients.TagModel]], support_search: bool = False) -> Union[
+def get_unique_tags(imgs: Union[Models.ImagePost, List[Models.ImagePost]]) -> List[Models.Tag]:
+    def parse(input_img: Models.ImagePost) -> Set[Models.Tag]:
+        unique_tags = set(input_img.tags)
+        return unique_tags
+
+    if not isinstance(imgs, List):
+        return list(parse(imgs))
+
+    output_rows = set()
+    for img in imgs:
+        output_rows.update(parse(img))
+    return list(output_rows)
+
+
+def parse_rest_tags(tags: Union[Models.Tag, List[Models.Tag]], support_search: bool = False) -> Union[
     Dict[str, object], List[Dict[str, object]]]:
-    def parse(input_tag: Clients.TagModel):
+    def parse(input_tag: Models.Tag):
         result = {
             'PAGE_PATH': f"/show/tag/{input_tag.id}",
             'TAG_ID': input_tag.id,
             'TAG_NAME': input_tag.name,
+            'TAG_DESC': input_tag.description,
             'TAG_COUNT': input_tag.count,
         }
         if support_search:

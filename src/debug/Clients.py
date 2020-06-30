@@ -1,5 +1,5 @@
 import unittest
-from src.API import Clients
+from src.API import ApiClients
 from src import PathUtil
 
 unittest_db_path = PathUtil.data_path('unittest_mediaserver.db')
@@ -7,7 +7,7 @@ unittest_db_path = PathUtil.data_path('unittest_mediaserver.db')
 
 class TestFileClient(unittest.TestCase):
     def test_get_all(self):
-        client = Clients.FileClient(db_path=unittest_db_path)
+        client = ApiClients.FileClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = [
             {'id': 1, 'path': 'testpath.txt', 'extension': 'txt'},
@@ -17,7 +17,7 @@ class TestFileClient(unittest.TestCase):
         assert (result == expected), f'{"FileClient"} ~ {"get_all"} Failed'
 
     def test_get_paged(self):
-        client = Clients.FileClient(db_path=unittest_db_path)
+        client = ApiClients.FileClient(db_path=unittest_db_path)
         result = client.get_paged(page_size=2, page_offset=1)
         expected = [
             # {'id': 1, 'path': 'testpath.txt', 'extension': 'txt'},
@@ -27,7 +27,7 @@ class TestFileClient(unittest.TestCase):
         assert (result == expected), f'{"FileClient"} ~ {"get_paged"} Failed'
 
     def test_get(self):
-        client = Clients.FileClient(db_path=unittest_db_path)
+        client = ApiClients.FileClient(db_path=unittest_db_path)
         result = client.get(ids=[1, 2])
         expected = [
             {'id': 1, 'path': 'testpath.txt', 'extension': 'txt'},
@@ -44,13 +44,13 @@ class TestImageFileClient(unittest.TestCase):
         ]
 
     def test_get_all(self):
-        client = Clients.ImageFileClient(db_path=unittest_db_path)
+        client = ApiClients.ImageFileClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = self.__records()
         assert (result == expected), f'{"ImageFileClient"} ~ {"get_all"} Failed ~ Unexpected Output'
 
     def test_get_paged(self):
-        client = Clients.ImageFileClient(db_path=unittest_db_path)
+        client = ApiClients.ImageFileClient(db_path=unittest_db_path)
         result = client.get_paged(page_size=1, page_offset=1)
         expected = [
             self.__records()[1]
@@ -58,7 +58,7 @@ class TestImageFileClient(unittest.TestCase):
         assert (result == expected), f'{"ImageFileClient"} ~ {"get_paged"} Failed ~ Unexpected Output'
 
     def test_get(self):
-        client = Clients.ImageFileClient(db_path=unittest_db_path)
+        client = ApiClients.ImageFileClient(db_path=unittest_db_path)
         result = client.get(ids=[1])
         expected = [
             self.__records()[0]
@@ -76,13 +76,13 @@ class TestImageMipClient(unittest.TestCase):
         ]
 
     def test_get_all(self):
-        client = Clients.ImageMipClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = self.__records()
         assert (result == expected), f'{"ImageMipClient"} ~ {"get_all"} Failed ~ Unexpected Output'
 
     def test_get_paged(self):
-        client = Clients.ImageMipClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipClient(db_path=unittest_db_path)
         result = client.get_paged(page_size=1, page_offset=1)
         expected = [
             self.__records()[1],
@@ -90,7 +90,7 @@ class TestImageMipClient(unittest.TestCase):
         assert (result == expected), f'{"ImageMipClient"} ~ {"get_paged"} Failed ~ Unexpected Output'
 
     def test_get(self):
-        client = Clients.ImageMipClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipClient(db_path=unittest_db_path)
         result = client.get(ids=[1])
         expected = [
             self.__records()[0],
@@ -113,19 +113,19 @@ class TestImageMipMapClient(unittest.TestCase):
         ]
 
     def test_get_all(self):
-        client = Clients.ImageMipmapClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipmapClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = self.__map_records()
         assert (result == expected), f'{"ImageMipmapClient"} ~ {"get_all"} Failed ~ Unexpected Output'
 
     def test_get_paged(self):
-        client = Clients.ImageMipmapClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipmapClient(db_path=unittest_db_path)
         result = client.get_paged()
         expected = [self.__map_records()[0]]
         assert (result == expected), f'{"ImageMipmapClient"} ~ {"get_paged"} Failed ~ Unexpected Output'
 
     def test_get(self):
-        client = Clients.ImageMipmapClient(db_path=unittest_db_path)
+        client = ApiClients.ImageMipmapClient(db_path=unittest_db_path)
         result = client.get(ids=[1])
         expected = [self.__map_records()[0]]
         assert (result == expected), f'{"ImageMipmapClient"} ~ {"get"} Failed ~ Unexpected Output'
@@ -139,19 +139,19 @@ class TestTagClient(unittest.TestCase):
         ]
 
     def test_get_all(self):
-        client = Clients.TagClient(db_path=unittest_db_path)
+        client = ApiClients.TagClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = self.__tag_records()
         assert (result == expected), f'{"TagClient"} ~ {"get_all"} Failed ~ Unexpected Output'
 
     def test_get_paged(self):
-        client = Clients.TagClient(db_path=unittest_db_path)
+        client = ApiClients.TagClient(db_path=unittest_db_path)
         result = client.get_paged()
         expected = [self.__tag_records()[0]]
         assert (result == expected), f'{"TagClient"} ~ {"get_paged"} Failed ~ Unexpected Output'
 
     def test_get(self):
-        client = Clients.TagClient(db_path=unittest_db_path)
+        client = ApiClients.TagClient(db_path=unittest_db_path)
         result = client.get(ids=[1])
         expected = [self.__tag_records()[0]]
         assert (result == expected), f'{"TagClient"} ~ {"get"} Failed ~ Unexpected Output'
@@ -171,19 +171,19 @@ class TestPostClient(unittest.TestCase):
         ]
 
     def test_get_all(self):
-        client = Clients.PostClient(db_path=unittest_db_path)
+        client = ApiClients.PostClient(db_path=unittest_db_path)
         result = client.get_all()
         expected = self.__post_records()
         assert (result == expected), f'{"PostClient"} ~ {"get_all"} Failed ~ Unexpected Output'
 
     def test_get_paged(self):
-        client = Clients.PostClient(db_path=unittest_db_path)
+        client = ApiClients.PostClient(db_path=unittest_db_path)
         result = client.get_paged()
         expected = [self.__post_records()[0]]
         assert (result == expected), f'{"PostClient"} ~ {"get_paged"} Failed ~ Unexpected Output'
 
     def test_get(self):
-        client = Clients.PostClient(db_path=unittest_db_path)
+        client = ApiClients.PostClient(db_path=unittest_db_path)
         result = client.get(ids=[1])
         expected = [self.__post_records()[0]]
         assert (result == expected), f'{"PostClient"} ~ {"get"} Failed ~ Unexpected Output'

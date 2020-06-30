@@ -2,8 +2,9 @@ from os.path import join
 from typing import Union, Callable
 
 from litespeed import serve, route
-
+from src.DbUtil import Conwrapper
 import src.PathUtil as PathUtil
+from src.API.ModelClients import File as FileClient
 
 
 # Lists entry points for grabbing files; due to how route functions, we cannot go up levels,
@@ -18,6 +19,7 @@ def add_routes() -> None:
     route("js/(.*)", f=javascript, no_end_slash=True, methods=['GET'])
     route("images/(.*)", f=images, no_end_slash=True, methods=['GET'])
     route("media/(.*)", f=media, no_end_slash=True, methods=['GET'])
+    route("file/(\d+)", f=file, no_end_slash=True, methods=['GET'])
 
 
 # Convert a virtual path from the browser to a real path on the file system
@@ -52,6 +54,15 @@ def images(request, file: str):
 def media(request, file: str):
     vpath = PathUtil.media_path
     rpath = virtual_to_real_path(file, vpath)
+    return serve(rpath)
+
+
+def file(request, file: int):
+    f_client = FileClient(db_path=PathUtil.data_path('mediaserver.db'))
+    results = f_client.get(ids=[file])
+    if results is None or len(results) < 1:
+        return None, 404
+    rpath = results[0]['real_path']
     return serve(rpath)
 
 # html does not have a virtual path as we do not want to expose the raw html / pystache

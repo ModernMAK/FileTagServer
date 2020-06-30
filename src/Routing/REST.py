@@ -7,11 +7,11 @@ from pystache import Renderer
 
 import src.DbMediator as DbUtil
 from src import PathUtil
-from src.API.Clients import ImageClient, TagClient
+from src.API.ModelClients import ImagePost as ImagePostClient, Tag as TagClient
 from src.API.Models import BaseModel
 import json as json
 
-database_path = DbUtil.database_path
+database_path = PathUtil.data_path('mediaserver.db')
 GET_ONLY = ['GET']
 GET_AND_POST = ['GET', 'POST']
 POST_ONLY = ['POST']
@@ -80,18 +80,18 @@ def serve_rest(data, request_format: Tuple[Union[str, None], Union[str, None]], 
 
 
 def rest_tag_get(request, tag_id):
-    client = TagClient(database_path)
+    client = TagClient(db_path=database_path)
     request_format = __get_request_format(request)
-    results = client.get_tags(tag_ids=[int(tag_id)])
+    results = client.get(tag_ids=[int(tag_id)])
     if len(results) != 1:
         return None, 404
     return serve_rest(results[0], request_format, html_page='rest/tag.html')
 
 
 def rest_image_get(request, img_id):
-    client = ImageClient(database_path)
+    client = ImagePostClient(db_path=database_path)
     request_format = __get_request_format(request)
-    results = client.get_images(image_ids=[int(img_id)])
+    results = client.get(ids=[int(img_id)])
     if len(results) != 1:
         return None, 404
     return serve_rest(results[0], request_format, html_page='rest/image.html')
