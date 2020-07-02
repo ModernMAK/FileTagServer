@@ -25,7 +25,7 @@ def initialize_module(**kwargs):
 
 
 def add_routes():
-    route(r'/rest/image/(\d+)', no_end_slash=True, f=rest_image_get, methods=['GET'])
+    route(r'/rest/file/(\d+)', no_end_slash=True, f=rest_file_get, methods=['GET'])
     route(r'/rest/tag/(\d+)', no_end_slash=True, f=rest_tag_get, methods=['GET'])
 
 
@@ -89,10 +89,10 @@ def rest_tag_get(request, tag_id):
     return serve_rest(results[0], request_format, html_page='rest/tag.html')
 
 
-def rest_image_get(request, img_id):
+def rest_file_get(request, img_id):
     client = FilePageClient(db_path=database_path)
     request_format = __get_request_format(request)
     results = client.get(ids=[int(img_id)])
     if len(results) != 1:
         return None, 404
-    return serve_rest(results[0], request_format, html_page='rest/image.html')
+    return serve_rest(results[0], request_format, html_page='rest/file.html')

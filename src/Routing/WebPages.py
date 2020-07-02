@@ -9,7 +9,6 @@ import src.API.ModelClients as Clients
 import src.API.Models as Models
 from src import DatabaseSearch
 from src.DbUtil import Conwrapper, create_value_string, convert_tuple_to_list, create_entry_string
-from src.Routing.REST import database_path
 from src.dbmaintanence import get_legal_image_ext
 
 # define renderer
@@ -39,7 +38,7 @@ def add_routes():
     route(r"show/tag/(\d*)/", f=show_tag, methods=['GET'])
     route(r"show/tag/(\d*)/edit", f=show_tag_edit, methods=['GET'])
     route(r"show/image/search/(.*)", f=show_image_list_search, no_end_slash=True, methods=['GET'])
-    route(r"show/image/search/(\d*)/(.*)",f=show_image_list_paged_search, no_end_slash=True)
+    route(r"show/image/search/(\d*)/(.*)", f=show_image_list_paged_search, no_end_slash=True)
     route(r"show/upload/image", f=show_image_upload, methods=['GET'])
     route(r"action/upload_image", f=action_image_upload, methods=['POST'])
     route(r"action/update_tags/(\d*)", f=action_update_tags, methods=['POST'])
@@ -70,6 +69,7 @@ def show_image_index_paged(request, page: int):
 
     img_context = parse_rest_file(req_imgs, 'thumbnail')
     tags = get_unique_tags(req_imgs)
+    tags = tag_sort_by_count(tags)
     tag_context = parse_rest_tags(tags, support_search=True)
     context = {
         'TITLE': "Title",
@@ -89,7 +89,7 @@ def show_image_list_paged_search(request, page: int, search: str):
     desired_file = PathUtil.html_image_real_path("index.html")
     items = search.split()
     for i in range(len(items)):
-        items[i] = items[i].replace('_',' ')
+        items[i] = items[i].replace('_', ' ')
     search_groups = DatabaseSearch.create_simple_search_groups(items)
     query = DatabaseSearch.create_query_from_search_groups(search_groups)
     with Conwrapper(db_path=db_path) as (conn, cursor):
@@ -102,6 +102,7 @@ def show_image_list_paged_search(request, page: int, search: str):
 
     img_context = parse_rest_file(req_imgs, 'thumbnail')
     tags = get_unique_tags(req_imgs)
+    tags = tag_sort_by_count(tags)
     tag_context = parse_rest_tags(tags, support_search=True)
     context = {
         'TITLE': "Title",
@@ -112,14 +113,22 @@ def show_image_list_paged_search(request, page: int, search: str):
     return serve_formatted(desired_file, context)
 
 
-def show_image(request, img_id):
+def show_image_shared(request, img_id):
     image_client = Clients.FilePage(db_path=db_path)
     req_imgs = image_client.get(ids=[img_id])
     if req_imgs is None or len(req_imgs) < 1:
-        return serve_error(404)
+        return False, 404
     req_imgs = req_imgs[0]
     img_context = parse_rest_file(req_imgs, 'full_rez')
     tag_context = parse_rest_tags(req_imgs.tags, support_search=True)
+    return True, (img_context, tag_context)
+
+
+def show_image(request, img_id):
+    success, result = show_image_shared(request, img_id)
+    if not success:
+        return serve_error(result)
+    img_context, tag_context = result
 
     desired_file = PathUtil.html_image_real_path("page.html")
     context = {
@@ -131,13 +140,10 @@ def show_image(request, img_id):
 
 
 def show_image_edit(request, img_id):
-    image_client = Clients.FilePage(db_path=db_path)
-    req_imgs = image_client.get(ids=[img_id])
-    if req_imgs is None or len(req_imgs) < 1:
-        return serve_error(404)
-    req_imgs = req_imgs[0]
-    img_context = parse_rest_file(req_imgs, 'full_rez')
-    tag_context = parse_rest_tags(req_imgs.tags, support_search=True)
+    success, result = show_image_shared(request, img_id)
+    if not success:
+        return serve_error(result)
+    img_context, tag_context = result
 
     desired_file = PathUtil.html_image_real_path("edit.html")
     context = {
@@ -200,6 +206,13 @@ def get_unique_tags(imgs: Union[Models.Page, List[Models.Page]]) -> List[Models.
     for img in imgs:
         output_rows.update(parse(img))
     return list(output_rows)
+
+
+def tag_sort_by_count(tags: List[Models.Tag], desc: bool = True) -> List[Models.Tag]:
+    def get_count(tag: Models.Tag) -> int:
+        return tag.count
+    tags.sort(key=get_count, reverse=desc)
+    return tags
 
 
 def parse_rest_tags(tags: Union[Models.Tag, List[Models.Tag]], support_search: bool = False) -> Union[

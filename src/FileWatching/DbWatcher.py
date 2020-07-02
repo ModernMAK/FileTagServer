@@ -187,7 +187,7 @@ class DatabaseWatchCallbacks:
             query = f"INSERT INTO PAGE default values"
             cursor.execute(query)
             page_id = int(cursor.lastrowid)
-            query = f"INSERT INTO file_page (page_id, file_id)  values (page_id, file_id)"
+            query = f"INSERT INTO file_page (page_id, file_id)  values ({page_id}, {file_id})"
             cursor.execute(query)
             conn.commit()
             return file_id
@@ -215,83 +215,6 @@ class DatabaseWatchCallbacks:
         except PIL.UnidentifiedImageError:
             pass
         return True
-
-
-class TestDbCallback:
-    def __init__(self, **kwargs):
-        self.lookup = {}
-
-    def update(self):
-        return partial(self.__log_update)
-
-    def add(self):
-        return partial(self.__log_add)
-
-    def get(self):
-        return partial(self.__log_get)
-
-    def __log_update(self, id: int, path: str):
-        print(f"UPDATE: {path} ~ {id}")
-        self.lookup[path] = id
-
-    def __log_add(self, path: str) -> int:
-        values = self.lookup.values()
-        u_values = set(values)
-        next_value = 0
-        while next_value in u_values:
-            next_value += 1
-        print(f"ADD: {path} ~ {next_value}")
-        self.lookup[path] = next_value
-        return next_value
-
-    def __log_get(self, path: str) -> Union[int, None]:
-        value = self.lookup.get(path, None)
-        print(f"GET: {path} ~ {value}")
-        return value
-
-
-def create_test_watchman(**kwargs):
-    class helper:
-        def __init__(self):
-            self.lookup = {}
-
-        def update(self):
-            return partial(self.__log_update)
-
-        def add(self):
-            return partial(self.__log_add)
-
-        def get(self):
-            return partial(self.__log_get)
-
-        def __log_update(self, id: int, path: str):
-            print(f"UPDATE: {path} ~ {id}")
-            self.lookup[path] = id
-
-        def __log_add(self, path: str) -> int:
-            values = self.lookup.values()
-            u_values = set(values)
-            next_value = 0
-            while next_value in u_values:
-                next_value += 1
-            print(f"ADD: {path} ~ {next_value}")
-            self.lookup[path] = next_value
-            return next_value
-
-        def __log_get(self, path: str) -> Union[int, None]:
-            value = self.lookup.get(path, None)
-            print(f"GET: {path} ~ {value}")
-            return value
-
-    temp = helper()
-    update_callback = kwargs.get('update_callback', temp.update())
-    add_callback = kwargs.get('add_callback', temp.add())
-    get_callback = kwargs.get('get_callback', temp.get())
-
-    handler = DatabaseWatchHandler(update_callback=update_callback, add_callback=add_callback,
-                                   get_callback=get_callback)
-    return Watchman(default_handler=handler)
-
 
 def create_database_watchman(**kwargs):
     db_path = kwargs.get('config', {}).get('Launch Args', {}).get('db_path', kwargs.get('db_path',PathUtil.data_real_path('mediaserver2.db')))

@@ -1,0 +1,24 @@
+~ Move startup logic to a dedicated startup script?
+	A lot of watchdog code should probably be moved out of main and into a module.
+	Also should strip Watchman of excess code
+
+~ Fix Sidebar
+	Sidebar currently vanishes when the screen gets too small. Preferrably, should be placed underneath content
+
+~ Pagination
+	While we support paging, its hard-coded right now. Also no way of advancing pages
+
+~ Generated Content
+	Content Generation should also be moved to its own module, since its kinda all over the place
+
+~ Previews
+	We cache extension, but we should probably cache a MIME-Like attribute which describes the type of content and how we should handle it: ~ File/Music ~ File/Image ~ File/PDF ~ alternatively we can just generate the mime-like from the extension every time we fetch
+
+~ Naming / Describing Files
+	Making it look good is the hard part
+
+~ Deleting / Hiding Files
+	Adding Meta information to not track the file (hidden) or just completely deleting the file
+
+~ Tag Classes
+	Grouping tags by what they represent ~ Charachters / Franchise 
