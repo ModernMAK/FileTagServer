@@ -7,6 +7,9 @@ from pystache import Renderer
 import src.PathUtil as PathUtil
 import src.API.ModelClients as Clients
 import src.API.Models as Models
+from src import DatabaseSearch
+from src.DbUtil import Conwrapper, create_value_string, convert_tuple_to_list, create_entry_string
+from src.Routing.REST import database_path
 from src.dbmaintanence import get_legal_image_ext
 
 # define renderer
@@ -35,7 +38,8 @@ def add_routes():
     route(r"show/tag/index/(\d*)", f=show_tag_index_paged, methods=['GET'])
     route(r"show/tag/(\d*)/", f=show_tag, methods=['GET'])
     route(r"show/tag/(\d*)/edit", f=show_tag_edit, methods=['GET'])
-
+    route(r"show/image/search/(.*)", f=show_image_list_search, no_end_slash=True, methods=['GET'])
+    route(r"show/image/search/(\d*)/(.*)",f=show_image_list_paged_search, no_end_slash=True)
     route(r"show/upload/image", f=show_image_upload, methods=['GET'])
     route(r"action/upload_image", f=action_image_upload, methods=['POST'])
     route(r"action/update_tags/(\d*)", f=action_update_tags, methods=['POST'])
@@ -83,13 +87,22 @@ def show_image_list_search(request, search: str):
 # @route(f"show/image/search/(\d*)/([\w%'\s]*)", no_end_slash=True)
 def show_image_list_paged_search(request, page: int, search: str):
     desired_file = PathUtil.html_image_real_path("index.html")
-    req_imgs = DbUtil.search_imgs(search, 50, page)
-    img_id_list = []
-
-    req_tags = DbUtil.get_imgs_tags_from_imgs(req_imgs)
+    items = search.split()
+    for i in range(len(items)):
+        items[i] = items[i].replace('_',' ')
+    search_groups = DatabaseSearch.create_simple_search_groups(items)
+    query = DatabaseSearch.create_query_from_search_groups(search_groups)
+    with Conwrapper(db_path=db_path) as (conn, cursor):
+        paged_query = f"{query} LIMIT 50 OFFSET {page * 50}"
+        cursor.execute(paged_query)
+        results = cursor.fetchall()
+    ids = convert_tuple_to_list(results)
+    file_client = Clients.FilePage(db_path=db_path)
+    req_imgs = file_client.get(page_ids=ids)
 
     img_context = parse_rest_file(req_imgs, 'thumbnail')
-    tag_context = parse_rest_tags(req_tags, support_search=True)
+    tags = get_unique_tags(req_imgs)
+    tag_context = parse_rest_tags(tags, support_search=True)
     context = {
         'TITLE': "Title",
         'FILES': img_context,
@@ -118,18 +131,20 @@ def show_image(request, img_id):
 
 
 def show_image_edit(request, img_id):
-    desired_file = PathUtil.html_image_real_path("edit.html")
-    img_data = DbUtil.get_img(img_id)
-    if not img_data:
+    image_client = Clients.FilePage(db_path=db_path)
+    req_imgs = image_client.get(ids=[img_id])
+    if req_imgs is None or len(req_imgs) < 1:
         return serve_error(404)
-    tag_data = DbUtil.get_img_tags(img_id)
+    req_imgs = req_imgs[0]
+    img_context = parse_rest_file(req_imgs, 'full_rez')
+    tag_context = parse_rest_tags(req_imgs.tags, support_search=True)
 
-    img_ext, img_w, img_h = img_data
+    desired_file = PathUtil.html_image_real_path("edit.html")
     context = {
         'TITLE': "Title",
-        'TAG_LIST': parse_rest_tags(tag_data)
+        'TAG_LIST': tag_context
     }
-    context.update(parse_rest_file(img_data))
+    context.update(img_context)
     return serve_formatted(desired_file, context)
 
 
@@ -137,11 +152,13 @@ def show_tag_index(request):
     return show_tag_index_paged(request, 0)
 
 
-def parse_rest_file(file_pages: Union[Models.FilePage, List[Models.FilePage]], image_file_name: str) -> Union[Dict[str, object], List[Dict[str, object]]]:
+def parse_rest_file(file_pages: Union[Models.FilePage, List[Models.FilePage]], image_file_name: str) -> Union[
+    Dict[str, object], List[Dict[str, object]]]:
     def parse(file_page: Models.FilePage):
         base = {
             'PAGE_PATH': f"/show/image/{file_page.file_page_id}",
-            'PAGE_ID': file_page.file_page_id
+            'PAGE_ID': file_page.page_id,
+            'FILE_PAGE_ID': file_page.file_page_id
         }
         alt = ''
         if file_page.description is not None:
@@ -259,16 +276,48 @@ def action_image_upload(request):
         return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{last_id}"}, )
 
 
-def action_update_tags(request, img_id: int):
+def action_update_tags(request, file_id: int):
     desired_file = PathUtil.html_real_path("redirect.html")
     req = request['POST']
+
     tag_box = req['tags']
+    page_id = req['page_id']
     lines = tag_box.splitlines()
     for i in range(0, len(lines)):
         lines[i] = lines[i].strip()
-    DbUtil.add_missing_tags(lines)
-    DbUtil.set_img_tags(img_id, lines)
-    return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{img_id}"}, )
+    add_missing_tags(lines)
+    set_img_tags(page_id, lines)
+    return serve_formatted(desired_file, {"REDIRECT_URL": f"/show/image/{file_id}"}, )
+
+
+def add_missing_tags(tag_list: List[str]):
+    with Conwrapper(db_path) as (con, cursor):
+        values = create_value_string(tag_list)
+        # Should be one execute, but this is easier to code
+        # tag_name is a unique column, and should err if we insert an illegal value
+        cursor.execute(f"INSERT OR IGNORE INTO tag(name) VALUES {values}")
+        con.commit()
+
+
+def set_img_tags(page_id: int, tag_list: List[str]) -> None:
+    with Conwrapper(db_path) as (con, cursor):
+        values = create_entry_string(tag_list)
+
+        # Get tag_ids to set
+        cursor.execute(f"SELECT id FROM tag WHERE name IN {values}")
+        rows = cursor.fetchall()
+        tag_id_list = convert_tuple_to_list(rows)
+        tag_id_collection = create_entry_string(tag_id_list)
+        cursor.execute(
+            f"DELETE FROM tag_map where page_id = {page_id} and tag_id NOT IN {tag_id_collection}")
+
+        pairs = []
+        for tag_id in tag_id_list:
+            pairs.append((page_id, tag_id))
+        values = create_value_string(pairs)
+        cursor.execute(f"INSERT OR IGNORE INTO tag_map (page_id, tag_id) VALUES {values}")
+
+        con.commit()
 
 
 def action_image_search(request):

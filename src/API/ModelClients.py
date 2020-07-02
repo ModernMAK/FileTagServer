@@ -35,6 +35,13 @@ def get_unique_helper(rows: List[Dict[str, Any]], key: str) -> Set[Any]:
         unique.add(row[key])
     return unique
 
+def get_unique_helper2(rows: Dict[str, List[Any]]) -> Set[Any]:
+    unique = set()
+    for value in rows.values():
+        for v in value:
+            unique.add(v)
+    return unique
+
 
 def group_dicts_on_key(list_dict: List[Dict[Any, Any]], key: str) -> Dict[Any, List[Dict[Any, Any]]]:
     result = {}
@@ -118,7 +125,7 @@ class Page(BaseClient):
         unique_pages = get_unique_helper(formatted, 'id')
         tag_client = Tag(db_path=self.db_path)
         formatted_tag_map = tag_client.get_map(page_ids=unique_pages)
-        unique_tags = formatted_tag_map.keys()
+        unique_tags = get_unique_helper2(formatted_tag_map)
         tag_table = create_tag_table(tag_client.get(ids=unique_tags))
 
         # RETURN ASSEMBLED MODELS
@@ -139,16 +146,22 @@ class FilePage(BaseClient):
         page_size = kwargs.get('page_size', None)
         offset = kwargs.get('offset', None)
         requested_ids = kwargs.get('ids', None)
+        requested_page_ids = kwargs.get('page_ids', None)
 
         # ASSEMBLE QUERY
         query = f"SELECT id, page_id, file_id from file_page"
-        if any(v is not None for v in [requested_ids]):
+        if any(v is not None for v in [requested_ids,requested_page_ids]):
             query += " where"
             append_or = False
             if requested_ids is not None:
                 if append_or:
                     query += " or"
                 query += f" file_page.id in {create_entry_string(requested_ids)}"
+                append_or = True
+            if requested_page_ids is not None:
+                if append_or:
+                    query += " or"
+                query += f" file_page.page_id in {create_entry_string(requested_page_ids)}"
                 append_or = True
 
         if page_size is not None:
@@ -209,7 +222,7 @@ class Tag(BaseClient):
 
     def get_map(self, **kwargs) -> Dict[int, List[int]]:
         allowed_pages = create_entry_string(kwargs.get('page_ids', []))
-        query = f"SELECT tag_map.page_id, tag_map.id from tag_map where tag_map.page_id in {allowed_pages}"
+        query = f"SELECT tag_map.page_id, tag_map.tag_id from tag_map where tag_map.page_id in {allowed_pages}"
         rows = self._perform_select(query)
         mapping = ("page_id", "tag_id")
         formatted = tuple_to_dict(rows, mapping)
@@ -221,6 +234,7 @@ class Tag(BaseClient):
                 result[page] = []
             result[page].append(tag)
         return result
+
 
 
 class File(BaseClient):

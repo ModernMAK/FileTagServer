@@ -2,7 +2,6 @@ from typing import List
 
 
 class BaseModel:
-
     def __iter__(self):
         d = self.to_dictionary()
         for k in d:
@@ -20,7 +19,13 @@ class Page(BaseModel):
         self.__id = kwargs.get('id', None)
         self.name = kwargs.get('name', None)
         self.description = kwargs.get('description', None)
-        self.tags = kwargs.get('tags', None)
+        tags = kwargs.get('tags', None)
+        if tags is None:
+            self.tags = None
+        else:
+            self.tags = []
+            for tag in tags:
+                self.tags.append(Tag(**tag))
 
     @property
     def page_id(self):
