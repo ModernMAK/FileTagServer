@@ -23,55 +23,65 @@ def join_helper(root_dir: str, html_dir: str, requested_path: Union[str, None]) 
         return path.join(root_dir, html_dir)
 
 
-def web_path(requested_path: str = None) -> str:
+def web_real_path(requested_path: str = None) -> str:
     root_dir = project_root()
     html_dir = "web"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def html_path(requested_path: str = None) -> str:
-    root_dir = web_path()
+def html_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
     html_dir = "html"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def css_path(requested_path: str = None) -> str:
-    root_dir = web_path()
+def css_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
     html_dir = "css"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def js_path(requested_path: str = None) -> str:
-    root_dir = web_path()
+def js_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
     html_dir = "js"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def media_path(requested_path: str = None) -> str:
-    root_dir = web_path()
+def media_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
     html_dir = "media"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def image_path(requested_path: str = None) -> str:
-    root_dir = media_path()
+def image_real_path(requested_path: str = None) -> str:
+    root_dir = media_real_path()
     html_dir = "images"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def data_path(requested_path: str = None) -> str:
-    root_dir = web_path()
+def data_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
     html_dir = "data"
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def html_image_path(requested_path: str = None) -> str:
-    root_dir = html_path()
+def html_image_real_path(requested_path: str = None) -> str:
+    root_dir = html_real_path()
     html_dir = 'image'
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def html_tag_path(requested_path: str = None) -> str:
-    root_dir = html_path()
+def html_tag_real_path(requested_path: str = None) -> str:
+    root_dir = html_real_path()
     html_dir = "tag"
     return join_helper(root_dir, html_dir, requested_path)
+
+
+def dynamic_generated_real_path(requested_path: str = None) -> str:
+    root_dir = web_real_path()
+    html_dir = path.join('dynamic', 'generated')
+    return join_helper(root_dir, html_dir, requested_path)
+
+
+def dynamic_generated_virtual_path(requested_path: str = None) -> str:
+    return path.join('dyn/gen', requested_path)

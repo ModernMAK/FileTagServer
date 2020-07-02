@@ -9,6 +9,8 @@ from watchdog.events import DirMovedEvent, FileMovedEvent, \
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+DEBUG_FILE_MODE = True
+
 
 # The watchman, keeper of the watchdogs
 # Honestly i know why its a watchdog,
@@ -118,7 +120,7 @@ class WatchmanHandlerPlus(WatchmanHandler):
 
     def path_in_whitelist(self, path):
         _, ext = splitext(path)
-        self.ext_in_whitelist(ext)
+        return self.ext_in_whitelist(ext)
 
     def ext_in_whitelist(self, extension):
         if self.extension_whitelist is None:
@@ -134,11 +136,18 @@ class WatchmanHandlerPlus(WatchmanHandler):
         else:
             if self.path_in_whitelist(event.src_path):
                 self.on_file_renamed(event)
+            else:
+                if DEBUG_FILE_MODE:
+                    print(f"BLACKLISTED: {event.src_path}")
 
     def on_file_renamed(self, event: FileMovedEvent):
-        pass
+        print(f"F_Renamed: {event.src_path} -> {event.dest_path}")
+
+    pass
 
     def on_dir_renamed(self, event: DirMovedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"D_Renamed: {event.src_path} -> {event.dest_path}")
         pass
 
     def on_created(self, event: Union[DirCreatedEvent, FileCreatedEvent]):
@@ -149,11 +158,18 @@ class WatchmanHandlerPlus(WatchmanHandler):
         else:
             if self.path_in_whitelist(event.src_path):
                 self.on_file_found(event)
+            else:
+                if DEBUG_FILE_MODE:
+                    print(f"BLACKLISTED: {event.src_path}")
 
     def on_file_found(self, event: FileCreatedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"F_Found: {event.src_path}")
         pass
 
     def on_dir_found(self, event: DirCreatedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"D_Found: {event.src_path}")
         pass
 
     def on_deleted(self, event: Union[DirDeletedEvent, FileDeletedEvent]):
@@ -164,11 +180,18 @@ class WatchmanHandlerPlus(WatchmanHandler):
         else:
             if self.path_in_whitelist(event.src_path):
                 self.on_file_lost(event)
+            else:
+                if DEBUG_FILE_MODE:
+                    print(f"BLACKLISTED: {event.src_path}")
 
     def on_file_lost(self, event: FileDeletedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"F_LOST: {event.src_path}")
         pass
 
     def on_dir_lost(self, event: DirDeletedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"D_Lost: {event.src_path}")
         pass
 
     def on_modified(self, event: Union[DirModifiedEvent, FileModifiedEvent]):
@@ -179,9 +202,16 @@ class WatchmanHandlerPlus(WatchmanHandler):
         else:
             if self.path_in_whitelist(event.src_path):
                 self.on_file_changed(event)
+            else:
+                if DEBUG_FILE_MODE:
+                    print(f"BLACKLISTED: {event.src_path}")
 
     def on_file_changed(self, event: FileModifiedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"F_Changed: {event.src_path}")
         pass
 
     def on_dir_changed(self, event: DirModifiedEvent):
+        if DEBUG_FILE_MODE:
+            print(f"D_Changed: {event.src_path}")
         pass

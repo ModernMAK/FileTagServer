@@ -18,12 +18,12 @@
         <div class="content" id="right-col">
             <div>
                 <img alt="{{IMG_ALT}}" height="{{IMG_HEIGHT}}" width="{{IMG_WIDTH}}"
-                     src="/images/posts/{{IMG_ID}}/hirez.{{IMG_EXT}}">
+                     src="/images/posts/{{PAGE_ID}}/hirez.{{IMG_EXT}}">
             </div>
         </div>
         <div>
             <b>Tag List</b>
-            <form action="/action/update_tags/{{IMG_ID}}" method="post">
+            <form action="/action/update_tags/{{PAGE_ID}}" method="post">
                 <label for="tags">Enter one tag per new line:</label>
                 <textarea rows="10" cols="100" id="tags"
                           name="tags">{{#TAG_LIST}}{{TAG_NAME}}&#13;&#10;{{/TAG_LIST}}</textarea>

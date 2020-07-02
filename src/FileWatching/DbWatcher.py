@@ -3,20 +3,28 @@ import os
 from os.path import splitext, exists
 from typing import Union
 
+import PIL
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent, FileDeletedEvent
 from functools import partial
-from src.WatchMan import Watchman, WatchmanHandlerPlus
 
+from src import PathUtil
+from src.ImageUtil import convert_to_imageset
+from src.WatchMan import Watchman, WatchmanHandlerPlus
+from src.DbUtil import sanitize, Conwrapper
+
+FILE_DEBUG_MODE = True
 
 class DatabaseWatchHandler(WatchmanHandlerPlus):
     # update_callback: Union[None, Callable[[int, str], Any]]
     # add_callback: Union[None, Callable[[str], int]]
     # get_callback: Union[None, Callable[[str], Union[None,int]]]
+    # gen_content_callback: Union[None, Callable[[str], bool]
     def __init__(self, **kwargs):
         super().__init__()
         self.update_callback = kwargs.get('update_callback')
         self.add_callback = kwargs.get('add_callback')
         self.get_callback = kwargs.get('get_callback')
+        self.gen_content_callback = kwargs.get('gen_content_callback')
 
     @staticmethod
     def __is_meta(path: str):
@@ -42,6 +50,8 @@ class DatabaseWatchHandler(WatchmanHandlerPlus):
             return None
 
     def on_file_lost(self, event: FileDeletedEvent):
+        if FILE_DEBUG_MODE:
+            print(f"LOST: {event.src_path}")
         file_path = event.src_path
         meta_path = file_path
         if DatabaseWatchHandler.__is_meta(file_path):
@@ -50,6 +60,8 @@ class DatabaseWatchHandler(WatchmanHandlerPlus):
             self.__perform_get(file_path, meta_path)
 
     def on_file_found(self, event: FileCreatedEvent):
+        if FILE_DEBUG_MODE:
+            print(f"FOUND: {event.src_path}")
         file_path = event.src_path
         meta_path = file_path
         if DatabaseWatchHandler.__is_meta(file_path):
@@ -60,6 +72,8 @@ class DatabaseWatchHandler(WatchmanHandlerPlus):
         self.__found_logic(file_path, meta_path)
 
     def on_file_renamed(self, event: FileMovedEvent):
+        if FILE_DEBUG_MODE:
+            print(f"RENAMED: {event.src_path} -> {event.dest_path}")
         old = event.src_path
         new = event.dest_path
         if DatabaseWatchHandler.__is_meta(old):
@@ -72,11 +86,15 @@ class DatabaseWatchHandler(WatchmanHandlerPlus):
             return
 
     def on_file_modified(self, event: FileModifiedEvent):
+        if FILE_DEBUG_MODE:
+            print(f"MODIFIED: {event.src_path}")
         file_path = event.src_path
         meta_path = file_path
         if DatabaseWatchHandler.__is_meta(file_path):
             file_path = DatabaseWatchHandler.__get_file_path(meta_path)
         else:
+            if self.gen_content_callback is not None:
+                self.gen_content_callback(file_path)
             return
 
         self.__found_logic(file_path, meta_path)
@@ -139,6 +157,99 @@ class DatabaseWatchHandler(WatchmanHandlerPlus):
             self.__perform_add(data_path, meta_path)
 
 
+class DatabaseWatchCallbacks:
+    def __init__(self, **kwargs):
+        self.db_path = kwargs.get('db_path')
+
+    def get_args(self, **kwargs):
+        kwargs['update_callback'] = partial(self.update_file_path)
+        kwargs['add_callback'] = partial(self.add_file)
+        kwargs['get_callback'] = partial(self.get_file)
+        kwargs['gen_content_callback'] = partial(self.gen_content_for_file)
+        return kwargs
+
+    def update_file_path(self, id: int, new_path: str):
+        new_path = sanitize(new_path)
+        id = int(id)
+        query = f"UPDATE FILE SET path = {new_path} where id = {id}"
+        with Conwrapper(db_path=self.db_path) as (conn, cursor):
+            cursor.execute(query)
+            conn.commit()
+
+    def add_file(self, path: str):
+        _, ext = splitext(path)
+        ext = sanitize(ext.lstrip('.'))
+        path = sanitize(path)
+        with Conwrapper(db_path=self.db_path) as (conn, cursor):
+            query = f"INSERT INTO FILE (path, extension) VALUES ({path}, {ext})"
+            cursor.execute(query)
+            file_id = int(cursor.lastrowid)
+            query = f"INSERT INTO PAGE default values"
+            cursor.execute(query)
+            page_id = int(cursor.lastrowid)
+            query = f"INSERT INTO file_page (page_id, file_id)  values (page_id, file_id)"
+            cursor.execute(query)
+            conn.commit()
+            return file_id
+
+    def get_file(self, path: str) -> Union[int, None]:
+        path = sanitize(path)
+        with Conwrapper(db_path=self.db_path) as (conn, cursor):
+            query = f"SELECT id from file where path = {path}"
+            cursor.execute(query)
+            result = cursor.fetch()
+            if result is not None:
+                (file_id,) = result
+                return file_id
+
+    def gen_content_for_file(self, path: str) -> bool:
+        id = self.get_file(path)
+        if id is None:
+            return False
+        gen_folder = PathUtil.dynamic_generated_real_path(f'file/{int(id)}')
+        try:
+            real_path = path
+            _, ext = splitext(real_path)
+            with PIL.Image.open(real_path) as img:
+                convert_to_imageset(img, gen_folder, ext)
+        except PIL.UnidentifiedImageError:
+            pass
+        return True
+
+
+class TestDbCallback:
+    def __init__(self, **kwargs):
+        self.lookup = {}
+
+    def update(self):
+        return partial(self.__log_update)
+
+    def add(self):
+        return partial(self.__log_add)
+
+    def get(self):
+        return partial(self.__log_get)
+
+    def __log_update(self, id: int, path: str):
+        print(f"UPDATE: {path} ~ {id}")
+        self.lookup[path] = id
+
+    def __log_add(self, path: str) -> int:
+        values = self.lookup.values()
+        u_values = set(values)
+        next_value = 0
+        while next_value in u_values:
+            next_value += 1
+        print(f"ADD: {path} ~ {next_value}")
+        self.lookup[path] = next_value
+        return next_value
+
+    def __log_get(self, path: str) -> Union[int, None]:
+        value = self.lookup.get(path, None)
+        print(f"GET: {path} ~ {value}")
+        return value
+
+
 def create_test_watchman(**kwargs):
     class helper:
         def __init__(self):
@@ -183,43 +294,8 @@ def create_test_watchman(**kwargs):
 
 
 def create_database_watchman(**kwargs):
-    class GetAsd:
-        def __init__(self):
-            self.lookup = {}
-
-        def update(self):
-            return partial(self.__log_update)
-
-        def add(self):
-            return partial(self.__log_add)
-
-        def get(self):
-            return partial(self.__log_get)
-
-        def __log_update(self, id: int, path: str):
-            print(f"UPDATE: {path} ~ {id}")
-            self.lookup[path] = id
-
-        def __log_add(self, path: str) -> int:
-            values = self.lookup.values()
-            u_values = set(values)
-            next_value = 0
-            while next_value in u_values:
-                next_value += 1
-            print(f"ADD: {path} ~ {next_value}")
-            self.lookup[path] = next_value
-            return next_value
-
-        def __log_get(self, path: str) -> Union[int, None]:
-            value = self.lookup.get(path, None)
-            print(f"GET: {path} ~ {value}")
-            return value
-
-    temp = GetAsd()
-    update_callback = kwargs.get('update_callback', temp.update())
-    add_callback = kwargs.get('add_callback', temp.add())
-    get_callback = kwargs.get('get_callback', temp.get())
-
-    handler = DatabaseWatchHandler(update_callback=update_callback, add_callback=add_callback,
-                                   get_callback=get_callback)
+    db_path = kwargs.get('config', {}).get('Launch Args', {}).get('db_path', kwargs.get('db_path',PathUtil.data_real_path('mediaserver2.db')))
+    temp = DatabaseWatchCallbacks(db_path=db_path)
+    handler_kwargs = temp.get_args()
+    handler = DatabaseWatchHandler(**handler_kwargs)
     return Watchman(default_handler=handler)

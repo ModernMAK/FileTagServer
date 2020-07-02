@@ -30,9 +30,10 @@
                     <!--<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">-->
                     <!--<span>Tag Search</span>-->
                     <!--</h6>-->
-                    <form class="form-inline" action="/action/image/search"  method="post">
+                    <form class="form-inline" action="/action/image/search" method="post">
                         <div class="input-group">
-                            <input type="text" class="form-control" placeholder="tags" value="{{SEARCH}}" id="tagsearchbox"
+                            <input type="text" class="form-control" placeholder="tags" value="{{SEARCH}}"
+                                   id="tagsearchbox"
                                    name="search">
                             <div class="input-group-append">
                                 <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
@@ -45,15 +46,22 @@
         </div>
         <div class="col-md-10">
             <div class="row">
-                {{#IMG_LIST}}
+                {{#FILES}}
                 <div class="col-md-3 col-sm-4 col-xs-6 d-flex"
-                     style="background:#ffc107;border: 2px solid #0f0f0f">
-                    <a href="/show/image/{{IMG_ID}}" class="mx-auto my-auto">
-                        <img alt="{{IMG_ALT}}" src="{{IMG_PATH}}"
+                     style="background:#ffc107;border: 2px solid #0f0f0f; min-height: 256px; min-width: 256px">
+                    <a href="{{PAGE_PATH}}" class="mx-auto my-auto">
+                        {{#IMG}}
+                        <img alt="{{ALT}}" src="/{{PATH}}"
                              style="max-width: 100%; max-height: 100%;">
+                        {{/IMG}}
+                        {{#FILE}}
+                        <div style="background:#b1ccd5;border: 2px solid #5e6b6c; min-width: 64px; min-height: 64px; text-align: center">
+                            No Preview Available<br>{{EXTENSION}}<br>{{ALT}}
+                        </div>
+                        {{/FILE}}
                     </a>
                 </div>
-                {{/IMG_LIST}}
+                {{/FILES}}
             </div>
         </div>
     </div>

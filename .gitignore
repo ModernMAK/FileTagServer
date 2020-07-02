@@ -4,3 +4,4 @@ __pycache__/
 venv/*
 .idea/*
 node_modules/*
+web/dynamic/generated/*

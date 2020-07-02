@@ -5,26 +5,28 @@ from litespeed import route, serve
 import dicttoxml
 from pystache import Renderer
 
-import src.DbMediator as DbUtil
 from src import PathUtil
-from src.API.ModelClients import ImagePost as ImagePostClient, Tag as TagClient
+from src.API.ModelClients import FilePage as FilePageClient, Tag as TagClient
 from src.API.Models import BaseModel
 import json as json
 
-database_path = PathUtil.data_path('mediaserver.db')
-GET_ONLY = ['GET']
-GET_AND_POST = ['GET', 'POST']
-POST_ONLY = ['POST']
+database_path = None
 renderer = None
 
 
-def add_routes():
-    route(r'/rest/image/(\d+)', no_end_slash=True, f=rest_image_get, methods=GET_ONLY)
-    route(r'/rest/tag/(\d+)', no_end_slash=True, f=rest_tag_get, methods=GET_ONLY)
-
+def initialize_module(**kwargs):
     global renderer
-    renderer = Renderer(search_dirs=PathUtil.html_path("templates"))
-    pass
+    global database_path
+    config = kwargs.get('config', {})
+    launch_args = config.get('Launch Args', {})
+    search_dirs = launch_args.get('template_dirs', [PathUtil.html_real_path("templates")])
+    renderer = Renderer(search_dirs=search_dirs)
+    database_path = launch_args.get('db_path', PathUtil.data_real_path('mediaserver.db'))
+
+
+def add_routes():
+    route(r'/rest/image/(\d+)', no_end_slash=True, f=rest_image_get, methods=['GET'])
+    route(r'/rest/tag/(\d+)', no_end_slash=True, f=rest_tag_get, methods=['GET'])
 
 
 def __convert_to_dict_list(info_list: List[BaseModel]) -> List[Dict[str, Any]]:
@@ -63,7 +65,7 @@ def serve_rest(data, request_format: Tuple[Union[str, None], Union[str, None]], 
     if request_format == 'html':
         if html_page is not None:
             context = data
-            body, status, header = serve(PathUtil.html_path(html_page))
+            body, status, header = serve(PathUtil.html_real_path(html_page))
             if status == 200:
                 body = renderer.render(body, context)
             return body, status, header
@@ -78,7 +80,6 @@ def serve_rest(data, request_format: Tuple[Union[str, None], Union[str, None]], 
             return body, 400
 
 
-
 def rest_tag_get(request, tag_id):
     client = TagClient(db_path=database_path)
     request_format = __get_request_format(request)
@@ -89,7 +90,7 @@ def rest_tag_get(request, tag_id):
 
 
 def rest_image_get(request, img_id):
-    client = ImagePostClient(db_path=database_path)
+    client = FilePageClient(db_path=database_path)
     request_format = __get_request_format(request)
     results = client.get(ids=[int(img_id)])
     if len(results) != 1:

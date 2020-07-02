@@ -32,15 +32,22 @@
                 </h6>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/show/image/{{IMG_ID}}/edit">Edit Tags</a>
+                        <a class="nav-link active" href="/show/image/{{PAGE_ID}}/edit">Edit Tags</a>
                     </li>
                 </ul>
             </div>
         </nav>
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <img alt="{{IMG_ALT}}" height="100%" width="100%"
-                     src="/images/posts/{{IMG_ID}}/hirez.{{IMG_EXT}}">
+                {{#IMG}}
+                        <img alt="{{ALT}}" src="/{{PATH}}"
+                             style="max-width: 100%; max-height: 100%;">
+                {{/IMG}}
+                {{#FILE}}
+                <div style="background:#b1ccd5;border: 2px solid #5e6b6c; min-width: 64px; min-height: 64px; text-align: center">
+                    No Preview Available<br>{{EXTENSION}}<br>{{ALT}}
+                </div>
+                {{/FILE}}
             </div>
         </main>
     </div>
@@ -51,11 +58,11 @@
 <!--<div class="content" id="right-col">-->
 <!--<div>-->
 <!--<img alt="{{IMG_ALT}}" height="{{IMG_HEIGHT}}" width="{{IMG_WIDTH}}"-->
-<!--src="/images/posts/{{IMG_ID}}/hirez.{{IMG_EXT}}">-->
+<!--src="/images/posts/{{PAGE_ID}}/hirez.{{IMG_EXT}}">-->
 <!--</div>-->
 <!--</div>-->
 <!--<div>-->
-<!--<a href="/show/image/{{IMG_ID}}/edit">Edit Tags</a>-->
+<!--<a href="/show/image/{{PAGE_ID}}/edit">Edit Tags</a>-->
 <!--</div>-->
 <!--</div>-->
 <!--</div>-->

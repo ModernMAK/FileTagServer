@@ -69,31 +69,33 @@ def enforce_dirs_exists(file_path: str):
         pass
 
 
-def convert_to_imageset(img: Image, save_path: str) -> None:
-    save_name, ext = splitext(save_path)
+def convert_to_imageset(img: Image, save_path: str, extension:str) -> None:
 
     def get_thumbnail_size(scale):
         return img.width * scale, img.height * scale
 
     def get_img_name(name: str):
-        return path.join(f"{save_name}", f"{name}{ext}")
+        return path.join(f"{save_path}", f"{name}.{extension}")
 
     def helper(name: str, scale=1.0, size=None):
-        with img.copy() as copy:
-            path = get_img_name(name)
+        try:
+            with img.copy() as copy:
+                path = get_img_name(name)
 
-            if size is None and scale != 1.0:
-                size = get_thumbnail_size(scale)
-            if size is not None:
-                copy.thumbnail(size)
+                if size is None and scale != 1.0:
+                    size = get_thumbnail_size(scale)
+                if size is not None:
+                    copy.thumbnail(size)
 
-            enforce_dirs_exists(path)
-            copy.save(path)
+                enforce_dirs_exists(path)
+                copy.save(path)
+        except KeyError:
+            pass
 
-    helper("hirez", 1)
-    helper("midrez", 0.5)
-    helper("lorez", 0.25)
-    helper("thumb", size=(256, 256))
+    helper("full_rez", 1)
+    # helper("half_rez", 0.5)
+    # helper("quarter_rez", 0.25)
+    helper("thumbnail", size=(256, 256))
 
 
 def convert_db_images(db_path: str):
