@@ -141,9 +141,9 @@ class WatchmanHandlerPlus(WatchmanHandler):
                     print(f"BLACKLISTED: {event.src_path}")
 
     def on_file_renamed(self, event: FileMovedEvent):
-        print(f"F_Renamed: {event.src_path} -> {event.dest_path}")
-
-    pass
+        if DEBUG_FILE_MODE:
+            print(f"F_Renamed: {event.src_path} -> {event.dest_path}")
+        pass
 
     def on_dir_renamed(self, event: DirMovedEvent):
         if DEBUG_FILE_MODE:

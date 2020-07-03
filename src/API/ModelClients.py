@@ -78,12 +78,10 @@ class BaseClient:
             return None
 
     def _perform_count(self, select_query: str):
-        # if os.path.exists(self.db_path):
-        #     print(f"EXISTS: {self.db_path}")
         try:
             with Conwrapper(self.db_path) as (con, cursor):
                 cursor.execute(f"SELECT COUNT(*) FROM ({select_query})")
-                count, = cursor.fetch()  # COMMA IS IMPORTANT, untuples the fetch call
+                count, = cursor.fetchone()  # COMMA IS IMPORTANT, untuples the fetch call
                 return count
         except sqlite3.DatabaseError as e:
             print(str(e))

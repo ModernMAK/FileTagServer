@@ -7,9 +7,12 @@
 
 ~ Pagination
 	While we support paging, its hard-coded right now. Also no way of advancing pages
+	UPDATE: Now supported on Images (should be renamed to files)
+	UPDATE: Looks prettier
 
 ~ Generated Content
 	Content Generation should also be moved to its own module, since its kinda all over the place
+	UPDATE: Content Gen now supported
 
 ~ Previews
 	We cache extension, but we should probably cache a MIME-Like attribute which describes the type of content and how we should handle it: ~ File/Music ~ File/Image ~ File/PDF ~ alternatively we can just generate the mime-like from the extension every time we fetch
@@ -22,3 +25,11 @@
 
 ~ Tag Classes
 	Grouping tags by what they represent ~ Charachters / Franchise 
+
+~ META BUG
+	We seem to recreate meta files over and over again (.meta.meta.meta.*) so fix that
+	UPDATE: Seems to have been fixed previously, and metas were not cleaned up
+
+~ Rename show/image to show/file
+	Simple as that, for consistancy
+	UPDATE: Done

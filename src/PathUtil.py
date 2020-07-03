@@ -65,9 +65,9 @@ def data_real_path(requested_path: str = None) -> str:
     return join_helper(root_dir, html_dir, requested_path)
 
 
-def html_image_real_path(requested_path: str = None) -> str:
+def html_file_real_path(requested_path: str = None) -> str:
     root_dir = html_real_path()
-    html_dir = 'image'
+    html_dir = 'file'
     return join_helper(root_dir, html_dir, requested_path)
 
 
