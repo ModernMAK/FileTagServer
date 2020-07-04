@@ -2,11 +2,11 @@ from time import sleep
 from typing import List
 
 from litespeed import start_with_args
-import src.Routing.VirtualAccessPoints as Vap
-import src.Routing.REST as rest
-import src.Routing.WebPages as WebPages
+import src.Routing.virtual_access_points as Vap
+import src.Routing.rest as rest
+import src.Routing.web_pages as WebPages
 import configparser
-import src.FileWatching.DbWatcher as DbWatcher
+import src.FileWatching.db_watcher as DbWatcher
 import src.dbmaintanence as DbMaintenence
 
 
@@ -38,7 +38,9 @@ def launch_prep(**kwargs):
         for path in watch_paths:
             DbMaintenence.add_all_files(path)
             DbMaintenence.fix_missing_pages()
-            DbMaintenence.rebuild_missing_file_generated_content(dont_rebuilt=True)
+            DbMaintenence.rebuild_missing_file_generated_content(
+                rebuild=False,
+                supress_error_ignore=False)
         print("Finished Adding Initial Files")
     print("Creating Missing Meta Files")
     DbMaintenence.gen_missing_meta_files()

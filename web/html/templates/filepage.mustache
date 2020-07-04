@@ -1,0 +1,38 @@
+<div class="card">
+    <h1 class="card-header">{{#page_name}}{{page_name}}{{/page_name}}{{^page_name}}'Untitled Page'{{/page_name}}</h1>
+    {{#image}}
+        <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}">
+    {{/image}}
+    {{#document}}
+        <embed class="card-img-top" src="/{{source_path}}" height="256px" width=”256”
+               type="application/pdf"/>
+    {{/document}}
+    {{#unsupported}}
+        <div class="card-body">
+            <div style="min-width: 64px; min-height: 64px; text-align: center">
+                No Preview Available{{#EXTENSION}}<br>{{EXTENSION}}{{/EXTENSION}}{{#ALT}}<br>{{ALT}}{{/ALT}}
+            </div>
+
+        </div>
+    {{/unsupported}}
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+            <h4 class="card-title">Description</h4>
+            <div class="card-text">
+                {{#page_description}}{{page_description}}{{/page_description}}{{^page_description}}
+                No Description Given{{/page_description}}
+            </div>
+        </li>
+        {{#file_info}}
+            <li class="list-group-item">
+                <h4 class="card-title">File Info</h4>
+                <h6 class="card-title">Name</h6>
+                <div class="card-text">{{#name}}{{name}}{{/name}}{{^name}}Not Specified{{/name}}</div>
+                <h6 class="card-title">Internal ID</h6>
+                <div class="card-text">{{#id}}{{id}}{{/id}}{{^id}}Not Specified{{/id}}</div>
+            </li>
+        {{/file_info}}
+    </ul>
+
+</div>
+

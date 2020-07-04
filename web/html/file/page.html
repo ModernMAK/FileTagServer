@@ -21,7 +21,7 @@
 {{> navbar}}
 <div id="content">
     <div class="row">
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="sidebar-sticky pt-3">
                 {{> sidebar_taglist}}
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
@@ -37,26 +37,11 @@
                 </ul>
             </div>
         </nav>
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
-            <div class="row">
-                <h1>{{PAGE_NAME}}</h1>
-            </div>
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                {{#IMG}}
-                <img alt="{{ALT}}" src="/{{PATH}}"
-                     style="max-width: 100%; max-height: 100%;">
-                {{/IMG}}
-                {{#FILE}}
-                <div style="background:#b1ccd5;border: 2px solid #5e6b6c; min-width: 64px; min-height: 64px; text-align: center">
-                    No Preview Available<br>{{EXTENSION}}<br>{{ALT}}
-                </div>
-                {{/FILE}}
-            </div>
-            <div class="row">
-                <h6>Description</h6><br>
-                <div>{{#PAGE_DESCRIPTION}}{{PAGE_DESCRIPTION}}{{/PAGE_DESCRIPTION}}{{^PAGE_DESCRIPTION}}No Description Given{{/PAGE_DESCRIPTION}}</div>
-            </div>
-        </main>
+        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+            <main role="main" class="container">
+                {{> filepage}}
+            </main>
+        </div>
     </div>
 </div>
 

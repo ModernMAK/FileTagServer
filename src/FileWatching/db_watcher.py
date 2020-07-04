@@ -8,7 +8,7 @@ from functools import partial
 
 from src import PathUtil
 from src.Content.ContentGen import ContentGenerator
-from src.FileWatching.WatchMan import Watchman, WatchmanHandlerPlus
+from src.FileWatching.watch_man import Watchman, WatchmanHandlerPlus
 from src.DbUtil import sanitize, Conwrapper
 
 FILE_DEBUG_MODE = True

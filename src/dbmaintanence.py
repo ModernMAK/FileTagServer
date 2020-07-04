@@ -95,7 +95,7 @@ def fix_file_ext_in_db():
         conn.commit()
 
 
-def rebuild_missing_file_generated_content(dont_rebuilt: bool = False):
+def rebuild_missing_file_generated_content(rebuild: bool = False, supress_error_ignore: bool = False):
     with dbutil.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT id, path, extension from file"
         cursor.execute(query)
@@ -107,14 +107,12 @@ def rebuild_missing_file_generated_content(dont_rebuilt: bool = False):
             meta = MetaUtility.read_ini(meta_path)
             skip = MetaUtility.pathed_get(meta, 'Error.ignore', False)
             gen_folder = PathUtil.dynamic_generated_real_path(f'file/{id}')
-            if os.path.exists(gen_folder) and dont_rebuilt:
-                continue
-            if skip:
+            if not supress_error_ignore and skip:
                 print(f"Skipping: {id}\t{path}\n\tPreviously Generated an Error")
                 continue
 
             print(f"Generating: {id}\t{path}")
-            passed, failed, total = cg.generate(path, gen_folder)
+            passed, failed, total = cg.generate(path, gen_folder, rebuild=rebuild)
             if total == 0:
                 print(f"\tNot Supported")
             elif failed == 0:

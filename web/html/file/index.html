@@ -24,72 +24,82 @@
 <div id="content">
     <div class="row">
         <div class="col-md-3">
-            <nav id="sidebarMenu" class="d-md-block bg-light sidebar collapse">
+            <nav id="sidebarMenu" class="d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
                     <!-- Search form -->
                     <!--<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">-->
                     <!--<span>Tag Search</span>-->
                     <!--</h6>-->
-                    <form class="form-inline" action="/action/image/search" method="post">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="tags" value="{{SEARCH}}"
-                                   id="tagsearchbox"
-                                   name="search">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
+                    <div class="container">
+                        <form class="form-inline" action="/show/file/search" method="get">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="" value="{{SEARCH}}"
+                                       id="tagsearchbox"
+                                       name="search">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                     {{> sidebar_taglist}}
                 </div>
             </nav>
         </div>
+
         <div class="col-md-9">
-            {{> pagination}}
-            <div class="row">
-                {{#FILES}}
-                <!--                <div class="col-md-3 col-sm-4 col-xs-6 d-flex"-->
-                <!--                     style="background:#ffc107;border: 2px solid #0f0f0f; min-height: 256px; min-width: 256px">-->
-                <!--                    <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">-->
-                <!--                        {{#IMG}}-->
-                <!--                        <img alt="{{ALT}}" src="/{{PATH}}"-->
-                <!--                             style="max-width: 100%; max-height: 100%;">-->
-                <!--                        {{/IMG}}-->
-                <!--                        {{#FILE}}-->
-                <!--                        <div style="background:#b1ccd5;border: 2px solid #5e6b6c; min-width: 64px; min-height: 64px; text-align: center">-->
-                <!--                            No Preview Available<br>{{EXTENSION}}<br>{{#ALT}}{{ALT}}{{/ALT}}-->
-                <!--                        </div>-->
-                <!--                        {{/FILE}}-->
-                <!--                    </a>-->
-                <!--                </div>-->
-                <div class="col-md-3 col-sm-2 col-xs-1">
-                <div class="card">
-                    <h6 class="card-header">{{#PAGE_NAME}}{{PAGE_NAME}}{{/PAGE_NAME}}{{^PAGE_NAME}}'Untitled
-                        Page'{{/PAGE_NAME}}</h6>
-                    <div class="card-body">
-                        <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">
-                            {{#IMG}}
-                            <img class="card-img" alt="{{ALT}}" src="/{{PATH}}">
-                            {{/IMG}}
-                            {{#FILE}}
-                            <div style="min-width: 64px; min-height: 64px; text-align: center">
-                                No Preview Available{{#EXTENSION}}<br>{{EXTENSION}}{{/EXTENSION}}{{#ALT}}<br>{{ALT}}{{/ALT}}
-                            </div>
-                            {{/FILE}}
-                        </a>
+            <main class="container">
+                {{> pagination}}
+                <div class="justify-content-center">
+                    <!--                <div class="card-deck justify-content-center">-->
+                    <div class="container">
+                        <div class="row">
+                            {{#FILES}}
+                            {{> filepage_card}}
+<!--                            <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3 py-2">-->
+<!--                                &lt;!&ndash;                <div class="col-md-3 col-sm-2 col-xs-1">&ndash;&gt;-->
+<!--                                &lt;!&ndash;                    <div class="my-auto">&ndash;&gt;-->
+<!--                                <div class="card mb-4 h-100">-->
+<!--                                    &lt;!&ndash;                        <div class="card-block">&ndash;&gt;-->
+<!--                                    <h6 class="card-header">-->
+<!--                                        {{#PAGE_NAME}}{{PAGE_NAME}}{{/PAGE_NAME}}{{^PAGE_NAME}}'Untitled-->
+<!--                                        Page'{{/PAGE_NAME}}</h6>-->
+
+<!--                                    {{#IMG}}-->
+<!--                                    <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">-->
+<!--                                        <img class="card-img-top" alt="{{ALT}}" src="/{{PATH}}"-->
+<!--                                             style="max-height: 256px; max-width: 256px">-->
+<!--                                    </a>-->
+<!--                                    {{/IMG}}-->
+<!--                                    {{#FILE}}-->
+<!--                                    <div class="card-body align-content-center">-->
+<!--                                        <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">-->
+<!--                                            <div class="card-text text-center">-->
+<!--                                                No Preview-->
+<!--                                                Available{{#EXTENSION}}<br>{{EXTENSION}}{{/EXTENSION}}{{#ALT}}<br>{{ALT}}{{/ALT}}-->
+<!--                                            </div>-->
+<!--                                        </a>-->
+<!--                                    </div>-->
+<!--                                    {{/FILE}}-->
+<!--                                    &lt;!&ndash;                    </div>&ndash;&gt;-->
+<!--                                    &lt;!&ndash;                        </div>&ndash;&gt;-->
+<!--                                </div>-->
+<!--                            </div>-->
+                            {{/FILES}}
+                        </div>
                     </div>
+                    <!--                </div>-->
                 </div>
-                </div>
-                {{/FILES}}
-            </div>
-            {{> pagination}}
+                {{> pagination}}
+            </main>
         </div>
     </div>
+</div>
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <!--<script src="/js/node-jquery.js"></script>-->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="/js/bootstrap.bundle.js"></script>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
 </body>
 </html>

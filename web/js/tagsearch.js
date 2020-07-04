@@ -1,11 +1,12 @@
-function addTagToSearchBox(searchboxId, escapedTagName) {
+function addAndTagToSearchBox(searchboxId, escapedTagName) {
     let searchbox = document.getElementById(searchboxId);
-    searchbox.value += escapedTagName + " ";
+    searchbox.value += "" + escapedTagName + " ";
 }
-
-function removeTagToSearchBox(searchboxId, escapedTagName) {
+function addOrTagToSearchBox(searchboxId, escapedTagName) {
     let searchbox = document.getElementById(searchboxId);
-    searchbox.value += "Not " + escapedTagName + " ";
-
-
+    searchbox.value += "~" + escapedTagName + " ";
+}
+function addNotTagToSearchBox(searchboxId, escapedTagName) {
+    let searchbox = document.getElementById(searchboxId);
+    searchbox.value += "-" + escapedTagName + " ";
 }
