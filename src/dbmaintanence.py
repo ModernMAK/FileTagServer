@@ -1,5 +1,4 @@
 import configparser
-from os.path import splitext
 
 import src.DbUtil as dbutil
 import src.PathUtil as pathutil
@@ -7,8 +6,9 @@ import os
 
 from src import PathUtil
 from src.API.ModelClients import tuple_to_dict
-import PIL
-from src.ImageUtil import convert_to_imageset, enforce_dirs_exists
+from src.Content import MetaUtility
+
+from src.Content.ContentGen import ContentGenerator
 
 db_path = pathutil.data_real_path('mediaserver2.db')
 
@@ -16,12 +16,10 @@ db_path = pathutil.data_real_path('mediaserver2.db')
 def get_file_info(path: str):
     _, ext = os.path.splitext(path)
     ext = ext.lstrip('.')
-    return (path, ext)
+    return path, ext
 
 
 def add_all_files(path: str):
-    # path = pathutil.image_path('posts')
-    # print(path)
     values = []
     for root, directories, files in os.walk(path):
         for file in files:
@@ -70,6 +68,7 @@ def fix_missing_pages():
         conn.commit()
 
 
+# noinspection SqlResolve
 def fix_file_ext_in_db():
     with dbutil.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT id, path from file"
@@ -96,41 +95,35 @@ def fix_file_ext_in_db():
         conn.commit()
 
 
-def get_legal_image_ext():
-    return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']
-
-
-def rebuild_missing_file_generated_content(dont_rebuilt: bool = False):
+def rebuild_missing_file_generated_content(rebuild: bool = False, supress_error_ignore: bool = False):
     with dbutil.Conwrapper(db_path) as (conn, cursor):
-        legal_images = get_legal_image_ext()
         query = f"SELECT id, path, extension from file"
         cursor.execute(query)
         rows = cursor.fetchall()
+        cg = ContentGenerator.get_default()
         for row in rows:
             id, path, extension = row
+            meta_path = path + '.meta'
+            meta = MetaUtility.read_ini(meta_path)
+            skip = MetaUtility.pathed_get(meta, 'Error.ignore', False)
             gen_folder = PathUtil.dynamic_generated_real_path(f'file/{id}')
-            if os.path.exists(gen_folder) and dont_rebuilt:
+            if not supress_error_ignore and skip:
+                print(f"Skipping: {id}\t{path}\n\tPreviously Generated an Error")
                 continue
 
-            if extension.lower() in legal_images:
-                enforce_dirs_exists(gen_folder)
-                try:
-                    real_path = path
-                    _, ext = splitext(real_path)
-                    with PIL.Image.open(real_path) as img:
-                        convert_to_imageset(img, gen_folder, extension)
-                except PIL.UnidentifiedImageError as e:
-                    print(e)
-                    pass
-                except PIL.Image.DecompressionBombError as e:
-                    print(e)
-                    pass
-                except OSError as e:
-                    print(e)
-                    pass
-                except ValueError as e:
-                    print(e)
-                    pass
+            print(f"Generating: {id}\t{path}")
+            passed, failed, total = cg.generate(path, gen_folder, rebuild=rebuild)
+            if total == 0:
+                print(f"\tNot Supported")
+            elif failed == 0:
+                print(f"\tGenerated")
+                MetaUtility.write_error_ignore(meta, False)
+                MetaUtility.write_ini(meta, meta_path)
+            else:
+                print(f"\tGenerated With Errors")
+                print(f"\tShould have skipped: {skip}")
+                MetaUtility.write_error_ignore(meta, True)
+                MetaUtility.write_ini(meta, meta_path)
 
 
 if __name__ == '__main__':

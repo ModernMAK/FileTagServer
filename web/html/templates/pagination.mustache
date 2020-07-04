@@ -1,0 +1,14 @@
+<nav class="row mx-auto w-50 justify-content-center">
+    <ul class="pagination">
+        {{#PAGES}}
+            {{#PAGE}}
+                <li class="page-item {{STATUS}}">
+                    <a href="/{{PATH}}" class="page-link">{{SYMBOL}}</a>
+                </li>
+            {{/PAGE}}
+            {{#RAW}}
+                <li class="page-item {{STATUS}}"><span class="page-link">{{SYMBOL}}</span></li>
+            {{/RAW}}
+        {{/PAGES}}
+    </ul>
+</nav>

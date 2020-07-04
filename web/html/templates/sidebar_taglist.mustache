@@ -1,21 +1,26 @@
-<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-    <span>Tags</span>
-</h6>
-<ul class="nav flex-column">
+<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">Tags</h6>
+<ul class="nav">
     {{#TAG_LIST}}
         <li class="nav-item">
             <div class="nav-link active">
-                <a class="d-inline-block" href="/show/tag/{{TAG_ID}}">{{TAG_NAME}}</a>
-                <div class="float-right">
-
-                    <span class=" text-muted">{{TAG_COUNT}}</span>
+                <div class="btn-group">
+                    <a class href="/show/tag/{{TAG_ID}}">
+                        <button class="btn-outline-primary">{{TAG_NAME}} <span
+                                class="badge badge-secondary">{{TAG_COUNT}}</span></button>
+                    </a>
+                </div>
+                <div class="btn-group">
                     {{#TAG_SEARCH_SUPPORT}}
-                        <button class="btn-outline-success" style="width: 28px"
-                                onclick="addTagToSearchBox('{{SEARCH_ID}}','{{ESC_TAG_NAME}}')">+
+                        <button class="btn-outline-success"
+                                onclick="addAndTagToSearchBox('{{SEARCH_ID}}','{{ESC_TAG_NAME}}')"><b>+</b>
                         </button>
 
-                        <button class="btn-outline-danger" style="width: 28px"
-                                onclick="removeTagToSearchBox('{{SEARCH_ID}}','{{ESC_TAG_NAME}}')">+
+                        <button class="btn-outline-info"
+                                onclick="addOrTagToSearchBox('{{SEARCH_ID}}','{{ESC_TAG_NAME}}')"><b>~</b>
+                        </button>
+
+                        <button class="btn-outline-danger"
+                                onclick="addNotTagToSearchBox('{{SEARCH_ID}}','{{ESC_TAG_NAME}}')"><b>-</b>
                         </button>
                     {{/TAG_SEARCH_SUPPORT}}
                 </div>

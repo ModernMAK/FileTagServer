@@ -3,16 +3,16 @@ import os
 from os.path import splitext, exists
 from typing import Union
 
-import PIL
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent, FileDeletedEvent
 from functools import partial
 
 from src import PathUtil
-from src.ImageUtil import convert_to_imageset
-from src.WatchMan import Watchman, WatchmanHandlerPlus
+from src.Content.ContentGen import ContentGenerator
+from src.FileWatching.watch_man import Watchman, WatchmanHandlerPlus
 from src.DbUtil import sanitize, Conwrapper
 
 FILE_DEBUG_MODE = True
+
 
 class DatabaseWatchHandler(WatchmanHandlerPlus):
     # update_callback: Union[None, Callable[[int, str], Any]]
@@ -207,17 +207,19 @@ class DatabaseWatchCallbacks:
         if id is None:
             return False
         gen_folder = PathUtil.dynamic_generated_real_path(f'file/{int(id)}')
+        cg = ContentGenerator.get_default()
         try:
-            real_path = path
-            _, ext = splitext(real_path)
-            with PIL.Image.open(real_path) as img:
-                convert_to_imageset(img, gen_folder, ext)
-        except PIL.UnidentifiedImageError:
-            pass
-        return True
+            cg.generate(path, gen_folder)
+            return True
+        except Exception as e:
+            print(e)
+            raise
+
 
 def create_database_watchman(**kwargs):
-    db_path = kwargs.get('config', {}).get('Launch Args', {}).get('db_path', kwargs.get('db_path',PathUtil.data_real_path('mediaserver2.db')))
+    db_path = kwargs.get('config', {}).get('Launch Args', {}).get('db_path', kwargs.get('db_path',
+                                                                                        PathUtil.data_real_path(
+                                                                                            'mediaserver2.db')))
     temp = DatabaseWatchCallbacks(db_path=db_path)
     handler_kwargs = temp.get_args()
     handler = DatabaseWatchHandler(**handler_kwargs)

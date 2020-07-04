@@ -1,0 +1,38 @@
+<div class="col-sm-6 col-md-5 col-lg-4 col-xl-3 py-2">
+    <div class="card mb-4 h-100">
+        <h6 class="card-header">
+            {{#page_name}}{{page_name}}{{/page_name}}{{^page_name}}'Untitled Page'{{/page_name}}</h6>
+
+        {{#image}}
+            <a href="/{{page_path}}" class="mx-auto my-auto">
+                <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}"
+                     style="max-height: 256px; max-width: 256px">
+            </a>
+        {{/image}}
+
+        {{#document}}
+            <a href="/{{page_path}}" class="mx-auto my-auto">
+                <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}"
+                     style="max-height: 256px; max-width: 256px">
+            </a>
+        {{/document}}
+<!--        {{#document}}-->
+<!--            <a href="/{{page_path}}" class="mx-auto my-auto">-->
+<!--                <embed class="card-img-top" src="/{{source_path}}" height="256px" width=”256”-->
+<!--                       type="application/pdf"/>-->
+<!--            </a>-->
+<!--        {{/document}}-->
+        {{#unsupported}}
+            <div class="card-body align-content-center">
+                <a href="/{{page_path}}" class="mx-auto my-auto">
+                    <div class="card-text text-center">
+                        No Preview Available{{#extension}}<br>{{extension}}{{/extension}}{{#alternate_text}}
+                        <br>{{alternate_text}}{{/alternate_text}}
+                    </div>
+                </a>
+            </div>
+        {{/unsupported}}
+        <!--                    </div>-->
+        <!--                        </div>-->
+    </div>
+</div>

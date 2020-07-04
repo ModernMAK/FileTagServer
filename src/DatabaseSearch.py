@@ -19,11 +19,11 @@ def create_simple_search_groups(search: List[str]) -> (List[str], List[str], Lis
     ors = []
     for item in search:
         if item[0] == SEARCH_NOT:
-            nots.append(item)
+            nots.append(item[1:])
         elif item[0] == SEARCH_OR:
-            ors.append(item)
+            ors.append(item[1:])
         elif item[0] == SEARCH_AND:
-            ands.append(item)
+            ands.append(item[1:])
         else:
             ands.append(item)
     return ors, ands, nots
@@ -42,7 +42,9 @@ def create_query_from_search_groups(groups: Tuple[List[str], List[str], List[str
     if nots is not None and len(nots) > 0:
         if require_intersect:
             result_query += " INTERSECT"
-        result_query += f" {select_query} where tag.name NOT IN {DbUtil.create_entry_string(nots)}"
+        result_query += f" {select_query}"
+        result_query += " EXCEPT"
+        result_query += f" {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
         require_intersect = True
     if ands is not None and len(ands) > 0:
         for single_and in ands:
