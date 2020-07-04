@@ -8,7 +8,6 @@ from pystache import Renderer
 from src import PathUtil
 from src.API.ModelClients import FilePage as FilePageClient, Tag as TagClient
 from src.API.Models import BaseModel
-import json as json
 
 database_path = None
 renderer = None
