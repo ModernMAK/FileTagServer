@@ -5,9 +5,11 @@ from litespeed import route, serve
 import dicttoxml
 from pystache import Renderer
 
-from src import PathUtil
-from src.API.ModelClients import FilePage as FilePageClient, Tag as TagClient
-from src.API.Models import BaseModel
+from src.Routing.virtual_access_points import RequiredVap
+from src.util import path_util, dict_util
+from src.API.model_clients import FilePage as FilePageClient, Tag as TagClient
+from src.API.models import BaseModel
+from src.util.dict_util import DictFormat
 
 database_path = None
 renderer = None
@@ -18,9 +20,9 @@ def initialize_module(**kwargs):
     global database_path
     config = kwargs.get('config', {})
     launch_args = config.get('Launch Args', {})
-    search_dirs = launch_args.get('template_dirs', [PathUtil.html_real_path("templates")])
+    search_dirs = launch_args.get('template_dirs', [RequiredVap.html_real("templates")])
     renderer = Renderer(search_dirs=search_dirs)
-    database_path = launch_args.get('db_path', PathUtil.data_real_path('mediaserver.db'))
+    database_path = launch_args.get('db_path', RequiredVap.html_real('mediaserver.db'))
 
 
 def add_routes():
@@ -37,41 +39,30 @@ def __convert_to_dict_list(info_list: List[BaseModel]) -> List[Dict[str, Any]]:
     return results
 
 
-def __get_request_format(request):
+def __get_request_format(request) -> Union[DictFormat, None]:
     get_args = request['GET']
-    return get_args.get('format', 'html')
-
-
-def format_data(data, request_format):
-    if request_format == 'json':
-        return json.dumps(data)
-    elif request_format == 'xml':
-        return dicttoxml.dicttoxml(data)
-    elif request_format == 'ini':
-        config = configparser.ConfigParser()
-        config.read_dict({'ROOT': data})
-        with StringIO() as stream:
-            config.write(stream)
-            return stream.getvalue()
-    else:
+    format = get_args.get('format', 'html')
+    try:
+        return DictFormat[format]
+    except:
         return None
 
 
-def serve_rest(data, request_format: Tuple[Union[str, None], Union[str, None]], html_page=None):
+def serve_rest(data: Any, request_format: DictFormat, html_page=None):
     if not isinstance(data, dict):
         data = dict(data)
 
-    if request_format == 'html':
+    if request_format is None:
         if html_page is not None:
             context = data
-            body, status, header = serve(PathUtil.html_real_path(html_page))
+            body, status, header = serve(RequiredVap.rest_html_real_def(html_page))
             if status == 200:
                 body = renderer.render(body, context)
             return body, status, header
         else:
             return data
     else:
-        body = format_data(data, request_format)
+        body = dict_util.dict_to_str(data, request_format)
 
         if body is not None:
             return body, 200
@@ -85,7 +76,7 @@ def rest_tag_get(request, tag_id):
     results = client.get(tag_ids=[int(tag_id)])
     if len(results) != 1:
         return None, 404
-    return serve_rest(results[0], request_format, html_page='rest/tag.html')
+    return serve_rest(results[0], request_format, html_page='tag.html')
 
 
 def rest_file_get(request, img_id):
@@ -94,4 +85,4 @@ def rest_file_get(request, img_id):
     results = client.get(ids=[int(img_id)])
     if len(results) != 1:
         return None, 404
-    return serve_rest(results[0], request_format, html_page='rest/file.html')
+    return serve_rest(results[0], request_format, html_page='file.html')

@@ -1,6 +1,6 @@
 # Convert String to Boolean Search
 from typing import List, Tuple
-import src.DbUtil as DbUtil
+import src.util.db_util as DbUtil
 
 # Google uses - for NOT and OR for or, AND is probably inferred since i didnt see anything
 SEARCH_NOT = '-'

@@ -6,15 +6,16 @@ from typing import Union
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent, FileDeletedEvent
 from functools import partial
 
-from src import PathUtil
-from src.Content.ContentGen import ContentGenerator
-from src.FileWatching.watch_man import Watchman, WatchmanHandlerPlus
-from src.DbUtil import sanitize, Conwrapper
+from src.Routing.virtual_access_points import VirtualAccessPoints as VAP, RequiredVap
+from src.util import path_util
+from src.content.content_gen import ContentGeneration
+from src.FileWatching.watch_man import Watchman, WatchmanHandler
+from src.util.db_util import sanitize, Conwrapper
 
 FILE_DEBUG_MODE = True
 
 
-class DatabaseWatchHandler(WatchmanHandlerPlus):
+class DatabaseWatchHandler(WatchmanHandler):
     # update_callback: Union[None, Callable[[int, str], Any]]
     # add_callback: Union[None, Callable[[str], int]]
     # get_callback: Union[None, Callable[[str], Union[None,int]]]
@@ -206,20 +207,18 @@ class DatabaseWatchCallbacks:
         id = self.get_file(path)
         if id is None:
             return False
-        gen_folder = PathUtil.dynamic_generated_real_path(f'file/{int(id)}')
-        cg = ContentGenerator.get_default()
+        gen_folder = RequiredVap.dynamic_generated_real(f'file/{id}')
         try:
-            cg.generate(path, gen_folder)
-            return True
+            return ContentGeneration.generate(path, gen_folder)
         except Exception as e:
             print(e)
             raise
 
 
 def create_database_watchman(**kwargs):
-    db_path = kwargs.get('config', {}).get('Launch Args', {}).get('db_path', kwargs.get('db_path',
-                                                                                        PathUtil.data_real_path(
-                                                                                            'mediaserver2.db')))
+    db_path = kwargs.get('config', {}) \
+        .get('Launch Args', {}) \
+        .get('db_path', kwargs.get('db_path', RequiredVap.data_real('mediaserver2.db')))
     temp = DatabaseWatchCallbacks(db_path=db_path)
     handler_kwargs = temp.get_args()
     handler = DatabaseWatchHandler(**handler_kwargs)

@@ -1,3 +1,4 @@
+import distutils.util
 from typing import List
 
 
@@ -186,3 +187,31 @@ class Tag(BaseModel):
         for part in parts:
             result = (result * prime_b) + hash(part)
         return result
+
+
+class FileMeta(BaseModel):
+    def __init__(self, **kwargs):
+        self.id = int(kwargs.get('File', {}).get('id'))
+        self.ignore = kwargs.get('File', {}).get('ignore')
+        self.error_ignore = kwargs.get('Error', {}).get('ignore')
+
+        if self.ignore is not None:
+            self.ignore = bool(distutils.util.strtobool(self.ignore))
+        if self.error_ignore is not None:
+            self.error_ignore = bool(distutils.util.strtobool(self.error_ignore))
+
+    def from_dictionary(self, **kwargs):
+        self.__init__(**kwargs)
+
+    def to_dictionary(self):
+        return {
+            'File': {
+                'id': self.id,
+                'ignore': self.ignore,
+            },
+            'Error':
+                {
+                    'ignore': self.error_ignore
+                }
+
+        }

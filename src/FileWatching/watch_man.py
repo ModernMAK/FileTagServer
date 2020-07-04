@@ -1,6 +1,4 @@
-from os.path import splitext
 from typing import Union, Tuple, List
-# these types are imported for primarily for typing, and
 from watchdog.events import DirMovedEvent, FileMovedEvent, \
     DirCreatedEvent, FileCreatedEvent, \
     DirDeletedEvent, FileDeletedEvent, \
@@ -9,13 +7,7 @@ from watchdog.events import DirMovedEvent, FileMovedEvent, \
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-DEBUG_FILE_MODE = True
 
-
-# The watchman, keeper of the watchdogs
-# Honestly i know why its a watchdog,
-# but im also disapointed i cant make a who watches the watchmen joke
-# Also this wrapper tracks individual watches to make
 class Watchman:
     def __init__(self, **kwargs):
         self.observer = kwargs.get('observer', Observer())
@@ -41,7 +33,6 @@ class Watchman:
 
     # Ill come up with a better way of doing this later
     def unwatch(self, path: str, recursive: bool = False):
-
         for watch in self.watchlist:
             if watch.path == path and watch.is_recursive == recursive:
                 self.observer.unschedule(watch)
@@ -70,63 +61,8 @@ class Watchman:
 
 
 class WatchmanHandler(FileSystemEventHandler):
-    def __init__(self):
-        pass
-
-    def on_modified(self, event: Union[DirModifiedEvent, FileModifiedEvent]):
-        # Directory moved
-        if isinstance(event, DirModifiedEvent):
-            raise NotImplementedError
-        # File moved
-        else:
-            raise NotImplementedError
-
-    def on_created(self, event: Union[DirCreatedEvent, FileCreatedEvent]):
-        # Directory moved
-        if isinstance(event, DirCreatedEvent):
-            raise NotImplementedError
-        # File moved
-        else:
-            raise NotImplementedError
-
-    def on_delete(self, event: Union[DirDeletedEvent, FileDeletedEvent]):
-        # Directory moved
-        if isinstance(event, DirDeletedEvent):
-            raise NotImplementedError
-        # File moved
-        else:
-            raise NotImplementedError
-
-    def on_moved(self, event: Union[DirMovedEvent, FileMovedEvent]):
-        # Directory moved
-        if isinstance(event, DirMovedEvent):
-            raise NotImplementedError
-        # File moved
-        else:
-            raise NotImplementedError
-
-
-class WatchmanHandlerPlus(WatchmanHandler):
     def __init__(self, **kwargs):
-        super().__init__()
-        self.extension_whitelist = kwargs.get('extension_whitelist', None)
-        if self.extension_whitelist:
-            for i in range(len(self.extension_whitelist)):
-                value = self.extension_whitelist[i]
-                value = value.lower()
-                if len(value) > 0 and value[0] != '.':
-                    value = f".{value}"
-                self.extension_whitelist[i] = value
-
-    def path_in_whitelist(self, path):
-        _, ext = splitext(path)
-        return self.ext_in_whitelist(ext)
-
-    def ext_in_whitelist(self, extension):
-        if self.extension_whitelist is None:
-            return True
-        else:
-            return extension in self.extension_whitelist
+        self.log_events = kwargs.get('log_events', False)
 
     def on_moved(self, event: Union[DirMovedEvent, FileMovedEvent]):
         # Directory moved
@@ -134,19 +70,15 @@ class WatchmanHandlerPlus(WatchmanHandler):
             self.on_dir_renamed(event)
         # File moved
         else:
-            if self.path_in_whitelist(event.src_path):
-                self.on_file_renamed(event)
-            else:
-                if DEBUG_FILE_MODE:
-                    print(f"BLACKLISTED: {event.src_path}")
+            self.on_file_renamed(event)
 
     def on_file_renamed(self, event: FileMovedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"F_Renamed: {event.src_path} -> {event.dest_path}")
         pass
 
     def on_dir_renamed(self, event: DirMovedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"D_Renamed: {event.src_path} -> {event.dest_path}")
         pass
 
@@ -156,19 +88,15 @@ class WatchmanHandlerPlus(WatchmanHandler):
             self.on_dir_found(event)
         # File moved
         else:
-            if self.path_in_whitelist(event.src_path):
-                self.on_file_found(event)
-            else:
-                if DEBUG_FILE_MODE:
-                    print(f"BLACKLISTED: {event.src_path}")
+            self.on_file_found(event)
 
     def on_file_found(self, event: FileCreatedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"F_Found: {event.src_path}")
         pass
 
     def on_dir_found(self, event: DirCreatedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"D_Found: {event.src_path}")
         pass
 
@@ -178,19 +106,15 @@ class WatchmanHandlerPlus(WatchmanHandler):
             self.on_dir_lost(event)
         # File moved
         else:
-            if self.path_in_whitelist(event.src_path):
-                self.on_file_lost(event)
-            else:
-                if DEBUG_FILE_MODE:
-                    print(f"BLACKLISTED: {event.src_path}")
+            self.on_file_lost(event)
 
     def on_file_lost(self, event: FileDeletedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"F_LOST: {event.src_path}")
         pass
 
     def on_dir_lost(self, event: DirDeletedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"D_Lost: {event.src_path}")
         pass
 
@@ -200,18 +124,14 @@ class WatchmanHandlerPlus(WatchmanHandler):
             self.on_dir_changed(event)
         # File moved
         else:
-            if self.path_in_whitelist(event.src_path):
-                self.on_file_changed(event)
-            else:
-                if DEBUG_FILE_MODE:
-                    print(f"BLACKLISTED: {event.src_path}")
+            self.on_file_changed(event)
 
     def on_file_changed(self, event: FileModifiedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"F_Changed: {event.src_path}")
         pass
 
     def on_dir_changed(self, event: DirModifiedEvent):
-        if DEBUG_FILE_MODE:
+        if self.log_events:
             print(f"D_Changed: {event.src_path}")
         pass

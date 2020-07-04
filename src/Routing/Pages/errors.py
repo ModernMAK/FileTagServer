@@ -1,9 +1,10 @@
 from typing import Tuple, Dict
 
-from litespeed import register_error_page, serve
+from litespeed import serve, register_error_page
+from litespeed.server import App
 from pystache import Renderer
 
-from src import PathUtil
+from src.Routing.virtual_access_points import RequiredVap
 from src.Routing.Pages.page_utils import reformat_serve
 
 renderer = None
@@ -13,17 +14,18 @@ def initialize_module(**kwargs):
     global renderer
     config = kwargs.get('config', {})
     launch_args = config.get('Launch Args', {})
-    search_dirs = launch_args.get('template_dirs', [PathUtil.html_real_path("templates")])
+    search_dirs = launch_args.get('template_dirs', [RequiredVap.html_real("templates")])
     renderer = Renderer(search_dirs=search_dirs)
 
 
 # hardcoded for now
 def add_routes():
     pass
+#     App.register_error_route(404, function=error_404)
 
 
 def serve_error(error_path, context=None) -> Tuple[bytes, int, Dict[str, str]]:
-    served = serve(PathUtil.html_real_path(f"error/{error_path}.html"))
+    served = serve(RequiredVap.html_real(f"error/{error_path}.html"))
     return reformat_serve(renderer, served, context)
 
 

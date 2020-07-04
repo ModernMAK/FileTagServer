@@ -1,16 +1,14 @@
 import configparser
 
-import src.DbUtil as dbutil
-import src.PathUtil as pathutil
+from src.util import path_util, db_util, dict_util, collection_util
 import os
+from src.content import content_gen
+from src.API import models
+from src.util import path_util
+from src.util.dict_util import DictFormat
+from src.Routing.virtual_access_points import RequiredVap
 
-from src import PathUtil
-from src.API.ModelClients import tuple_to_dict
-from src.Content import MetaUtility
-
-from src.Content.ContentGen import ContentGenerator
-
-db_path = pathutil.data_real_path('mediaserver2.db')
+db_path = RequiredVap.data_real('mediaserver2.db')
 
 
 def get_file_info(path: str):
@@ -27,15 +25,15 @@ def add_all_files(path: str):
             path, ext = get_file_info(full_file)
             if ext.lower() != 'meta':
                 values.append((path, ext))
-    value_str = dbutil.create_value_string(values)
-    with dbutil.Conwrapper(db_path) as (conn, cursor):
+    value_str = db_util.create_value_string(values)
+    with db_util.Conwrapper(db_path) as (conn, cursor):
         query = f"INSERT OR IGNORE INTO file (path, extension) VALUES {value_str}"
         cursor.execute(query)
         conn.commit()
 
 
 def gen_missing_meta_files():
-    with dbutil.Conwrapper(db_path) as (conn, cursor):
+    with db_util.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT id, path from file"
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -51,13 +49,13 @@ def gen_missing_meta_files():
 
 
 def fix_missing_pages():
-    with dbutil.Conwrapper(db_path) as (conn, cursor):
+    with db_util.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT file.id, file_page.id from file" \
                 f" left join file_page on file.id = file_page.file_id"
         cursor.execute(query)
         rows = cursor.fetchall()
         mapping = ('file_id', 'file_page_id')
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
         for row in formatted:
             if row['file_page_id'] is None:
                 query = f"INSERT INTO page DEFAULT VALUES"
@@ -70,7 +68,7 @@ def fix_missing_pages():
 
 # noinspection SqlResolve
 def fix_file_ext_in_db():
-    with dbutil.Conwrapper(db_path) as (conn, cursor):
+    with db_util.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT id, path from file"
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -82,7 +80,7 @@ def fix_file_ext_in_db():
         query = f"CREATE TEMP TABLE tmp_file_fixed (id integer, extension tinytext)"
         cursor.execute(query)
 
-        values = dbutil.create_value_string(fixed)
+        values = db_util.create_value_string(fixed)
         query = f"INSERT INTO tmp_file_fixed (id, extension) VALUES {values}"
         cursor.execute(query)
 
@@ -96,38 +94,30 @@ def fix_file_ext_in_db():
 
 
 def rebuild_missing_file_generated_content(rebuild: bool = False, supress_error_ignore: bool = False):
-    with dbutil.Conwrapper(db_path) as (conn, cursor):
+    with db_util.Conwrapper(db_path) as (conn, cursor):
         query = f"SELECT id, path, extension from file"
         cursor.execute(query)
         rows = cursor.fetchall()
-        cg = ContentGenerator.get_default()
         for row in rows:
             id, path, extension = row
             meta_path = path + '.meta'
-            meta = MetaUtility.read_ini(meta_path)
-            skip = MetaUtility.pathed_get(meta, 'Error.ignore', False)
-            gen_folder = PathUtil.dynamic_generated_real_path(f'file/{id}')
-            if not supress_error_ignore and skip:
+            meta_d = dict_util.read_dict(meta_path, DictFormat.ini)
+            meta = models.FileMeta(**meta_d)
+
+            gen_folder = RequiredVap.dynamic_generated_real(os.path.join('file', str(id)))
+            if not supress_error_ignore and meta.error_ignore:
                 print(f"Skipping: {id}\t{path}\n\tPreviously Generated an Error")
                 continue
 
             print(f"Generating: {id}\t{path}")
-            passed, failed, total = cg.generate(path, gen_folder, rebuild=rebuild)
-            if total == 0:
-                print(f"\tNot Supported")
-            elif failed == 0:
-                print(f"\tGenerated")
-                MetaUtility.write_error_ignore(meta, False)
-                MetaUtility.write_ini(meta, meta_path)
-            else:
-                print(f"\tGenerated With Errors")
-                print(f"\tShould have skipped: {skip}")
-                MetaUtility.write_error_ignore(meta, True)
-                MetaUtility.write_ini(meta, meta_path)
-
-
-if __name__ == '__main__':
-    add_all_files(pathutil.image_real_path('posts'))
-    fix_file_ext_in_db()
-    fix_missing_pages()
-    rebuild_missing_file_generated_content()
+            try:
+                success = content_gen.ContentGeneration.generate(path, gen_folder, rebuild=rebuild)
+                if success:
+                    print(f"\tGenerated")
+                    meta.error_ignore = False
+                else:
+                    print(f"\tNot Supported")
+            except Exception as e:
+                print(e)
+                print(f"\tEncountered an Error!")
+                meta.error_ignore = True

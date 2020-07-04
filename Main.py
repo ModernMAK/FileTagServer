@@ -5,30 +5,11 @@ from litespeed import start_with_args
 import src.Routing.virtual_access_points as Vap
 import src.Routing.rest as rest
 import src.Routing.web_pages as WebPages
-import configparser
+from src.content import content_gen_startup
 import src.FileWatching.db_watcher as DbWatcher
 import src.dbmaintanence as DbMaintenence
-
-
-def configparser_as_dict(config):
-    """
-    https://stackoverflow.com/questions/1773793/convert-configparser-items-to-dictionary
-    ~ James Kyle
-    Converts a ConfigParser object into a dictionary.
-
-    The resulting dictionary has sections as keys which point to a dict of the
-    sections options as key => value pairs.
-    """
-    the_dict = {}
-    for section in config.sections():
-        the_dict[section] = {}
-        for key, val in config.items(section):
-            the_dict[section][key] = val
-    return the_dict
-
-
-def ini_str_to_list(text: str) -> List[str]:
-    return text.split('\n')
+from src.util import dict_util
+from src.util.dict_util import DictFormat
 
 
 def launch_prep(**kwargs):
@@ -38,9 +19,7 @@ def launch_prep(**kwargs):
         for path in watch_paths:
             DbMaintenence.add_all_files(path)
             DbMaintenence.fix_missing_pages()
-            DbMaintenence.rebuild_missing_file_generated_content(
-                rebuild=False,
-                supress_error_ignore=False)
+            DbMaintenence.rebuild_missing_file_generated_content(supress_error_ignore=False)
         print("Finished Adding Initial Files")
     print("Creating Missing Meta Files")
     DbMaintenence.gen_missing_meta_files()
@@ -49,31 +28,26 @@ def launch_prep(**kwargs):
 
 if __name__ == '__main__':
     try:
-        parser = configparser.ConfigParser()
-        with open('settings.ini', 'r') as settings_file:
-            parser.read_file(settings_file)
-            settings = configparser_as_dict(parser)
+        settings = dict_util.read_dict('settings.ini', DictFormat.ini)
     except FileNotFoundError:
         settings = {}
     try:
-        parser = configparser.ConfigParser()
-        with open('config.ini', 'r') as config_file:
-            parser.read_file(config_file)
-            configs = configparser_as_dict(parser)
+        configs = dict_util.read_dict('config.ini', DictFormat.ini)
     except FileNotFoundError:
         configs = {}
 
+    content_gen_startup.initialize_content_gen()
+
     WebPages.initialize_module(settings=settings, config=configs)
     watcher = DbWatcher.create_database_watchman(config=configs)
-    path_list = ini_str_to_list(settings.get('Watch', {}).get('paths', ''))
+    path_list = settings.get('Watch', {}).get('paths', '').split('\n')
     for path in path_list:
         print(f"Watching ~ {path}")
         watcher.watch(path, True)
 
-    Vap.initialize_module(settings=settings, config=configs)
+    Vap.RequiredVap.add_to_vap()
     rest.initialize_module(settings=settings, config=configs)
-
-    Vap.add_routes()
+    Vap.VirtualAccessPoints.add_routes()
     # api.add_routes()
     rest.add_routes()
     WebPages.add_routes()

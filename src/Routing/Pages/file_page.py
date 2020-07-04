@@ -5,12 +5,12 @@ from typing import Dict, Tuple, Union, List, Set, Any
 from litespeed import serve, route
 from pystache import Renderer
 from src.Routing.Pages import page_utils
-import src.PathUtil as PathUtil
-import src.API.ModelClients as Clients
-import src.API.Models as Models
+import src.API.model_clients as Clients
+import src.API.models as Models
+from src.Routing.virtual_access_points import RequiredVap, VirtualAccessPoints as VAP
 from src import DatabaseSearch
-from src.Content.ContentGen import ImageContentGen, SvgContentGen, ContentGenerator, CONTENT_PREVIEW, CONTENT_RAW
-from src.DbUtil import Conwrapper, convert_tuple_to_list, create_entry_string
+from src.content.content_gen import ContentGeneration, GeneratedContentType
+from src.util.db_util import Conwrapper, convert_tuple_to_list
 
 # define renderer
 from src.Routing.Pages.errors import serve_error
@@ -25,9 +25,9 @@ def initialize_module(**kwargs):
     global db_path
     config = kwargs.get('config', {})
     launch_args = config.get('Launch Args', {})
-    search_dirs = launch_args.get('template_dirs', [PathUtil.html_real_path("templates")])
+    search_dirs = launch_args.get('template_dirs', [RequiredVap.html_real("templates")])
     renderer = Renderer(search_dirs=search_dirs)
-    db_path = launch_args.get('db_path', PathUtil.data_real_path('mediaserver.db'))
+    db_path = launch_args.get('db_path', RequiredVap.data_real('mediaserver.db'))
 
 
 # hardcoded for now
@@ -85,7 +85,7 @@ def get_paged_contexts(client: Clients.FilePage, **kwargs) -> Tuple[
 
     get_paged_path = kwargs.get('get_paged_path')
     page_context = page_utils.get_pagination_symbols(count, page_size, display_page, get_paged_path)
-    img_context = parse_rest_file(requested, CONTENT_PREVIEW)
+    img_context = parse_rest_file(requested, GeneratedContentType.Thumbnail)
     tags = get_unique_tags(requested)
     tags = tag_sort_by_count(tags)
     tag_context = parse_rest_tags(tags, support_search=kwargs.get('support_search', False))
@@ -100,7 +100,7 @@ def show_file_index_paged(request, page: int):
     def get_paged_path(local_page: int) -> str:
         return f"show/file/index/{local_page}"
 
-    desired_file = PathUtil.html_file_real_path("index.html")
+    desired_file = RequiredVap.file_html_real("index.html")
     file_client = Clients.FilePage(db_path=db_path)
     error, result = get_paged_contexts(file_client, page=page, page_size=75, get_paged_path=get_paged_path,
                                        support_search=True)
@@ -127,7 +127,7 @@ def show_file_list_paged_search(request, page: int):
     def get_paged_path(local_page: int) -> str:
         return f"show/file/search/{local_page}"
 
-    desired_file = PathUtil.html_file_real_path("index.html")
+    desired_file = RequiredVap.file_html_real("index.html")
     file_client = Clients.FilePage(db_path=db_path)
     search = request.get('GET', {}).get('search', None)
     error, result = get_paged_contexts(file_client, page=page, page_size=75, get_paged_path=get_paged_path,
@@ -153,7 +153,7 @@ def show_file_shared(request, img_id) -> Union[
     if req_imgs is None or len(req_imgs) < 1:
         return False, 404
     req_imgs = req_imgs[0]
-    img_context = parse_rest_file(req_imgs, CONTENT_RAW)
+    img_context = parse_rest_file(req_imgs, GeneratedContentType.Viewable)
     tag_context = parse_rest_tags(req_imgs.tags, support_search=False)
     return True, (img_context, tag_context, req_imgs)
 
@@ -164,7 +164,7 @@ def show_file(request, img_id):
         return serve_error(result)
     img_context, tag_context, file = result
 
-    desired_file = PathUtil.html_file_real_path("page.html")
+    desired_file = RequiredVap.file_html_real("page.html")
     context = {
         'TITLE': file.name,
         'TAG_LIST': tag_context
@@ -179,7 +179,7 @@ def show_file_edit(request, img_id):
         return serve_error(result)
     img_context, tag_context, file = result
 
-    desired_file = PathUtil.html_file_real_path("edit.html")
+    desired_file = RequiredVap.file_html_real("edit.html")
     context = {
         'TITLE': file.name,
         'TAG_LIST': tag_context
@@ -203,7 +203,7 @@ def guess_content(ext: str) -> Union[None, str]:
         return None
 
 
-def parse_rest_file(file_pages: Union[Models.FilePage, List[Models.FilePage]], content_path: str) -> Union[
+def parse_rest_file(file_pages: Union[Models.FilePage, List[Models.FilePage]], content_path: GeneratedContentType) -> Union[
     Dict[str, object], List[Dict[str, object]]]:
     def parse(file_page: Models.FilePage):
         base = {
@@ -224,10 +224,10 @@ def parse_rest_file(file_pages: Union[Models.FilePage, List[Models.FilePage]], c
         unsupported = False
         ext = file_page.file.extension.lower()
         type = guess_content(ext)
-        resource_path = ContentGenerator.get_default().get_content_path(content_path, ext)
+        resource_path = ContentGeneration.get_file_name(content_path, ext)
         partial_path = f"file/{file_page.file.file_id}/{resource_path}"
-        virtual_path = PathUtil.dynamic_generated_virtual_path(partial_path)
-        real_path = PathUtil.dynamic_generated_real_path(partial_path)
+        virtual_path = RequiredVap.dynamic_generated_virtual(partial_path)
+        real_path = RequiredVap.dynamic_generated_real(partial_path)
         if type is None or content_path is None or not os.path.exists(real_path):
             unsupported = True
             err_msg = f"{file_page.page_id} ~ {ext}:\n"

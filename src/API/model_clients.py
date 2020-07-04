@@ -1,65 +1,9 @@
-import os
 import sqlite3
 
-from typing import Dict, Union, List, Tuple, Any, Set, Callable
-
-from src.DbUtil import Conwrapper, create_entry_string, create_value_string, sanitize
-import src.API.Models as Models
-
-
-def tuple_to_dict(value: Union[None, Tuple, List[Tuple]], mapping: Union[Tuple, List]):
-    if value is None:
-        return {}
-    if not isinstance(value, List):
-        result = {}
-        for i in range(len(mapping)):
-            v = value[i]
-            m = mapping[i]
-            result[m] = v
-        return result
-    else:
-        result = []
-        for row in value:
-            temp = {}
-            for i in range(len(mapping)):
-                v = row[i]
-                m = mapping[i]
-                temp[m] = v
-            result.append(temp)
-        return result
-
-
-def get_unique_values_on_key(rows: List[Dict[str, Any]], key: str) -> Set[Any]:
-    unique = set()
-    for row in rows:
-        unique.add(row[key])
-    return unique
-
-
-def get_unique_values(rows: Dict[Any, List[Any]]) -> Set[Any]:
-    unique = set()
-    for value in rows.values():
-        for v in value:
-            unique.add(v)
-    return unique
-
-
-def group_dicts_on_key(list_dict: List[Dict[Any, Any]], key: str) -> Dict[Any, List[Dict[Any, Any]]]:
-    result = {}
-    for d in list_dict:
-        k = d[key]
-        if k in result:
-            result[k].append(d)
-        else:
-            result[k] = [d]
-    return result
-
-
-def create_table(data: List[Any], get_key: Callable[[Any], Any]) -> Dict[Any, Any]:
-    d = {}
-    for item in data:
-        d[get_key(item)] = item
-    return d
+from typing import Dict, Union, List
+from src.util.db_util import Conwrapper, create_entry_string
+import src.API.models as Models
+import src.util.collection_util as collection_util
 
 
 class BaseClient:
@@ -118,13 +62,13 @@ class Page(BaseClient):
 
         # FORMAT RESULTS
         mapping = ("id", "name", "description")
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
 
         # GATHER ADDITIONAL TABLES ~ TAGS
-        unique_pages = get_unique_values_on_key(formatted, 'id')
+        unique_pages = collection_util.get_unique_values_on_key(formatted, 'id')
         tag_client = Tag(db_path=self.db_path)
         formatted_tag_map = tag_client.get_map(page_ids=unique_pages)
-        unique_tags = get_unique_values(formatted_tag_map)
+        unique_tags = collection_util.get_unique_values(formatted_tag_map)
         tag_table = tag_client.get_table(ids=unique_tags)
 
         # RETURN ASSEMBLED MODELS
@@ -138,11 +82,11 @@ class Page(BaseClient):
             results.append(page)
         return results
 
-    def get_table(self, **kwargs) -> Dict[int, Models.Page]:
+    def get_lookup(self, **kwargs) -> Dict[int, Models.Page]:
         def get_key(page: Models.Page) -> int:
             return page.page_id
 
-        return create_table(self.get(**kwargs), get_key)
+        return collection_util.create_lookup(self.get(**kwargs), get_key)
 
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))
@@ -185,15 +129,15 @@ class FilePage(BaseClient):
 
         # FORMAT RESULTS
         mapping = ("id", "page_id", "file_id")
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
 
         # GATHER ADDITIONAL TABLES ~ Page
-        unique_page_ids = get_unique_values_on_key(formatted, 'page_id')
+        unique_page_ids = collection_util.get_unique_values_on_key(formatted, 'page_id')
         page_client = Page(db_path=self.db_path)
-        page_table = page_client.get_table(ids=unique_page_ids)
+        page_table = page_client.get_lookup(ids=unique_page_ids)
 
         # GATHER ADDITIONAL TABLES ~ File
-        unique_file_ids = get_unique_values_on_key(formatted, 'file_id')
+        unique_file_ids = collection_util.get_unique_values_on_key(formatted, 'file_id')
         file_client = File(db_path=self.db_path)
         file_table = file_client.get_table(ids=unique_file_ids)
 
@@ -209,11 +153,11 @@ class FilePage(BaseClient):
             results.append(Models.FilePage(**base))
         return results
 
-    def get_table(self, **kwargs) -> Dict[int, Models.FilePage]:
+    def get_lookup(self, **kwargs) -> Dict[int, Models.FilePage]:
         def get_key(page: Models.FilePage) -> int:
             return page.file_page_id
 
-        return create_table(self.get(**kwargs), get_key)
+        return collection_util.create_lookup(self.get(**kwargs), get_key)
 
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))
@@ -236,7 +180,7 @@ class Tag(BaseClient):
         query = self.assemble_query(**kwargs)
         rows = self._perform_select(query)
         mapping = ("id", "name", 'description', 'class', 'count')
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
         results = []
         for row in formatted:
             results.append(Models.Tag(**row))
@@ -248,7 +192,7 @@ class Tag(BaseClient):
         query = f"SELECT page_id, tag_id from tag_map where page_id in {allowed_pages} or tag_id in {allowed_tags}"
         rows = self._perform_select(query)
         mapping = ("page_id", "tag_id")
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
         result = {}
         for row in formatted:
             page = row['page_id']
@@ -262,7 +206,7 @@ class Tag(BaseClient):
         def get_key(tag: Models.Tag) -> int:
             return tag.id
 
-        return create_table(self.get(**kwargs), get_key)
+        return collection_util.create_lookup(self.get(**kwargs), get_key)
 
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))
@@ -279,7 +223,7 @@ class File(BaseClient):
         query = self.assemble_query(**kwargs)
         rows = self._perform_select(query)
         mapping = ("id", "path", 'extension')
-        formatted = tuple_to_dict(rows, mapping)
+        formatted = collection_util.tuple_to_dict(rows, mapping)
         results = []
         for row in formatted:
             results.append(Models.File(**row))
@@ -289,7 +233,7 @@ class File(BaseClient):
         def get_key(file: Models.File) -> int:
             return file.file_id
 
-        return create_table(self.get(**kwargs), get_key)
+        return collection_util.create_lookup(self.get(**kwargs), get_key)
 
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))

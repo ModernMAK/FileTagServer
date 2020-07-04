@@ -1,8 +1,8 @@
-import io
-import json
 import configparser
 import enum
-from typing import Dict, Any, Union
+import io
+import json
+from typing import Dict, Any
 
 try:
     import dicttoxml
@@ -38,6 +38,16 @@ def configparser_as_dict(config: configparser.ConfigParser) -> Dict[Any, Any]:
     return the_dict
 
 
+def read_dict(file: str, format: DictFormat) -> Dict[Any, Any]:
+    with open(file, 'r') as f:
+        return str_to_dict(f.read(), format)
+
+
+def write_dict(file: str, data: Dict[Any, Any], format: DictFormat) -> None:
+    with open(file, 'w') as f:
+        f.write(dict_to_str(data, format))
+
+
 def dict_to_str(data: Dict[Any, Any], format: DictFormat) -> str:
     if format is DictFormat.json:
         return json.dumps(data)
@@ -45,7 +55,11 @@ def dict_to_str(data: Dict[Any, Any], format: DictFormat) -> str:
         return dicttoxml.dicttoxml(data)
     elif format is DictFormat.ini:
         config = configparser.ConfigParser()
-        config.read_dict({'ROOT': data})
+        properly_formatted = all(isinstance(v, dict) for v in data.values())
+        if not properly_formatted:
+            config.read_dict({'ROOT': data})
+        else:
+            config.read_dict(data)
         with io.StringIO() as stream:
             config.write(stream)
             return stream.getvalue()
@@ -68,3 +82,16 @@ def str_to_dict(data: str, format: DictFormat) -> Dict[Any, Any]:
         return d
     else:
         raise NotImplementedError
+
+
+def nested_get(d: Dict[str, Any], path: str, default: Any = None, delimiter: str = '.') -> Any:
+    parts = path.split(delimiter)
+    current = d
+    for part in parts:
+        if current is None or not isinstance(current, dict):
+            return default
+        current = current.get(part)
+
+    if current is None:
+        return default
+    return current

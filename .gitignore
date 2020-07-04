@@ -5,3 +5,4 @@ venv/*
 .idea/*
 node_modules/*
 web/dynamic/generated/*
+depends/*
