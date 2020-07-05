@@ -19,10 +19,10 @@ def reformat_serve(renderer, serve_content: Tuple[bytes, int, Dict[str, str]], c
     return fixed_content, status, header
 
 
-def get_pagination_symbols(items: int, page_size: int, current_page: int, get_page_path: Callable[[int], str],
+def get_pagination_symbols(items: int, page_size: int, display_page: int, get_page_path: Callable[[int], str],
                            range_size: int = 5):
     pages = int(ceil(items / page_size))
-    current_page = int(current_page)
+    display_page = int(display_page)
 
     def get_pairs():
         # Symbol, Link, Current
@@ -31,35 +31,35 @@ def get_pagination_symbols(items: int, page_size: int, current_page: int, get_pa
         CURRENT = 'active'
         DISABLED = 'disabled'
 
-        if current_page > 1:
+        if display_page > 1:
             symbols.append(('<<', 1, None))
         else:
             symbols.append(('<<', None, DISABLED))
 
-        if current_page > 1:
-            symbols.append(('<', current_page - 1, None))
+        if display_page > 1:
+            symbols.append(('<', display_page - 1, None))
         else:
             symbols.append(('<', None, DISABLED))
 
-        if current_page > range_size + 1:
+        if display_page > range_size + 1:
             symbols.append(('...', None, DISABLED))
 
-        for i in range(current_page - range_size, current_page + range_size + 1):
+        for i in range(display_page - range_size, display_page + range_size + 1):
             if 1 <= i <= pages:
-                if i == current_page:
+                if i == display_page:
                     symbols.append((i, None, CURRENT))
                 else:
                     symbols.append((i, i, None))
 
-        if current_page < pages - range_size - 1:
+        if display_page < pages - range_size - 1:
             symbols.append(('...', None, DISABLED))
 
-        if current_page < pages:
-            symbols.append(('>', current_page + 1, None))
+        if display_page < pages:
+            symbols.append(('>', display_page + 1, None))
         else:
             symbols.append(('>', None, DISABLED))
 
-        if current_page < pages:
+        if display_page < pages:
             symbols.append(('>>', pages, None))
         else:
             symbols.append(('>>', None, DISABLED))

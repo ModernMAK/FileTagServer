@@ -23,7 +23,7 @@
 {{> navbar}}
 <div id="content">
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <nav id="sidebarMenu" class="d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
                     <!-- Search form -->
@@ -33,7 +33,7 @@
                     <div class="container">
                         <form class="form-inline" action="/show/file/search" method="get">
                             <div class="input-group">
-                                <input type="text" class="form-control" placeholder="" value="{{SEARCH}}"
+                                <input type="text" class="form-control" placeholder="" value="{{search}}"
                                        id="tagsearchbox"
                                        name="search">
                                 <div class="input-group-append">
@@ -47,50 +47,23 @@
             </nav>
         </div>
 
-        <div class="col-md-9">
-            <main class="container">
+        <div class="col-md-10">
+            <main class="container-fluid">
+                {{#pagination}}
                 {{> pagination}}
+                {{/pagination}}
                 <div class="justify-content-center">
-                    <!--                <div class="card-deck justify-content-center">-->
-                    <div class="container">
+                    <div class="container-fluid">
                         <div class="row">
-                            {{#FILES}}
+                            {{#pages}}
                             {{> filepage_card}}
-<!--                            <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3 py-2">-->
-<!--                                &lt;!&ndash;                <div class="col-md-3 col-sm-2 col-xs-1">&ndash;&gt;-->
-<!--                                &lt;!&ndash;                    <div class="my-auto">&ndash;&gt;-->
-<!--                                <div class="card mb-4 h-100">-->
-<!--                                    &lt;!&ndash;                        <div class="card-block">&ndash;&gt;-->
-<!--                                    <h6 class="card-header">-->
-<!--                                        {{#PAGE_NAME}}{{PAGE_NAME}}{{/PAGE_NAME}}{{^PAGE_NAME}}'Untitled-->
-<!--                                        Page'{{/PAGE_NAME}}</h6>-->
-
-<!--                                    {{#IMG}}-->
-<!--                                    <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">-->
-<!--                                        <img class="card-img-top" alt="{{ALT}}" src="/{{PATH}}"-->
-<!--                                             style="max-height: 256px; max-width: 256px">-->
-<!--                                    </a>-->
-<!--                                    {{/IMG}}-->
-<!--                                    {{#FILE}}-->
-<!--                                    <div class="card-body align-content-center">-->
-<!--                                        <a href="/{{PAGE_PATH}}" class="mx-auto my-auto">-->
-<!--                                            <div class="card-text text-center">-->
-<!--                                                No Preview-->
-<!--                                                Available{{#EXTENSION}}<br>{{EXTENSION}}{{/EXTENSION}}{{#ALT}}<br>{{ALT}}{{/ALT}}-->
-<!--                                            </div>-->
-<!--                                        </a>-->
-<!--                                    </div>-->
-<!--                                    {{/FILE}}-->
-<!--                                    &lt;!&ndash;                    </div>&ndash;&gt;-->
-<!--                                    &lt;!&ndash;                        </div>&ndash;&gt;-->
-<!--                                </div>-->
-<!--                            </div>-->
-                            {{/FILES}}
+                            {{/pages}}
                         </div>
                     </div>
-                    <!--                </div>-->
                 </div>
+                {{#pagination}}
                 {{> pagination}}
+                {{/pagination}}
             </main>
         </div>
     </div>

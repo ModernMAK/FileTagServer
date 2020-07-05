@@ -2,7 +2,7 @@ import configparser
 import enum
 import io
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 try:
     import dicttoxml
@@ -38,9 +38,12 @@ def configparser_as_dict(config: configparser.ConfigParser) -> Dict[Any, Any]:
     return the_dict
 
 
-def read_dict(file: str, format: DictFormat) -> Dict[Any, Any]:
-    with open(file, 'r') as f:
-        return str_to_dict(f.read(), format)
+def read_dict(file: str, format: DictFormat, default: Any = None) -> Union[Dict[Any, Any], Any]:
+    try:
+        with open(file, 'r') as f:
+            return str_to_dict(f.read(), format)
+    except FileNotFoundError:
+        return default
 
 
 def write_dict(file: str, data: Dict[Any, Any], format: DictFormat) -> None:

@@ -72,7 +72,7 @@ class Page(BaseModel):
         return {
             'id': self.__id,
             'name': self.name,
-            'descripyion': self.description,
+            'description': self.description,
             'tags': tags_to_list_dict(self.tags),
         }
 
@@ -191,10 +191,12 @@ class Tag(BaseModel):
 
 class FileMeta(BaseModel):
     def __init__(self, **kwargs):
-        self.id = int(kwargs.get('File', {}).get('id'))
+        self.id = kwargs.get('File', {}).get('id')
         self.ignore = kwargs.get('File', {}).get('ignore')
         self.error_ignore = kwargs.get('Error', {}).get('ignore')
 
+        if self.id is not None:
+            self.id = int(self.id)
         if self.ignore is not None:
             self.ignore = bool(distutils.util.strtobool(self.ignore))
         if self.error_ignore is not None:

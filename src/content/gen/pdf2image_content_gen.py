@@ -42,7 +42,7 @@ class DocumentContentGenerator(AbstractContentGenerator):
                 single_file=True, strict=True
             )
             thumbnail = thumbnails[0]
-            thumbnail.thumbnail((256,256))
+            thumbnail.thumbnail((256, 256))
             thumbnail.save(thumbnail_path)
             thumbnail.close()
 

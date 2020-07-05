@@ -6,18 +6,11 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item {{PAGE_HOME_ACTIVE}}">
-                <a class="nav-link" href="/">Home</a>
+            {{#nav}}
+            <li class="nav-item {{status}}">
+                <a class="nav-link" href="{{path}}">{{text}}</a>
             </li>
-            <li class="nav-item {{PAGE_IMAGE_ACTIVE}}">
-                <a class="nav-link" href="/show/image/index">Images</a>
-            </li>
-            <li class="nav-item {{PAGE_TAG_ACTIVE}}">
-                <a class="nav-link" href="/show/tag/index">Tags</a>
-            </li>
-            <li class="nav-item {{PAGE_UPLOAD_ACTIVE}}">
-                <a class="nav-link" href="/upload/image">Upload</a>
-            </li>
+            {{/nav}}
         </ul>
     </div>
 </nav>

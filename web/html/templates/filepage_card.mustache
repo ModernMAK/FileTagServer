@@ -1,38 +1,44 @@
-<div class="col-sm-6 col-md-5 col-lg-4 col-xl-3 py-2">
+<div class="col-sm-5 col-md-4 col-lg-3 col-xl-2 py-2">
     <div class="card mb-4 h-100">
         <h6 class="card-header">
-            {{#page_name}}{{page_name}}{{/page_name}}{{^page_name}}'Untitled Page'{{/page_name}}</h6>
-
-        {{#image}}
-            <a href="/{{page_path}}" class="mx-auto my-auto">
-                <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}"
-                     style="max-height: 256px; max-width: 256px">
-            </a>
-        {{/image}}
-
-        {{#document}}
-            <a href="/{{page_path}}" class="mx-auto my-auto">
-                <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}"
-                     style="max-height: 256px; max-width: 256px">
-            </a>
-        {{/document}}
-<!--        {{#document}}-->
-<!--            <a href="/{{page_path}}" class="mx-auto my-auto">-->
-<!--                <embed class="card-img-top" src="/{{source_path}}" height="256px" width=”256”-->
-<!--                       type="application/pdf"/>-->
-<!--            </a>-->
-<!--        {{/document}}-->
-        {{#unsupported}}
+            {{#name}}{{name}}{{/name}}
+            {{^name}}'Untitled Page'{{/name}}
+        </h6>
+        {{#content}}
+            {{#image}}
+                <a href="{{page_path}}" class="mx-auto my-auto">
+                    <img class="card-img-top" alt="{{description}}" src="/{{content_path}}"
+                         style="max-height: 256px; max-width: 256px">
+                </a>
+            {{/image}}
+            {{#embed}}
+                <embed class="card-img-top" alt="{{description}}" src="/{{content_path}}"
+                       style="max-height: 256px; max-width: 256px">
+                <a href="{{page_path}}" class="mx-auto my-auto">
+                </a>
+            {{/embed}}
+            {{#unsupported}}
+                <div class="card-body align-content-center">
+                    <a href="{{page_path}}" class="mx-auto my-auto">
+                        <div class="card-text text-center">
+                            Preview Not Supported
+                            {{#file}}<br>{{extension}}{{/file}}
+                            {{#description}}<br>{{description}}{{/description}}
+                        </div>
+                    </a>
+                </div>
+            {{/unsupported}}
+        {{/content}}
+        {{^content}}
             <div class="card-body align-content-center">
-                <a href="/{{page_path}}" class="mx-auto my-auto">
+                <a href="{{page_path}}" class="mx-auto my-auto">
                     <div class="card-text text-center">
-                        No Preview Available{{#extension}}<br>{{extension}}{{/extension}}{{#alternate_text}}
-                        <br>{{alternate_text}}{{/alternate_text}}
+                        No Preview Available
+                        {{#file}}<br><br>{{extension}}{{/file}}
+                        {{#description}}<br>{{description}}{{/description}}
                     </div>
                 </a>
             </div>
-        {{/unsupported}}
-        <!--                    </div>-->
-        <!--                        </div>-->
+        {{/content}}
     </div>
 </div>

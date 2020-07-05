@@ -1,6 +1,9 @@
 import sqlite3
 
 from typing import Dict, Union, List
+
+from src import DatabaseSearch
+from src.util import db_util
 from src.util.db_util import Conwrapper, create_entry_string
 import src.API.models as Models
 import src.util.collection_util as collection_util
@@ -93,6 +96,9 @@ class Page(BaseClient):
 
 
 class FilePage(BaseClient):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def assemble_query(self, **kwargs):
         # GATHER ARGS
         page_size = kwargs.get('page_size', None)
@@ -163,6 +169,55 @@ class FilePage(BaseClient):
         return self._perform_count(self.assemble_query(**kwargs))
 
 
+class FilePageSearch(BaseClient):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.file_page = FilePage(**kwargs)
+
+    def assemble_query(self, **kwargs):
+        items = kwargs.get('search', '').split()
+        page_size = kwargs.get('page_size', None)
+        offset = kwargs.get('offset', None)
+        for i in range(len(items)):
+            items[i] = items[i].replace('_', ' ')
+        search_groups = DatabaseSearch.create_simple_search_groups(items)
+        query = DatabaseSearch.create_query_from_search_groups(search_groups)
+
+        if page_size is not None:
+            query += f" LIMIT {int(page_size)}"
+        if offset is not None:
+            query += f" OFFSET {int(offset)}"
+
+        return query
+
+    def get(self, **kwargs) -> List[Models.FilePage]:
+        query = self.assemble_query(**kwargs)
+        results = self._perform_select(query)
+        ids = db_util.convert_tuple_to_list(results)
+        return self.file_page.get(ids=ids)
+
+    # Slightly optimized compared to separate get & count
+    def get_and_count(self, **kwargs) -> (List[Models.FilePage], int):
+        page_size = kwargs.get('page_size', None)
+        offset = kwargs.get('offset', 0)
+        del kwargs['page_size']
+        del kwargs['offset']
+        query = self.assemble_query(**kwargs)
+        results = self._perform_select(query)
+        ids = db_util.convert_tuple_to_list(results)
+        count = len(ids)
+        if page_size is None:
+            ids = ids[offset:]
+        else:
+            ids = ids[offset:offset + page_size]
+        file_pages = self.file_page.get(ids=ids)
+        return file_pages, count
+
+    def count(self, **kwargs) -> int:
+        query = self.assemble_query(**kwargs)
+        return self._perform_count(query)
+
+
 class Tag(BaseClient):
     def assemble_query(self, **kwargs):
         allowed_ids = create_entry_string(kwargs.get('ids', []))
@@ -213,6 +268,7 @@ class Tag(BaseClient):
 
 
 class File(BaseClient):
+
     def assemble_query(self, **kwargs):
         allowed_ids = create_entry_string(kwargs.get('ids', []))
         query = f"SELECT id, path, extension from file" \

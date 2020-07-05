@@ -21,11 +21,16 @@ class ContentGeneration:
     generators = {}
 
     @classmethod
-    def register_generator(cls, extension: Union[List[str], Tuple[str], str], generator: AbstractContentGenerator):
+    def register_generator(cls, extension: Union[List[str], Tuple[str], str], generator: AbstractContentGenerator,
+                           allow_override: bool = True):
         if isinstance(extension, str):
-            cls.generators[extension] = generator
+            if extension not in generator or allow_override:
+                cls.generators[extension] = generator
         else:
-            cls.generators.update({ext: generator for ext in extension})
+            # cls.generators.update({ext: generator for ext in extension})
+            for ext in extension:
+                if ext not in cls.generators or allow_override:
+                    cls.generators[ext] = generator
 
     @classmethod
     def generate(cls, source_path: str, dest_folder: str, **kwargs) -> bool:

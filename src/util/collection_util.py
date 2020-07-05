@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Union, Dict, Set, Callable
+from typing import List, Tuple, Any, Union, Dict, Set, Callable, Iterable
 
 
 def list_tuple_to_list(values: List[Tuple[Any]]) -> List[Any]:
@@ -45,3 +45,22 @@ def group_dicts_on_key(list_dict: List[Dict[Any, Any]], key: str) -> Dict[Any, L
 
 def create_lookup(data: List[Any], get_key: Callable[[Any], Any]) -> Dict[Any, Any]:
     return {get_key(value): value for value in data}
+
+
+# List Of List,Value
+def flatten(data: List[Union[Any, List[Any]]]) -> List[Any]:
+    # result = []
+    # for v in data:
+    #     if isinstance(v, (list, tuple)):
+    #         flat = flatten_nested(v)
+    #         result.extend(flat)
+    #     else:
+    #         result.append(v)
+    # return result
+    return [
+        value for content in data for value in
+        (
+            flatten(*content) if isinstance(content, Iterable) and not isinstance(content, (str, bytearray))
+            else (content,)
+        )
+    ]

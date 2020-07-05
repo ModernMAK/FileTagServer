@@ -101,7 +101,7 @@ def rebuild_missing_file_generated_content(rebuild: bool = False, supress_error_
         for row in rows:
             id, path, extension = row
             meta_path = path + '.meta'
-            meta_d = dict_util.read_dict(meta_path, DictFormat.ini)
+            meta_d = dict_util.read_dict(meta_path, DictFormat.ini, default={})
             meta = models.FileMeta(**meta_d)
 
             gen_folder = RequiredVap.dynamic_generated_real(os.path.join('file', str(id)))

@@ -4,6 +4,7 @@
 
 ~ Fix Sidebar
 	Sidebar currently vanishes when the screen gets too small. Preferrably, should be placed underneath content
+	UPDATE: Collapses (to top, cant collapse to bottom without appearing on right side)
 
 ~ Pagination
 	While we support paging, its hard-coded right now. Also no way of advancing pages
