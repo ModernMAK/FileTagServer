@@ -19,6 +19,19 @@ def reformat_serve(renderer, serve_content: Tuple[bytes, int, Dict[str, str]], c
     return fixed_content, status, header
 
 
+def guess_content(content_ext):
+    if content_ext in ['png', 'jpeg', 'jpg', 'gif', 'svg', 'webp']:
+        return 'image'
+    elif content_ext in ['pdf']:
+        return 'embed'
+    elif content_ext in ['ogg', 'wav', 'mp3']:
+        return 'audio'
+    elif content_ext in ['ogv', 'webm', 'mp4']:
+        return 'video'
+    else:
+        return 'unsupported'
+
+
 def get_pagination_symbols(items: int, page_size: int, display_page: int, get_page_path: Callable[[int], str],
                            range_size: int = 5):
     pages = int(ceil(items / page_size))

@@ -21,15 +21,15 @@ class ImageContentGenerator(AbstractContentGenerator):
 
     @staticmethod
     def __get_thumbnail_ext(ext: str) -> str:
-        browser_support = ['png', 'jpeg', 'jpg', 'gif', 'svg', 'bmp']
-        if ext in browser_support:
+        ignore = ['svg']
+        if ext in ignore:
             return ext
         else:
-            return 'png'
+            return 'webp'
 
     @staticmethod
     def __get_viewable_ext(ext: str) -> str:
-        browser_support = ['png', 'jpeg', 'jpg', 'gif', 'svg', 'bmp']
+        browser_support = ['png', 'jpeg', 'jpg', 'gif', 'svg', 'bmp', 'webp']
         if ext in browser_support:
             return ext
         else:

@@ -19,3 +19,12 @@ class PageGroup:
     @classmethod
     def as_route_func(cls, func: Callable[[Any, Any], Tuple[bytes, int, Dict[str, str]]]):
         return partial(func)
+
+    @staticmethod
+    def to_get_string(**kwargs):
+        listed = []
+        for k, v in kwargs.items():
+            listed.append(f"{k}={v}")
+        if len(listed) == 0:
+            return ""
+        return "?" + "&".join(listed)

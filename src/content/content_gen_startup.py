@@ -9,6 +9,8 @@ from src.content.gen.pdf2image_content_gen import DocumentContentGenerator
 from src.content.gen.soffice_content_gen import LibreOfficeContentGenerator
 # No Requirements
 from src.content.raw_image_content_gen import ImageContentGenerator as RawImageContentGenerator
+from src.content.raw_video_content_gen import VideoContentGenerator as RawVideoContentGenerator
+from src.content.raw_music_content_gen import MusicContentGenerator as RawMusicContentGenerator
 
 
 # This doesn't have to be here, but its cleaner here
@@ -24,6 +26,18 @@ def initialize_content_gen(**kwargs):
     ContentGeneration.register_generator(
         RawImageContentGenerator.get_supported_types(),
         RawImageContentGenerator(),
+        False
+    )
+    # Video - Support
+    ContentGeneration.register_generator(
+        RawVideoContentGenerator.get_supported_types(),
+        RawVideoContentGenerator(),
+        False
+    )
+    # Music - Support
+    ContentGeneration.register_generator(
+        RawMusicContentGenerator.get_supported_types(),
+        RawMusicContentGenerator(),
         False
     )
     # Pdf / AI support

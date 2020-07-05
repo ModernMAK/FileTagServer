@@ -1,37 +1,97 @@
 <div class="card">
-    <h1 class="card-header">{{#page_name}}{{page_name}}{{/page_name}}{{^page_name}}'Untitled Page'{{/page_name}}</h1>
-    {{#image}}
-        <img class="card-img-top" alt="{{alternate_text}}" src="/{{source_path}}">
-    {{/image}}
-    {{#document}}
-        <embed class="card-img-top" src="/{{source_path}}" height="256px" width=”256”
-               type="application/pdf"/>
-    {{/document}}
-    {{#unsupported}}
-        <div class="card-body">
-            <div style="min-width: 64px; min-height: 64px; text-align: center">
-                No Preview Available{{#EXTENSION}}<br>{{EXTENSION}}{{/EXTENSION}}{{#ALT}}<br>{{ALT}}{{/ALT}}
-            </div>
 
-        </div>
-    {{/unsupported}}
+        {{#content}}
+            {{#image}}
+                {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                <img class="card-img-top" alt="{{description}}" src="{{content_path}}"
+                     style="max-height: 256px; max-width: 256px">
+                {{#page_path}}</a>{{/page_path}}
+            {{/image}}
+            {{#embed}}
+                <embed class="card-img-top" alt="{{description}}" src="{{content_path}}">
+            {{/embed}}
+            {{#audio}}
+                <audio controls>
+                    {{#sources}}
+                        <source src="{{path}}" type="audio/{{type}}">
+                    {{/sources}}
+                    Cannot Display Audio
+                </audio>
+                {{^sources}}
+                    <div>No Audio Provided</div>
+                {{/sources}}
+            {{/audio}}
+            {{#video}}
+                <video controls>
+                    {{#sources}}
+                        <source src="{{path}}" type="video/{{type}}">
+                    {{/sources}}
+                    Cannot Display Video
+                </video>
+                {{^sources}}
+                    <div>No Video Provided</div>
+                {{/sources}}
+            {{/video}}
+            {{#unsupported}}
+                <div class="card-body align-content-center">
+                    {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                    <div class="card-text text-center">
+                        Preview Not Supported
+                        {{#file}}<br>{{extension}}{{/file}}
+                        {{#description}}<br>{{description}}{{/description}}
+                    </div>
+                    {{#page_path}}</a>{{/page_path}}
+                </div>
+            {{/unsupported}}
+        {{/content}}
+        {{^content}}
+            <div class="card-body align-content-center">
+                {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                <div class="card-text text-center">
+                    No Preview Available
+                    {{#file}}<br><br>{{extension}}{{/file}}
+                    {{#description}}<br>{{description}}{{/description}}
+                </div>
+                {{#page_path}}</a>{{/page_path}}
+            </div>
+        {{/content}}
     <ul class="list-group list-group-flush">
         <li class="list-group-item">
+            <h1 class="card-title">
+                {{#name}}{{name}}{{/name}}
+                {{^name}}'Untitled Page'{{/name}}
+            </h1>
+        </li>
+        <li class="list-group-item">
+
             <h4 class="card-title">Description</h4>
             <div class="card-text">
-                {{#page_description}}{{page_description}}{{/page_description}}{{^page_description}}
-                No Description Given{{/page_description}}
+                {{#description}}{{description}}{{/description}}
+                {{^description}}No Description Given{{/description}}
             </div>
         </li>
-        {{#file_info}}
+        {{#file}}
             <li class="list-group-item">
                 <h4 class="card-title">File Info</h4>
-                <h6 class="card-title">Name</h6>
-                <div class="card-text">{{#name}}{{name}}{{/name}}{{^name}}Not Specified{{/name}}</div>
-                <h6 class="card-title">Internal ID</h6>
-                <div class="card-text">{{#id}}{{id}}{{/id}}{{^id}}Not Specified{{/id}}</div>
+                <dl>
+                    <dt class="card-title">Name</dt>
+                    <dd class="card-text">
+                        {{#name}}{{name}}{{/name}}
+                        {{^name}}Not Specified{{/name}}
+                    </dd>
+                    <dt class="card-title">Internal ID</dt>
+                    <dd class="card-text">
+                        {{#id}}{{id}}{{/id}}
+                        {{^id}}Not Specified{{/id}}
+                    </dd>
+                    <dt class="card-title">Extension</dt>
+                    <dd class="card-text">
+                        {{#extension}}{{extension}}{{/extension}}
+                        {{^extension}}Not Specified{{/extension}}
+                    </dd>
+                </dl>
             </li>
-        {{/file_info}}
+        {{/file}}
     </ul>
 
 </div>

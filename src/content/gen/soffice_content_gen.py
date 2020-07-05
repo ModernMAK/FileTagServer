@@ -26,7 +26,7 @@ class LibreOfficeContentGenerator(AbstractContentGenerator):
 
     @staticmethod
     def __get_thumbnail_ext(ext: str) -> str:
-        return 'png'
+        return 'jpeg'
 
     @staticmethod
     def __get_viewable_ext(ext: str) -> str:
