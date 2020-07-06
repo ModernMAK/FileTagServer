@@ -4,7 +4,7 @@ from typing import Dict, Union, List
 
 from src import DatabaseSearch
 from src.util import db_util
-from src.util.db_util import Conwrapper, create_entry_string
+from src.util.db_util import Conwrapper, create_entry_string, create_value_string, sanitize
 import src.API.models as Models
 import src.util.collection_util as collection_util
 
@@ -168,6 +168,41 @@ class FilePage(BaseClient):
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))
 
+    def set_tags(self, file_page_id: int, tags: List[str]):
+        # Leaving this here for now in case i need to find it again
+        # necro-ed from commit #42638a95c77eb314d5c075c7bf69efeba83a0eca
+        with Conwrapper(self.db_path) as (con, cursor):
+            formatted_tag_list = create_entry_string(tags)
+            # Get tag_ids to set
+            cursor.execute(f"SELECT id FROM tag WHERE name IN {formatted_tag_list}")
+            rows = cursor.fetchall()
+            tag_id_list = db_util.convert_tuple_to_list(rows)
+            formatted_tag_id_list = create_entry_string(tag_id_list)
+            cursor.execute(
+                f"DELETE FROM tag_map where page_id = {file_page_id} and tag_id NOT IN {formatted_tag_id_list}")
+            pairs = []
+            for tag_id in tag_id_list:
+                pairs.append((file_page_id, tag_id))
+            formatted_pairs = create_value_string(pairs)
+            cursor.execute(f"INSERT OR IGNORE INTO tag_map (page_id, tag_id) VALUES {formatted_pairs}")
+            con.commit()
+
+    def set_page_values(self, id: int, name: str = None, desc: str = None):
+        if all(v is None for v in [name, desc]):
+            return
+
+        query = f"UPDATE page SET"
+        cols = []
+        if name is not None:
+            cols.append(f"name = {sanitize(name.strip())}")
+        if desc is not None:
+            cols.append(f"description = {sanitize(desc.strip())}")
+        cols_as_str = ", ".join(cols)
+        query += " " + cols_as_str + f" where id = {sanitize(id)}"
+        with Conwrapper(self.db_path) as (con, cursor):
+            cursor.execute(query)
+            con.commit()
+
 
 class FilePageSearch(BaseClient):
     def __init__(self, **kwargs):
@@ -265,6 +300,13 @@ class Tag(BaseClient):
 
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))
+
+    def add_missing_tags(self, tags: List[str]):
+        with Conwrapper(self.db_path) as (con, cursor):
+            formatted_tag_list = create_value_string(tags)
+            # Get tag_ids to set
+            cursor.execute(f"INSERT OR IGNORE INTO tag (name) VALUES {formatted_tag_list}")
+            con.commit()
 
 
 class File(BaseClient):

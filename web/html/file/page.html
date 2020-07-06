@@ -32,14 +32,118 @@
                 </h6>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/show/file/{{PAGE_ID}}/edit">Edit Tags</a>
+                        <a class="nav-link active" href="{{edit_path}}">Edit</a>
                     </li>
                 </ul>
             </div>
         </nav>
         <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
             <main role="main" class="container-fluid">
-                {{> filepage}}
+                <div class="card">
+
+                    {{#content}}
+                    {{#image}}
+                    {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                    <img class="card-img-top" alt="{{description}}" src="{{content_path}}"
+                         style="max-height: 256px; max-width: 256px">
+                    {{#page_path}}</a>{{/page_path}}
+                    {{/image}}
+<!--                    {{#embed}}-->
+<!--                    <div class="card-img-top" style="padding-bottom:100%">-->
+<!--                        <embed alt="{{description}}" src="{{content_path}}">-->
+<!--                    </div>-->
+                    <div class='embed-responsive' style='padding-bottom:120%'>
+                        <object data='{{content_path}}' type='application/pdf' width='100%' height='100%'></object>
+                    </div>
+                    {{/embed}}
+                    {{#audio}}
+                    <audio controls>
+                        {{#sources}}
+                        <source src="{{path}}" type="audio/{{type}}">
+                        {{/sources}}
+                        Cannot Display Audio
+                    </audio>
+                    {{^sources}}
+                    <div>No Audio Provided</div>
+                    {{/sources}}
+                    {{/audio}}
+                    {{#video}}
+                    <video controls>
+                        {{#sources}}
+                        <source src="{{path}}" type="video/{{type}}">
+                        {{/sources}}
+                        Cannot Display Video
+                    </video>
+                    {{^sources}}
+                    <div>No Video Provided</div>
+                    {{/sources}}
+                    {{/video}}
+                    {{#unsupported}}
+                    <div class="card-body align-content-center">
+                        {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                        <div class="card-text text-center">
+                            Preview Not Supported
+                            {{#file}}<br>{{extension}}{{/file}}
+                            {{#description}}<br>{{description}}{{/description}}
+                        </div>
+                        {{#page_path}}</a>{{/page_path}}
+                    </div>
+                    {{/unsupported}}
+                    {{/content}}
+                    {{^content}}
+                    <div class="card-body align-content-center">
+                        {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                        <div class="card-text text-center">
+                            No Preview Available
+                            {{#file}}<br><br>{{extension}}{{/file}}
+                            {{#description}}<br>{{description}}{{/description}}
+                        </div>
+                        {{#page_path}}</a>{{/page_path}}
+                    </div>
+                    {{/content}}
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <h1 class="card-title">
+                                {{#name}}{{name}}{{/name}}
+                                {{^name}}'Untitled Page'{{/name}}
+                            </h1>
+                        </li>
+                        <li class="list-group-item">
+
+                            <h4 class="card-title">Description</h4>
+                            <div class="card-text">
+                                {{#description}}{{description}}{{/description}}
+                                {{^description}}No Description Given{{/description}}
+                            </div>
+                        </li>
+                        {{#file}}
+                        <li class="list-group-item">
+                            <h4 class="card-title">File Info</h4>
+                            <dl>
+                                <dt class="card-title">Name</dt>
+                                <dd class="card-text">
+                                    {{#name}}{{name}}{{/name}}
+                                    {{^name}}Not Specified{{/name}}
+                                </dd>
+                                <dt class="card-title">Internal ID</dt>
+                                <dd class="card-text">
+                                    {{#id}}{{id}}{{/id}}
+                                    {{^id}}Not Specified{{/id}}
+                                </dd>
+                                <dt class="card-title">Extension</dt>
+                                <dd class="card-text">
+                                    {{#extension}}{{extension}}{{/extension}}
+                                    {{^extension}}Not Specified{{/extension}}
+                                </dd>
+                            </dl>
+                        </li>
+                        {{/file}}
+                        <li class="list-group-item">
+                            <a class="nav-link active" href="{{edit_path}}">Edit</a>
+                        </li>
+                    </ul>
+
+                </div>
             </main>
         </div>
     </div>

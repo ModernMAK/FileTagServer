@@ -43,7 +43,7 @@ class LibreOfficeContentGenerator(AbstractContentGenerator):
             return
 
         if not os.path.exists(thumbnail_path) or kwargs.get('rebuild', False):
-            SOffice.convert_to_format(source_path, thumbnail_path, format='png')
+            SOffice.convert_to_format(source_path, thumbnail_path, format='jpeg')
             # with
             # thumbnail = thumbnails[0]
             # thumbnail.thumbnail((256,256))
