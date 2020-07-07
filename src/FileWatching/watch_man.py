@@ -1,3 +1,4 @@
+import os
 from typing import Union, Tuple, List
 from watchdog.events import DirMovedEvent, FileMovedEvent, \
     DirCreatedEvent, FileCreatedEvent, \
@@ -13,6 +14,32 @@ class Watchman:
         self.observer = kwargs.get('observer', Observer())
         self.watchlist = []
         self.default_handler = kwargs.get('default_handler', WatchmanHandler())
+
+    def start(self, run_watch_on_startup=False):
+        self.observer.start()
+        if run_watch_on_startup:
+            for watch in self.watchlist:
+                handlers = self.observer._handlers[watch]
+                if watch.is_recursive:
+                    for root, directories, files in os.walk(watch.path):
+                        for file in files:
+                            full_file = os.path.join(root, file)
+                            for handler in handlers:
+                                handler.on_created(FileCreatedEvent(src_path=full_file))
+                        for dir in directories:
+                            full_dir = os.path.join(root, dir)
+                            for handler in handlers:
+                                handler.on_created(DirCreatedEvent(src_path=full_dir))
+                else:
+                    for handler in handlers:
+                        full_file = watch.path
+                        if os.path.isdir(full_file):
+                            handler.on_created(DirCreatedEvent(src_path=full_file))
+                        else:
+                            handler.on_created(FileCreatedEvent(src_path=full_file))
+
+    def stop(self):
+        self.observer.stop()
 
     def watch(self, path: str, recursive: bool = False, handler: FileSystemEventHandler = None):
         if handler is None:

@@ -192,15 +192,17 @@ class Tag(BaseModel):
 class FileMeta(BaseModel):
     def __init__(self, **kwargs):
         self.id = kwargs.get('File', {}).get('id')
-        self.ignore = kwargs.get('File', {}).get('ignore')
-        self.error_ignore = kwargs.get('Error', {}).get('ignore')
+        self.ignore = kwargs.get('File', {}).get('ignore', False)
+        self.error_ignore = kwargs.get('Error', {}).get('ignore', False)
 
         if self.id is not None:
             self.id = int(self.id)
         if self.ignore is not None:
-            self.ignore = bool(distutils.util.strtobool(self.ignore))
+            if isinstance(self.ignore, str):
+                self.ignore = bool(distutils.util.strtobool(self.ignore))
         if self.error_ignore is not None:
-            self.error_ignore = bool(distutils.util.strtobool(self.error_ignore))
+            if isinstance(self.error_ignore, str):
+                self.error_ignore = bool(distutils.util.strtobool(self.error_ignore))
 
     def from_dictionary(self, **kwargs):
         self.__init__(**kwargs)

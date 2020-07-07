@@ -44,14 +44,10 @@
                     {{#content}}
                     {{#image}}
                     {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
-                    <img class="card-img-top" alt="{{description}}" src="{{content_path}}"
-                         style="max-height: 256px; max-width: 256px">
+                    <img class="card-img-top" alt="{{description}}" src="{{content_path}}">
                     {{#page_path}}</a>{{/page_path}}
                     {{/image}}
-<!--                    {{#embed}}-->
-<!--                    <div class="card-img-top" style="padding-bottom:100%">-->
-<!--                        <embed alt="{{description}}" src="{{content_path}}">-->
-<!--                    </div>-->
+                    {{#embed}}
                     <div class='embed-responsive' style='padding-bottom:120%'>
                         <object data='{{content_path}}' type='application/pdf' width='100%' height='100%'></object>
                     </div>

@@ -6,8 +6,9 @@ from typing import Union
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent, FileDeletedEvent
 from functools import partial
 
+from src.API import models
 from src.Routing.virtual_access_points import VirtualAccessPoints as VAP, RequiredVap
-from src.util import path_util
+from src.util import path_util, dict_util
 from src.content.content_gen import ContentGeneration
 from src.FileWatching.watch_man import Watchman, WatchmanHandler
 from src.util.db_util import sanitize, Conwrapper
@@ -40,15 +41,6 @@ class DatabaseWatchHandler(WatchmanHandler):
     def __get_file_path(path: str):
         file, _ = splitext(path)
         return file
-
-    @staticmethod
-    def __read_meta(metadata) -> Union[None, int]:
-        try:
-            parser = configparser.SafeConfigParser()
-            parser.read_string(metadata)
-            return int(parser.get('File', 'id'))
-        except configparser.NoSectionError:
-            return None
 
     def on_file_lost(self, event: FileDeletedEvent):
         if FILE_DEBUG_MODE:
@@ -94,8 +86,7 @@ class DatabaseWatchHandler(WatchmanHandler):
         if DatabaseWatchHandler.__is_meta(file_path):
             file_path = DatabaseWatchHandler.__get_file_path(meta_path)
         else:
-            if self.gen_content_callback is not None:
-                self.gen_content_callback(file_path)
+            self.__gen_content(file_path, meta_path)
             return
 
         self.__found_logic(file_path, meta_path)
@@ -115,13 +106,14 @@ class DatabaseWatchHandler(WatchmanHandler):
 
     def __perform_get(self, data_path: str, meta_path: str):
         if not exists(data_path):
-            return
+            return None
         if self.get_callback is not None:
             id = self.get_callback(data_path)
             if id is None:
                 self.__perform_add(data_path, meta_path)
             else:
                 self.__write_meta(meta_path, id)
+            return id
         else:
             raise NotImplementedError
 
@@ -129,6 +121,7 @@ class DatabaseWatchHandler(WatchmanHandler):
         if self.add_callback is not None:
             id = self.add_callback(data_path)
             self.__write_meta(meta_path, id)
+            return id
         else:
             raise NotImplementedError
 
@@ -139,16 +132,17 @@ class DatabaseWatchHandler(WatchmanHandler):
         try:
             with open(meta_path, 'r') as meta_f:
                 metadata = meta_f.read()
-                result = DatabaseWatchHandler.__read_meta(metadata)
-                if result is None:
-                    # TODO
-                    # handle invalid meta?
-                    self.__perform_add(data_path, meta_path)
+                meta_d = dict_util.str_to_dict(metadata, dict_util.DictFormat.ini)
+                meta = models.FileMeta(**meta_d)
+                if meta.id is None:
+                    id = self.__perform_get(data_path, meta_path)
+                    self.__gen_content(data_path, meta_path)
                 else:
                     # TODO
                     # update the database
                     if self.update_callback is not None:
-                        self.update_callback(result, data_path)
+                        self.update_callback(meta.id, data_path)
+                        self.__gen_content(data_path, meta_path)
                     else:
                         raise NotImplementedError
         except FileNotFoundError:
@@ -156,6 +150,25 @@ class DatabaseWatchHandler(WatchmanHandler):
             # Add to the database
             # Create metadata
             self.__perform_add(data_path, meta_path)
+
+    def __gen_content(self, data_path, meta_path):
+        if self.gen_content_callback is None:
+            return
+        meta_d = dict_util.read_dict(meta_path, dict_util.DictFormat.ini)
+        meta = models.FileMeta(**meta_d)
+        supress_error_ignore = False
+        if not supress_error_ignore and meta.error_ignore:
+            return False
+        try:
+            success = self.gen_content_callback(data_path, meta.id)
+            meta.error_ignore = False
+
+        except Exception as e:
+            success = False
+            print(e)
+            meta.error_ignore = True
+        dict_util.write_dict(meta_path, meta.to_dictionary(), dict_util.DictFormat.ini)
+        return success
 
 
 class DatabaseWatchCallbacks:
@@ -198,18 +211,20 @@ class DatabaseWatchCallbacks:
         with Conwrapper(db_path=self.db_path) as (conn, cursor):
             query = f"SELECT id from file where path = {path}"
             cursor.execute(query)
-            result = cursor.fetch()
+            result = cursor.fetchone()
             if result is not None:
                 (file_id,) = result
                 return file_id
 
-    def gen_content_for_file(self, path: str) -> bool:
-        id = self.get_file(path)
+    def gen_content_for_file(self, path: str, id: int = None) -> bool:
         if id is None:
-            return False
+            id = self.get_file(path)
+            if id is None:
+                return False
         gen_folder = RequiredVap.dynamic_generated_real(f'file/{id}')
         try:
             return ContentGeneration.generate(path, gen_folder)
+
         except Exception as e:
             print(e)
             raise

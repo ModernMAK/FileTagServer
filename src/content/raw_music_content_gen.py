@@ -20,4 +20,6 @@ class MusicContentGenerator(AbstractContentGenerator):
             shutil.copyfile(source_path, local_copy_path)
 
     def get_file_name(self, content_type: GeneratedContentType, source_ext: str):
+        if content_type is GeneratedContentType.Thumbnail:
+            return None
         return f"LocalCopy.{source_ext}"

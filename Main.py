@@ -12,18 +12,18 @@ from src.util import dict_util
 from src.util.dict_util import DictFormat
 
 
-def launch_prep(**kwargs):
-    watch_paths = kwargs.get('watch_paths', None)
-    if watch_paths is not None:
-        print("Adding Missing Files")
-        for path in watch_paths:
-            DbMaintenence.add_all_files(path)
-            DbMaintenence.fix_missing_pages()
-            DbMaintenence.rebuild_missing_file_generated_content(supress_error_ignore=False)
-        print("Finished Adding Initial Files")
-    print("Creating Missing Meta Files")
-    DbMaintenence.gen_missing_meta_files()
-    print("Finished Creating Missing Meta Files")
+# def launch_prep(**kwargs):
+#     watch_paths = kwargs.get('watch_paths', None)
+#     if watch_paths is not None:
+#         print("Adding Missing Files")
+#         for path in watch_paths:
+#             DbMaintenence.add_all_files(path)
+#             DbMaintenence.fix_missing_pages()
+#             DbMaintenence.rebuild_missing_file_generated_content(supress_error_ignore=False)
+#         print("Finished Adding Initial Files")
+#     print("Creating Missing Meta Files")
+#     DbMaintenence.gen_missing_meta_files()
+#     print("Finished Creating Missing Meta Files")
 
 
 if __name__ == '__main__':
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     rest.add_routes()
     WebPages.add_routes()
 
-    launch_prep(watch_paths=path_list)
-    watcher.observer.start()
+    # launch_prep(watch_paths=path_list)
+    watcher.start(True)
     start_with_args()
     watcher.observer.join()
