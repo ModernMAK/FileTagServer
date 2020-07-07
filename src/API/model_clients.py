@@ -14,8 +14,6 @@ class BaseClient:
         self.db_path = kwargs.get('db_path')
 
     def _perform_select(self, select_query: str):
-        # if os.path.exists(self.db_path):
-        #     print(f"EXISTS: {self.db_path}")
         try:
             with Conwrapper(self.db_path) as (con, cursor):
                 cursor.execute(select_query)
@@ -36,6 +34,8 @@ class BaseClient:
 
 
 class Page(BaseClient):
+
+
     def assemble_query(self, **kwargs):
         page_size = kwargs.get('page_size', None)
         offset = kwargs.get('offset', None)

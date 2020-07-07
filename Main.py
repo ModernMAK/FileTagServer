@@ -2,9 +2,9 @@ from time import sleep
 from typing import List
 
 from litespeed import start_with_args
-import src.Routing.virtual_access_points as Vap
-import src.Routing.rest as rest
-import src.Routing.web_pages as WebPages
+import src.routing.virtual_access_points as Vap
+import src.routing.rest as rest
+import src.routing.web_pages as WebPages
 from src.content import content_gen_startup
 import src.FileWatching.db_watcher as DbWatcher
 import src.dbmaintanence as DbMaintenence

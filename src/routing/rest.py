@@ -5,7 +5,7 @@ from litespeed import route, serve
 import dicttoxml
 from pystache import Renderer
 
-from src.Routing.virtual_access_points import RequiredVap
+from src.routing.virtual_access_points import RequiredVap
 from src.util import path_util, dict_util
 from src.API.model_clients import FilePage as FilePageClient, Tag as TagClient
 from src.API.models import BaseModel

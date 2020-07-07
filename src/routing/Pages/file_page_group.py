@@ -3,14 +3,14 @@ from math import ceil
 from typing import Dict, Tuple, Union, List, Set, Any
 from litespeed import serve, route
 from pystache import Renderer
-from src.Routing.Pages import page_utils
+from src.routing.Pages import page_utils
 import src.API.model_clients as clients
 import src.API.models as models
-from src.Routing.Pages.page_group import PageGroup
-from src.Routing.virtual_access_points import RequiredVap
+from src.routing.Pages.page_group import PageGroup
+from src.routing.virtual_access_points import RequiredVap
 from src.content.content_gen import ContentGeneration, GeneratedContentType
 from src.util import dict_util, path_util
-from src.Routing.Pages.page_utils import reformat_serve, escape_js_string
+from src.routing.Pages.page_utils import reformat_serve, escape_js_string
 
 renderer = None
 db_path = None

@@ -1,7 +1,7 @@
 from litespeed import route
 
-from src.Routing.Pages import errors
-from src.Routing.Pages.file_page_group import FilePageGroup
+from src.routing.Pages import errors
+from src.routing.Pages.file_page_group import FilePageGroup
 
 
 def initialize_module(**kwargs):

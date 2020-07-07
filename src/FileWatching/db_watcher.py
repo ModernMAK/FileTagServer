@@ -7,7 +7,7 @@ from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent,
 from functools import partial
 
 from src.API import models
-from src.Routing.virtual_access_points import VirtualAccessPoints as VAP, RequiredVap
+from src.routing.virtual_access_points import VirtualAccessPoints as VAP, RequiredVap
 from src.util import path_util, dict_util
 from src.content.content_gen import ContentGeneration
 from src.FileWatching.watch_man import Watchman, WatchmanHandler

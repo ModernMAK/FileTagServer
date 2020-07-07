@@ -4,8 +4,8 @@ from litespeed import serve, register_error_page
 from litespeed.server import App
 from pystache import Renderer
 
-from src.Routing.virtual_access_points import RequiredVap
-from src.Routing.Pages.page_utils import reformat_serve
+from src.routing.virtual_access_points import RequiredVap
+from src.routing.Pages.page_utils import reformat_serve
 
 renderer = None
 

@@ -6,7 +6,7 @@ from src.content import content_gen
 from src.API import models
 from src.util import path_util
 from src.util.dict_util import DictFormat
-from src.Routing.virtual_access_points import RequiredVap
+from src.routing.virtual_access_points import RequiredVap
 
 db_path = RequiredVap.data_real('mediaserver2.db')
 

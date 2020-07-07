@@ -29,6 +29,7 @@ def get_unique_values(rows: Dict[Any, List[Any]]) -> Set[Any]:
     #     for value in row:
     #         unique.add(value)
     # return unique
+
     return {value for row in rows.values() for value in row}
 
 
@@ -52,11 +53,13 @@ def flatten(data: List[Union[Any, List[Any]]]) -> List[Any]:
     # result = []
     # for v in data:
     #     if isinstance(v, (list, tuple)):
-    #         flat = flatten_nested(v)
+    #         flat = flatten(v)
     #         result.extend(flat)
     #     else:
     #         result.append(v)
     # return result
+
+    # breaks our test cases, so its flawed somewhere
     return [
         value for content in data for value in
         (

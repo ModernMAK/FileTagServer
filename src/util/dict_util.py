@@ -20,6 +20,9 @@ class DictFormat(enum.Enum):
     xml = 2
     ini = 3
 
+    def __str__(self):
+        return self.name
+
 
 def configparser_as_dict(config: configparser.ConfigParser) -> Dict[Any, Any]:
     """
@@ -48,14 +51,18 @@ def read_dict(file: str, format: DictFormat, default: Any = None) -> Union[Dict[
 
 def write_dict(file: str, data: Dict[Any, Any], format: DictFormat) -> None:
     with open(file, 'w') as f:
-        f.write(dict_to_str(data, format))
+        formatted = dict_to_str(data, format)
+        f.write(formatted)
 
 
 def dict_to_str(data: Dict[Any, Any], format: DictFormat) -> str:
     if format is DictFormat.json:
         return json.dumps(data)
     elif format is DictFormat.xml:
-        return dicttoxml.dicttoxml(data)
+        byte_arr = dicttoxml.dicttoxml(data)
+        #According to dicttoxml docs
+        # the byte array is encoded in utf-8
+        return byte_arr.decode('utf-8')
     elif format is DictFormat.ini:
         config = configparser.ConfigParser()
         properly_formatted = all(isinstance(v, dict) for v in data.values())
@@ -74,7 +81,8 @@ def str_to_dict(data: str, format: DictFormat) -> Dict[Any, Any]:
     if format is DictFormat.json:
         return json.loads(data)
     elif format is DictFormat.xml:
-        return dicttoxml.parseString(data)
+        # Not supporting reading
+        raise NotImplementedError
     elif format is DictFormat.ini:
         config = configparser.ConfigParser()
         config.read_string(data)
