@@ -3,23 +3,19 @@ from math import ceil
 from typing import Dict, Tuple, Union, List, Set, Any
 from litespeed import serve, route
 from pystache import Renderer
-from src.routing.Pages import page_utils
-import src.API.model_clients as clients
-import src.API.models as models
-from src.routing.Pages.page_group import PageGroup
+from src.routing.pages import page_utils
+import src.api.model_clients as clients
+import src.api.models as models
+from src.routing.pages.page_group import PageGroup
+from src.routing.pages.tag_page_group import TagPageGroup
 from src.routing.virtual_access_points import RequiredVap
 from src.content.content_gen import ContentGeneration, GeneratedContentType
 from src.util import dict_util, path_util
-from src.routing.Pages.page_utils import reformat_serve, escape_js_string
+from src.routing.pages.page_utils import reformat_serve, escape_js_string
 
 renderer = None
 db_path = None
 
-
-class TagPageGroup(PageGroup):
-    @classmethod
-    def get_page(cls, id: str):
-        return "/"
 
 
 class FilePageGroup(PageGroup):

@@ -1,3 +1,0 @@
-[submodule "webserver"]
-	path = webserver
-	url = https://github.com/falconraptor/webserver

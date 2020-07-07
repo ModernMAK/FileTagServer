@@ -6,11 +6,11 @@ from typing import Union
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileMovedEvent, FileDeletedEvent
 from functools import partial
 
-from src.API import models
+from src.api import models
 from src.routing.virtual_access_points import VirtualAccessPoints as VAP, RequiredVap
 from src.util import path_util, dict_util
 from src.content.content_gen import ContentGeneration
-from src.FileWatching.watch_man import Watchman, WatchmanHandler
+from src.file_watching.watch_man import Watchman, WatchmanHandler
 from src.util.db_util import sanitize, Conwrapper
 
 FILE_DEBUG_MODE = True

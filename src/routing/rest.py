@@ -7,8 +7,8 @@ from pystache import Renderer
 
 from src.routing.virtual_access_points import RequiredVap
 from src.util import path_util, dict_util
-from src.API.model_clients import FilePage as FilePageClient, Tag as TagClient
-from src.API.models import BaseModel
+from src.api.model_clients import FilePage as FilePageClient, Tag as TagClient
+from src.api.models import BaseModel
 from src.util.dict_util import DictFormat
 
 database_path = None

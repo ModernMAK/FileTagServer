@@ -2,10 +2,10 @@ import sqlite3
 
 from typing import Dict, Union, List
 
-from src import DatabaseSearch
+from src.api import database_search
 from src.util import db_util
 from src.util.db_util import Conwrapper, create_entry_string, create_value_string, sanitize
-import src.API.models as Models
+import src.api.models as Models
 import src.util.collection_util as collection_util
 
 
@@ -34,8 +34,6 @@ class BaseClient:
 
 
 class Page(BaseClient):
-
-
     def assemble_query(self, **kwargs):
         page_size = kwargs.get('page_size', None)
         offset = kwargs.get('offset', None)
@@ -215,8 +213,8 @@ class FilePageSearch(BaseClient):
         offset = kwargs.get('offset', None)
         for i in range(len(items)):
             items[i] = items[i].replace('_', ' ')
-        search_groups = DatabaseSearch.create_simple_search_groups(items)
-        query = DatabaseSearch.create_query_from_search_groups(search_groups)
+        search_groups = database_search.create_simple_search_groups(items)
+        query = database_search.create_query_from_search_groups(search_groups)
 
         if page_size is not None:
             query += f" LIMIT {int(page_size)}"
@@ -310,7 +308,6 @@ class Tag(BaseClient):
 
 
 class File(BaseClient):
-
     def assemble_query(self, **kwargs):
         allowed_ids = create_entry_string(kwargs.get('ids', []))
         query = f"SELECT id, path, extension from file" \

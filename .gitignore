@@ -1,10 +1,22 @@
-
-
+# Python / Pycharm GitIgnore
 __pycache__/
 venv/*
 .idea/*
+
+# Ignore node modules, to allow users to instal lthemselves
 node_modules/*
+
+# Similarly, I keep files for poppler and libreoffice in a depends folder (you dont have to but i do)
+# To avoid redistributing those, they are ignored
+depends/*
+
+# Ignore test-generated files
+tests/test_playground/*
+
+# Ignore generated content
 web/dynamic/generated/*
 *.db
-depends/*
-tests/test_playground/*
+
+# Ignore personal settings/configs
+settings.ini
+config.ini
