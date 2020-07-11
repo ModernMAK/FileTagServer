@@ -12,6 +12,8 @@ depends/*
 
 # Ignore test-generated files
 tests/test_playground/*
+# Ignore tests-generated files which for whatever reason aren't in the tests folder
+test_playground/*
 
 # Ignore generated content
 web/dynamic/generated/*

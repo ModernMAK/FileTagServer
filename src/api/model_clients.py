@@ -5,7 +5,7 @@ from typing import Dict, Union, List
 from src.api import database_search
 from src.util import db_util
 from src.util.db_util import Conwrapper, create_entry_string, create_value_string, sanitize
-import src.api.models as Models
+import src.api.models as models
 import src.util.collection_util as collection_util
 
 
@@ -56,7 +56,7 @@ class Page(BaseClient):
             query += f" OFFSET {int(offset)}"
         return query
 
-    def get(self, **kwargs) -> List[Models.Page]:
+    def get(self, **kwargs) -> List[models.Page]:
 
         # PERFORM QUERY
         rows = self._perform_select(self.assemble_query(**kwargs))
@@ -75,7 +75,7 @@ class Page(BaseClient):
         # RETURN ASSEMBLED MODELS
         results = []
         for row in formatted:
-            page = Models.Page(**row)
+            page = models.Page(**row)
             page.tags = []
             if page.page_id in formatted_tag_map:
                 for tag_id in formatted_tag_map[page.page_id]:
@@ -83,8 +83,8 @@ class Page(BaseClient):
             results.append(page)
         return results
 
-    def get_lookup(self, **kwargs) -> Dict[int, Models.Page]:
-        def get_key(page: Models.Page) -> int:
+    def get_lookup(self, **kwargs) -> Dict[int, models.Page]:
+        def get_key(page: models.Page) -> int:
             return page.page_id
 
         return collection_util.create_lookup(self.get(**kwargs), get_key)
@@ -126,7 +126,7 @@ class FilePage(BaseClient):
             query += f" OFFSET {int(offset)}"
         return query
 
-    def get(self, **kwargs) -> List[Models.FilePage]:
+    def get(self, **kwargs) -> List[models.FilePage]:
 
         # PERFORM QUERY
         rows = self._perform_select(self.assemble_query(**kwargs))
@@ -154,11 +154,11 @@ class FilePage(BaseClient):
             base = page.to_dictionary()
             base.update(row)
             base['file'] = file
-            results.append(Models.FilePage(**base))
+            results.append(models.FilePage(**base))
         return results
 
-    def get_lookup(self, **kwargs) -> Dict[int, Models.FilePage]:
-        def get_key(page: Models.FilePage) -> int:
+    def get_lookup(self, **kwargs) -> Dict[int, models.FilePage]:
+        def get_key(page: models.FilePage) -> int:
             return page.file_page_id
 
         return collection_util.create_lookup(self.get(**kwargs), get_key)
@@ -214,7 +214,7 @@ class FilePageSearch(BaseClient):
         for i in range(len(items)):
             items[i] = items[i].replace('_', ' ')
         search_groups = database_search.create_simple_search_groups(items)
-        query = database_search.create_query_from_search_groups(search_groups)
+        query = database_search.create_page_tag_query(search_groups)
 
         if page_size is not None:
             query += f" LIMIT {int(page_size)}"
@@ -223,14 +223,14 @@ class FilePageSearch(BaseClient):
 
         return query
 
-    def get(self, **kwargs) -> List[Models.FilePage]:
+    def get(self, **kwargs) -> List[models.FilePage]:
         query = self.assemble_query(**kwargs)
         results = self._perform_select(query)
         ids = db_util.convert_tuple_to_list(results)
         return self.file_page.get(ids=ids)
 
     # Slightly optimized compared to separate get & count
-    def get_and_count(self, **kwargs) -> (List[Models.FilePage], int):
+    def get_and_count(self, **kwargs) -> (List[models.FilePage], int):
         page_size = kwargs.get('page_size', None)
         offset = kwargs.get('offset', 0)
         del kwargs['page_size']
@@ -264,14 +264,14 @@ class Tag(BaseClient):
                 f" group by tag.id"
         return query
 
-    def get(self, **kwargs) -> List[Models.Tag]:
+    def get(self, **kwargs) -> List[models.Tag]:
         query = self.assemble_query(**kwargs)
         rows = self._perform_select(query)
         mapping = ("id", "name", 'description', 'class', 'count')
         formatted = collection_util.tuple_to_dict(rows, mapping)
         results = []
         for row in formatted:
-            results.append(Models.Tag(**row))
+            results.append(models.Tag(**row))
         return results
 
     def get_map(self, **kwargs) -> Dict[int, List[int]]:
@@ -290,8 +290,8 @@ class Tag(BaseClient):
             result[page].append(tag)
         return result
 
-    def get_table(self, **kwargs) -> Dict[int, Models.Tag]:
-        def get_key(tag: Models.Tag) -> int:
+    def get_table(self, **kwargs) -> Dict[int, models.Tag]:
+        def get_key(tag: models.Tag) -> int:
             return tag.id
 
         return collection_util.create_lookup(self.get(**kwargs), get_key)
@@ -310,8 +310,20 @@ class Tag(BaseClient):
 class File(BaseClient):
     def assemble_query(self, **kwargs):
         allowed_ids = create_entry_string(kwargs.get('ids', []))
+        allowed_exts = create_entry_string(kwargs.get('extensions', []))
+        page_size = kwargs.get('page_size', None)
+        offset = kwargs.get('offset', None)
+
         query = f"SELECT id, path, extension from file" \
-                f" where id in {allowed_ids}"
+                f" WHERE id in {allowed_ids} OR"\
+                f" WHERE id in {allowed_exts}"
+
+
+        if page_size is not None:
+            query += f" LIMIT {int(page_size)}"
+        if offset is not None:
+            query += f" OFFSET {int(offset)}"
+
         return query
 
     def get(self, **kwargs):
@@ -321,11 +333,11 @@ class File(BaseClient):
         formatted = collection_util.tuple_to_dict(rows, mapping)
         results = []
         for row in formatted:
-            results.append(Models.File(**row))
+            results.append(models.File(**row))
         return results
 
-    def get_table(self, **kwargs) -> Dict[int, Models.File]:
-        def get_key(file: Models.File) -> int:
+    def get_table(self, **kwargs) -> Dict[int, models.File]:
+        def get_key(file: models.File) -> int:
             return file.file_id
 
         return collection_util.create_lookup(self.get(**kwargs), get_key)

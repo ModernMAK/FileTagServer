@@ -7,8 +7,8 @@ import src.routing.rest as rest
 import src.routing.web_pages as WebPages
 from src.content import content_gen_startup
 import src.file_watching.db_watcher as DbWatcher
-import src.dbmaintanence as DbMaintenence
 from src.util import dict_util
+from src.util.db_util import Conwrapper
 from src.util.dict_util import DictFormat
 
 
@@ -25,25 +25,41 @@ from src.util.dict_util import DictFormat
 #     DbMaintenence.gen_missing_meta_files()
 #     print("Finished Creating Missing Meta Files")
 
+def rebuild_db(db_path):
+    with open("web/data/table_script.v2.txt") as f:
+        full_query = f.read()
+        separated_queries = full_query.split(';')
+        with Conwrapper(db_path) as (conn, curs):
+            for query in separated_queries:
+                curs.execute(query)
+            conn.commit()
+
 
 if __name__ == '__main__':
     try:
         settings = dict_util.read_dict('settings.ini', DictFormat.ini)
+        if settings is None:
+            settings = {}
     except FileNotFoundError:
         settings = {}
     try:
         configs = dict_util.read_dict('config.ini', DictFormat.ini)
+        if configs is None:
+            configs = {}
     except FileNotFoundError:
         configs = {}
 
     content_gen_startup.initialize_content_gen()
+    rebuild_db(configs.get('Launch Args', {}).get('db_path'))
 
     WebPages.initialize_module(settings=settings, config=configs)
     watcher = DbWatcher.create_database_watchman(config=configs)
-    path_list = settings.get('Watch', {}).get('paths', '').split('\n')
-    for path in path_list:
-        print(f"Watching ~ {path}")
-        watcher.watch(path, True)
+    paths = settings.get('Watch', {}).get('paths', None)
+    if paths:
+        path_list = paths.split('\n')
+        for path in path_list:
+            print(f"Watching ~ {path}")
+            watcher.watch(path, True)
 
     Vap.RequiredVap.add_to_vap()
     rest.initialize_module(settings=settings, config=configs)

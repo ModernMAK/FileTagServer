@@ -6,7 +6,7 @@ from src.content.gen.pillow_content_gen import ImageContentGenerator
 # Requires PIL and pdf2Image (Poppler)
 from src.content.gen.pdf2image_content_gen import DocumentContentGenerator
 # Requires PIL and pdf2Image (Poppler) and Unoconv (LibreOffice/OpenOffice/Other Uno Support)
-from src.content.gen.soffice_content_gen import LibreOfficeContentGenerator
+# from src.content.gen.soffice_content_gen import LibreOfficeContentGenerator
 # No Requirements
 from src.content.raw_image_content_gen import ImageContentGenerator as RawImageContentGenerator
 from src.content.raw_video_content_gen import VideoContentGenerator as RawVideoContentGenerator
@@ -46,9 +46,9 @@ def initialize_content_gen(**kwargs):
         DocumentContentGenerator(),
         False
     )
-    # Most Office-Like file support
-    ContentGeneration.register_generator(
-        LibreOfficeContentGenerator.get_supported_types(),
-        LibreOfficeContentGenerator(),
-        False
-    )
+    # # Most Office-Like file support
+    # ContentGeneration.register_generator(
+    #     LibreOfficeContentGenerator.get_supported_types(),
+    #     LibreOfficeContentGenerator(),
+    #     False
+    # )

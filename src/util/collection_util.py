@@ -50,20 +50,20 @@ def create_lookup(data: List[Any], get_key: Callable[[Any], Any]) -> Dict[Any, A
 
 # List Of List,Value
 def flatten(data: List[Union[Any, List[Any]]]) -> List[Any]:
-    # result = []
-    # for v in data:
-    #     if isinstance(v, (list, tuple)):
-    #         flat = flatten(v)
-    #         result.extend(flat)
-    #     else:
-    #         result.append(v)
-    # return result
+    result = []
+    for v in data:
+        if isinstance(v, (list, tuple)):
+            flat = flatten(v)
+            result.extend(flat)
+        else:
+            result.append(v)
+    return result
 
     # breaks our test cases, so its flawed somewhere
-    return [
-        value for content in data for value in
-        (
-            flatten(*content) if isinstance(content, Iterable) and not isinstance(content, (str, bytearray))
-            else (content,)
-        )
-    ]
+    # return [
+    #     value for content in data for value in
+    #     (
+    #         flatten(*content) if isinstance(content, Iterable) and not isinstance(content, (str, bytearray))
+    #         else (content,)
+    #     )
+    # ]

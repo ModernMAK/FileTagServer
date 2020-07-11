@@ -28,6 +28,6 @@ def serve_error(error_path, context=None) -> Tuple[bytes, int, Dict[str, str]]:
     return reformat_serve(renderer, served, context)
 
 
-@register_error_page(404)
+@register_error_page(code=404)
 def error_404(request, *args, **kwargs):
     return serve_error(404)

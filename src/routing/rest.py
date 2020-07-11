@@ -26,8 +26,8 @@ def initialize_module(**kwargs):
 
 
 def add_routes():
-    route(r'/rest/file/(\d+)', no_end_slash=True, f=rest_file_get, methods=['GET'])
-    route(r'/rest/tag/(\d+)', no_end_slash=True, f=rest_tag_get, methods=['GET'])
+    route(r'/rest/file/(\d+)', no_end_slash=True, function=rest_file_get, methods=['GET'])
+    route(r'/rest/tag/(\d+)', no_end_slash=True, function=rest_tag_get, methods=['GET'])
 
 
 def __convert_to_dict_list(info_list: List[BaseModel]) -> List[Dict[str, Any]]:

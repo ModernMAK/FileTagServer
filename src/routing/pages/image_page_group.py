@@ -10,36 +10,40 @@ from src.routing.pages.page_group import PageGroup
 from src.routing.pages.tag_page_group import TagPageGroup
 from src.routing.virtual_access_points import RequiredVap
 from src.content.content_gen import ContentGeneration, GeneratedContentType
-from src.util import dict_util, path_util
+from src.util import dict_util, path_util, collection_util
 from src.routing.pages.page_utils import reformat_serve, escape_js_string
 
 renderer = None
 db_path = None
 
 
-class FilePageGroup(PageGroup):
+class ImagePageGroup(PageGroup):
     renderer = None
     file_client = None
+    file_page_client = None
     file_search_client = None
     tag_client = None
+    allowed_exts = []
 
     @classmethod
     def add_routes(cls):
-        route(FilePageGroup.get_group_path(), function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
-        route(FilePageGroup.get_index(), function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
+        route(ImagePageGroup.get_group_path(), function=cls.as_route_func(cls.index), no_end_slash=True,
+              methods=['GET'])
+        route(ImagePageGroup.get_index(), function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
 
-        route(FilePageGroup.get_page("(\d*)"), function=cls.as_route_func(cls.file), methods=['GET'])
-        route(FilePageGroup.get_page_edit("(\d*)"), function=cls.as_route_func(cls.file_edit), methods=['GET'])
+        route(ImagePageGroup.get_page("(\d*)"), function=cls.as_route_func(cls.file), methods=['GET'])
+        route(ImagePageGroup.get_page_edit("(\d*)"), function=cls.as_route_func(cls.file_edit), methods=['GET'])
 
-        route(FilePageGroup.get_search(), function=cls.as_route_func(cls.search), no_end_slash=True, methods=['GET'])
+        route(ImagePageGroup.get_search(), function=cls.as_route_func(cls.search), no_end_slash=True, methods=['GET'])
 
-        route(FilePageGroup.get_action_update_page("(\d*)"), function=cls.as_route_func(cls.action_update_page),
+        route(ImagePageGroup.get_action_update_page("(\d*)"), function=cls.as_route_func(cls.action_update_page),
               no_end_slash=True, methods=['POST'])
 
     @classmethod
     def initialize(cls, **kwargs):
         db_path = dict_util.nested_get(kwargs, 'config.Launch Args.db_path')
-        cls.file_client = clients.FilePage(db_path=db_path)
+        cls.file_client = clients.File(db_path=db_path)
+        cls.file_page_client = clients.FilePage(db_path=db_path)
         cls.tag_client = clients.Tag(db_path=db_path)
         cls.file_search_client = clients.FilePageSearch(db_path=db_path)
         cls.renderer = Renderer(search_dirs=[RequiredVap.html_real("templates")])
@@ -55,13 +59,15 @@ class FilePageGroup(PageGroup):
         display_page_number = int(page)
         count = GET.get('count', None)
         args = {}
-        FilePageGroup.update_paged_args(display_page_number, page_size=count, args=args)
-        pages = cls.file_client.get(**args)
-        count = cls.file_client.count()
+        ImagePageGroup.update_paged_args(display_page_number, page_size=count, args=args)
+        files = cls.file_client.get(exts=cls.allowed_exts)
+        file_ids = collection_util.get_unique_values_on_key(files,'id')
+        pages = cls.file_page_client.get(ids=file_ids, **args)
+        count = cls.file_page_client.count(ids=file_ids)
 
-        if not FilePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
+        if not ImagePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
             return None, 404
-        ctx = FilePageGroup.get_shared_index_data(pages, count, args, display_page_number, cls.get_index)
+        ctx = ImagePageGroup.get_shared_index_data(pages, count, args, display_page_number, cls.get_index)
         ctx['navbar'] = cls.get_shared_navbar()
 
         file = RequiredVap.file_html_real('index.html')
@@ -71,10 +77,10 @@ class FilePageGroup(PageGroup):
     @classmethod
     def get_shared_index_data(cls, pages, count, args, display_page_number, get_page_path):
         pagination_ctx = page_utils.get_pagination_symbols(count, args['page_size'], display_page_number, get_page_path)
-        page_content = FilePageGroup.get_content(pages, GeneratedContentType.Thumbnail)
-        page_ctx = FilePageGroup.reformat_page(page_content)
-        sorted_unique_tags = FilePageGroup.sort_tags(FilePageGroup.get_unique_tags(pages))
-        tag_ctx = FilePageGroup.reformat_tags(sorted_unique_tags, support_search=True)
+        page_content = ImagePageGroup.get_content(pages, GeneratedContentType.Thumbnail)
+        page_ctx = ImagePageGroup.reformat_page(page_content)
+        sorted_unique_tags = ImagePageGroup.sort_tags(ImagePageGroup.get_unique_tags(pages))
+        tag_ctx = ImagePageGroup.reformat_tags(sorted_unique_tags, support_search=True)
 
         return {
             'page_title': "File Index",
@@ -89,6 +95,7 @@ class FilePageGroup(PageGroup):
 
     @classmethod
     def search_paged(cls, request: Dict[str, Any]):
+        raise NotImplementedError
         GET = request.get('GET', {})
         search = GET.get('search', None)
         page = GET.get('page', 1)
@@ -101,16 +108,16 @@ class FilePageGroup(PageGroup):
             return cls.index_paged(request)
 
         args = {'search': search}
-        FilePageGroup.update_paged_args(display_page_number, page_size=count, args=args)
+        ImagePageGroup.update_paged_args(display_page_number, page_size=count, args=args)
         pages, count = cls.file_search_client.get_and_count(**args)
 
-        if not FilePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
+        if not ImagePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
             return None, 404
 
         def get_page_path(page: int):
             return cls.get_search(page, search, page=page, count=count)
 
-        ctx = FilePageGroup.get_shared_index_data(pages, count, args, display_page_number, get_page_path)
+        ctx = ImagePageGroup.get_shared_index_data(pages, count, args, display_page_number, get_page_path)
         ctx['search'] = search
 
         ctx['navbar'] = cls.get_shared_navbar()
@@ -121,7 +128,7 @@ class FilePageGroup(PageGroup):
     @classmethod
     def file(cls, request: Dict[str, Any], page_id: Union[str, int]):
         page_id = int(page_id)
-        pages = cls.file_client.get(ids=[page_id])
+        pages = cls.file_page_client.get(ids=[page_id])
         if pages is None or len(pages) < 0:
             return None, 404
         page = pages[0]
@@ -168,7 +175,7 @@ class FilePageGroup(PageGroup):
     @classmethod
     def file_edit(cls, request: Dict[str, Any], page_id: Union[str, int]):
         page_id = int(page_id)
-        pages = cls.file_client.get(ids=[page_id])
+        pages = cls.file_page_client.get(ids=[page_id])
         if pages is None or len(pages) < 0:
             return None, 404
         page = pages[0]
@@ -201,7 +208,7 @@ class FilePageGroup(PageGroup):
         ctx['tags'] = cls.reformat_tags(page.tags)
         ctx['navbar'] = cls.get_shared_navbar()
         ctx['show_path'] = cls.get_page(page_id)
-        ctx['actions'] = {'edit_filepage': {'path': cls.get_action_update_page(page_id)}}
+        ctx['actions'] = {'edit_ImagePage': {'path': cls.get_action_update_page(page_id)}}
         file = RequiredVap.file_html_real('edit.html')
         result = serve(file)
         return reformat_serve(cls.renderer, result, ctx)
@@ -213,14 +220,14 @@ class FilePageGroup(PageGroup):
         # FIX NAME?/DESC
         name = request['POST'].get('title')
         description = request['POST'].get('description')
-        cls.file_client.set_page_values(page_id, name, description)
+        cls.file_page_client.set_page_values(page_id, name, description)
 
         # FIX TAGS
         tags = request['POST'].get('tags', '').splitlines()
         for i in range(0, len(tags)):
             tags[i] = tags[i].strip()
         cls.tag_client.add_missing_tags(tags)
-        cls.file_client.set_tags(page_id, tags)
+        cls.file_page_client.set_tags(page_id, tags)
 
         file = RequiredVap.html_real('redirect.html')
         ctx = {
@@ -231,7 +238,7 @@ class FilePageGroup(PageGroup):
 
     @classmethod
     def get_group_path(cls, path: str = None):
-        result = f"/show/file"
+        result = f"/show/image"
         if path is not None:
             if path[0] != '/':
                 result += '/'
@@ -320,7 +327,7 @@ class FilePageGroup(PageGroup):
         def parse(page_content_pair: Tuple[models.Page, str, str]) -> Dict[str, Any]:
             page, content_virtual_path, content_real_path = page_content_pair
             d = page.to_dictionary()
-            d['page_path'] = FilePageGroup.get_page(page.page_id)
+            d['page_path'] = ImagePageGroup.get_page(page.page_id)
             ext = d['file']['extension']
             d['file']['extension'] = ext.upper()
 
@@ -362,11 +369,11 @@ class FilePageGroup(PageGroup):
 
     @staticmethod
     def get_content(
-            file_pages: Union[models.FilePage, List[models.FilePage]],
+            file_pages: Union[models.ImagePage, List[models.ImagePage]],
             content_type: GeneratedContentType
-    ) -> Union[Tuple[models.FilePage, str, str], List[Tuple[models.FilePage, str, str]]]:
+    ) -> Union[Tuple[models.ImagePage, str, str], List[Tuple[models.ImagePage, str, str]]]:
 
-        def parse(file_page: models.FilePage) -> Tuple[models.FilePage, Any, Any]:
+        def parse(file_page: models.ImagePage) -> Tuple[models.ImagePage, Any, Any]:
             ext = file_page.file.extension.lower()
             resource_path = ContentGeneration.get_file_name(content_type, ext)
             partial_path = f"file/{file_page.file.file_id}/{resource_path}"
