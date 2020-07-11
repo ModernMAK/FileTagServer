@@ -39,18 +39,24 @@ if __name__ == '__main__':
     try:
         settings = dict_util.read_dict('settings.ini', DictFormat.ini)
         if settings is None:
-            settings = {}
+            raise FileNotFoundError
     except FileNotFoundError:
+        print("Settings Not Found")
         settings = {}
     try:
         configs = dict_util.read_dict('config.ini', DictFormat.ini)
         if configs is None:
-            configs = {}
+            raise FileNotFoundError
     except FileNotFoundError:
+        print("Config Not Found")
         configs = {}
 
+    db_path = configs.get('Launch Args', {}).get('db_path')
+    print(f"DB Loaded from ~ {db_path}")
+    if db_path is None:
+        raise ValueError
+    rebuild_db(db_path)
     content_gen_startup.initialize_content_gen()
-    rebuild_db(configs.get('Launch Args', {}).get('db_path'))
 
     WebPages.initialize_module(settings=settings, config=configs)
     watcher = DbWatcher.create_database_watchman(config=configs)
@@ -69,6 +75,6 @@ if __name__ == '__main__':
     WebPages.add_routes()
 
     # launch_prep(watch_paths=path_list)
-    watcher.start(True)
+    watcher.start(False)
     start_with_args()
     watcher.observer.join()

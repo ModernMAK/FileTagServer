@@ -261,7 +261,7 @@ class Tag(BaseClient):
         allowed_names = kwargs.get('names')
         allowed_pages = kwargs.get('page_ids')
         allowed_classes = kwargs.get('classes')
-        query = f"SELECT tag.id, name, description, class, count(page_id) as count from tag left join tag_map on tag.id = tag_map.tag_id"
+        query = f"SELECT tag.id, tag.name, tag.description, tag.class, count(page_id) as tag_count from tag left join tag_map on tag.id = tag_map.tag_id"
         where_query = ""
         def helper(name,data,append_or=True):
             nonlocal where_query
@@ -276,7 +276,7 @@ class Tag(BaseClient):
         helper('tag.class',allowed_classes)
 
         if len(where_query) > 0:
-            query += where_query
+            query += " where" + where_query
 
         query += " group by tag.id"
         return query

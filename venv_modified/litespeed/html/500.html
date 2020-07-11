@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <title>Internal Server Error (500)</title>
+        <style>
+			a {color: #00f0ff}
+        </style>
+    </head>
+    <body class="bg-dark text-light">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <h1>~~data['exception_type']~~ at ~~request.get('PATH_INFO', '')~~</h1>
+                    <pre class="text-light">~~data['exception_value'] or 'No exception message supplied'~~</pre>
+                    <table class="table table-sm table-hover table-striped table-dark">
+                        <tbody>
+                            <tr>
+                                <th>Request Method:</th>
+                                <td>~~request.get('REQUEST_METHOD', '')~~</td>
+                            </tr>
+                            <tr>
+                                <th>Request URI:</th>
+                                <td><a href="http://~~request.get('HOST', '') + request.get('PATH_INFO', '') + ('?' + request.get('QUERY_STRING', '') if request.get('QUERY_STRING', '') else '')~~">http://~~request.get('HOST', '') + request.get('PATH_INFO', '') + ('?' + request.get('QUERY_STRING', '') if request.get('QUERY_STRING', '') else '')~~</a></td>
+                            </tr>
+                            ~~f'<tr><th>Exception Location</th><td>{data["lastframe"]["filename"]} in {data["lastframe"]["function"]}, line {data["lastframe"]["lineno"]}</td></tr>' if data['lastframe'] else ''~~
+                            <tr>
+                                <th>Python Executable:</th>
+                                <td>~~data['sys_executable']~~</td>
+                            </tr>
+                            <tr>
+                                <th>Python Version:</th>
+                                <td>~~data['sys_version_info']~~</td>
+                            </tr>
+                            <tr>
+                                <th>Python Path:</th>
+                                <td>~~'<br>'.join(data['sys_path'])~~</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h2>Traceback</h2>
+                    <ul>
+                        ~~''.join(('<li><h3>' + (f'The above exception ({f["exc_cause"]}) was the direct cause of the following exception:' if f['exc_cause_explicit'] else f'During handling of the above exception ({f["exc_cause"]}), another exception occured:') + '</h3>' if i != 0 and f['exc_cause'] else '') + f'<div><code>{f["filename"]}</code> in <code>{f["function"]}</code>' + (f'<div><ol start="{f["pre_context_lineno"]}">' + "".join(f'<li><pre style="margin: 0" class="text-light">{l}</pre></li>' for l in f["pre_context"]) + f'</ol><ol start="{f["lineno"]}"><li><pre class="text-dark" style="background-color: lightgray">{f["context_line"]}</pre></li></ol><ol start="{f["lineno"] + 1}">' + "".join(f'<li><pre style="margin: 0" class="text-light">{l}</pre></li>' for l in f["post_context"]) + f'</ol></div>' if f['context_line'] else '') + f'<div><h2>Local Vars</h2></div><table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>{"".join(f"<tr><td>{var[0]}</td><td>{var[1]}</td></tr>" for var in f["vars"])}</tbody></table></li>' for i, f in enumerate(data['frames']))~~
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h2>Request Information</h2>
+                    ~~f'<h3>USER</h3><p>{request.get("USER", request.get("REMOTE_ADDR", ""))}</p></div></div><div class="row"><div class="col"><h3>GET</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('GET', {}).items()) + '</tbody></table>' if request.get('GET', {}) else '<p>No GET data</p>') + '</div><div class="col"><h3>POST</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('POST', {}).items()) + '</tbody></table>' if request.get('POST', {}) else '<p>No POST data</p>') + '</div><div class="col"><h3>PATCH</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('PATCH', {}).items()) + '</tbody></table>' if request.get('PATCH', {}) else '<p>No PATCH data</p>') + '</div><div class="col"><h3>PUT</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('PUT', {}).items()) + '</tbody></table>' if request.get('PUT', {}) else '<p>No PUT data</p>') + '</div><div class="col"><h3>DELETE</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('DELETE', {}).items()) + '</tbody></table>' if request.get('DELETE', {}) else '<p>No DELETE data</p>') + '</div><div class="col"><h3>FILES</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{v}</pre></td></tr>' for k, v in request.get('FILES', {}).items()) + '</tbody></table>' if request.get('FILES', {}) else '<p>No FILES data</p>') + '</div><div class="col"><h3>COOKIES</h3>' + ('<table class="table table-sm table-hover table-striped table-dark"><thead><tr><th>Variable</th><th>Value</th></tr></thead><tbody>' + ''.join(f'<tr><td>{k}</td><td><pre class="text-light">{str(v).split("=", 1)[1]}</pre></td></tr>' for k, v in request.get('COOKIE', {}).items()) + '</tbody></table>' if request.get('COOKIE', {}) else '<p>No COOKIES data</p>') if request else '<p>Request data not supplied</p>'~~
+                </div>
+            </div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    </body>
+</html>

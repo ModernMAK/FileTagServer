@@ -1,0 +1,2 @@
+Gitignore really didnt like me so instead of forcing all of venv to copy, id rather copy venv_modified
+This will also allow me to avoid overwriting my local version of litespeed (since it has a few QOL improvements)

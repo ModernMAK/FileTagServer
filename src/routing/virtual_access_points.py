@@ -61,7 +61,7 @@ class RequiredVap:
         raise NotImplementedError
 
     dynamic_generated_real_def = os.path.join(path_util.project_root(), 'web', 'dynamic', 'generated')
-    dynamic_generated_virtual_def =  "/" +  os.path.join('','dyn', 'gen')
+    dynamic_generated_virtual_def = "/" + os.path.join('', 'dyn', 'gen')
 
     @classmethod
     def dynamic_generated_real(cls, local_file: str):
@@ -84,7 +84,7 @@ class RequiredVap:
         return os.path.join(cls.rest_html_real_def, local_file)
 
     css_real_def = os.path.join(path_util.project_root(), 'web', 'css')
-    css_virtual_def =  "/" + 'css'
+    css_virtual_def = "/" + 'css'
 
     @classmethod
     def css_real(cls, local_file: str):
@@ -95,7 +95,7 @@ class RequiredVap:
         return os.path.join(cls.css_virtual_def, local_file)
 
     js_real_def = os.path.join(path_util.project_root(), 'web', 'js')
-    js_virtual_def =  "/" + 'js'
+    js_virtual_def = "/" + 'js'
 
     @classmethod
     def js_real(cls, local_file: str):
@@ -109,7 +109,13 @@ class RequiredVap:
     def add_to_vap(cls):
         def get_serve(r_path):
             def internal_serve(request, page):
-                return serve(os.path.join(r_path, page))
+                headers = {}
+                if request is not None:
+                    range = request.get('HEADERS', {}).get('RANGE')
+                    if range is not None:
+                        headers = {'RANGE': range}
+
+                return serve(os.path.join(r_path, page), headers=headers)
 
             return internal_serve
 
