@@ -60,7 +60,10 @@ class FilePageGroup(PageGroup):
         count = cls.file_client.count()
 
         if not FilePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
-            return None, 404
+            if display_page_number != 1 and count != 0:
+                return None, 404
+
+
         ctx = FilePageGroup.get_shared_index_data(pages, count, args, display_page_number, cls.get_index)
         ctx['navbar'] = cls.get_shared_navbar()
 

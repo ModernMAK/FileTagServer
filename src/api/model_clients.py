@@ -14,23 +14,23 @@ class BaseClient:
         self.db_path = kwargs.get('db_path')
 
     def _perform_select(self, select_query: str):
-        try:
-            with Conwrapper(self.db_path) as (con, cursor):
-                cursor.execute(select_query)
-                return cursor.fetchall()
-        except sqlite3.DatabaseError as e:
-            print(str(e))
-            return None
+        # try:
+        with Conwrapper(self.db_path) as (con, cursor):
+            cursor.execute(select_query)
+            return cursor.fetchall()
+        # except sqlite3.DatabaseError as e:
+        #     print(str(e))
+        #     return None
 
     def _perform_count(self, select_query: str):
-        try:
-            with Conwrapper(self.db_path) as (con, cursor):
-                cursor.execute(f"SELECT COUNT(*) FROM ({select_query})")
-                count, = cursor.fetchone()  # COMMA IS IMPORTANT, untuples the fetch call
-                return count
-        except sqlite3.DatabaseError as e:
-            print(str(e))
-            return None
+        # try:
+        with Conwrapper(self.db_path) as (con, cursor):
+            cursor.execute(f"SELECT COUNT(*) FROM ({select_query})")
+            count, = cursor.fetchone()  # COMMA IS IMPORTANT, untuples the fetch call
+            return count
+        # except sqlite3.DatabaseError as e:
+        #     print(str(e))
+        #     return None
 
 
 class Page(BaseClient):
@@ -41,20 +41,24 @@ class Page(BaseClient):
 
         # ASSEMBLE QUERY
         query = f"SELECT id, name, description from page"
+        result = ""
         if any(v is not None for v in [requested_ids]):
-            query += " where"
             append_or = False
-            if requested_ids is not None:
+            if requested_ids is not None and len(requested_ids) > 0:
                 if append_or:
-                    query += " or"
-                query += f" id in {create_entry_string(requested_ids)}"
+                    result += " or"
+                result += f" id in {create_entry_string(requested_ids)}"
                 append_or = True
 
         if page_size is not None:
-            query += f" LIMIT {int(page_size)}"
+            result += f" LIMIT {int(page_size)}"
         if offset is not None:
-            query += f" OFFSET {int(offset)}"
-        return query
+            result += f" OFFSET {int(offset)}"
+
+        if len(result) > 0:
+            result = " where" + result
+
+        return query + result
 
     def get(self, **kwargs) -> List[models.Page]:
 
@@ -253,15 +257,28 @@ class FilePageSearch(BaseClient):
 
 class Tag(BaseClient):
     def assemble_query(self, **kwargs):
-        allowed_ids = create_entry_string(kwargs.get('ids', []))
-        allowed_names = create_entry_string(kwargs.get('names', []))
-        allowed_pages = create_entry_string(kwargs.get('page_ids', []))
-        allowed_classes = create_entry_string(kwargs.get('classes', []))
-        query = f"SELECT tag.id, name, description, class, count(page_id) as count from tag" \
-                f" left join tag_map on tag.id = tag_map.tag_id" \
-                f" where tag.id in {allowed_ids} or name in {allowed_names} or class in {allowed_classes}" \
-                f" or tag_map.page_id in {allowed_pages}" \
-                f" group by tag.id"
+        allowed_ids = kwargs.get('ids')
+        allowed_names = kwargs.get('names')
+        allowed_pages = kwargs.get('page_ids')
+        allowed_classes = kwargs.get('classes')
+        query = f"SELECT tag.id, name, description, class, count(page_id) as count from tag left join tag_map on tag.id = tag_map.tag_id"
+        where_query = ""
+        def helper(name,data,append_or=True):
+            nonlocal where_query
+            if data is not None and len(data) > 0:
+                if append_or:
+                    where_query += " or"
+                where_query += f" {name} in {create_entry_string(data)}"
+
+        helper('tag.id',allowed_ids,False)
+        helper('tag.name',allowed_names)
+        helper('tag_map.page_id',allowed_pages)
+        helper('tag.class',allowed_classes)
+
+        if len(where_query) > 0:
+            query += where_query
+
+        query += " group by tag.id"
         return query
 
     def get(self, **kwargs) -> List[models.Tag]:
@@ -275,9 +292,24 @@ class Tag(BaseClient):
         return results
 
     def get_map(self, **kwargs) -> Dict[int, List[int]]:
-        allowed_pages = create_entry_string(kwargs.get('page_ids', []))
-        allowed_tags = create_entry_string(kwargs.get('tag_ids', []))
-        query = f"SELECT page_id, tag_id from tag_map where page_id in {allowed_pages} or tag_id in {allowed_tags}"
+        allowed_pages = kwargs.get('page_ids', [])
+        allowed_tags = kwargs.get('tag_ids', [])
+        query = f"SELECT tag_map.page_id, tag_map.tag_id from tag_map"
+        result = ""
+        append_or = False
+        if allowed_pages is not None and len(allowed_pages) > 0:
+            if append_or:
+                result += " or"
+            result += f" tag_map.page_id in {create_entry_string(allowed_pages)}"
+            append_or = True
+        if allowed_tags is not None and len(allowed_tags) > 0:
+            if append_or:
+                result += " or"
+            result += f" tag_map.tag_id in {create_entry_string(allowed_tags)}"
+            append_or = True
+        if len(result) > 0:
+            result = " where" + result
+        query += result
         rows = self._perform_select(query)
         mapping = ("page_id", "tag_id")
         formatted = collection_util.tuple_to_dict(rows, mapping)
@@ -316,7 +348,7 @@ class File(BaseClient):
 
         query = f"SELECT id, path, extension from file" \
                 f" WHERE id in {allowed_ids} OR"\
-                f" WHERE id in {allowed_exts}"
+                f" id in {allowed_exts}"
 
 
         if page_size is not None:
