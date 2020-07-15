@@ -80,6 +80,8 @@ Tuple[bytes, int, Dict[str, str]]:
                 USHORT = 65535
                 MAX_BYTES = MBps
                 # trim off bytes=
+                #unit=start-stop
+                #start or stop can be omitted but not both
                 range = range[6:]
                 # split_on_len = range.split('/')
                 # if len(split_on_len) > 1:
@@ -98,7 +100,7 @@ Tuple[bytes, int, Dict[str, str]]:
                 _in.seek(start)
                 lines = _in.read(read_len)
                 headers['Content-Length'] = str(read_len)
-                headers['Content-Range'] = f"bytes {start}-{stop}/{requested_size+1}"
+                headers['Content-Range'] = f"bytes {start}-{stop-1}/{requested_size}"
                 if start != requested_size:
                     status_override = 206
                 else:
