@@ -53,22 +53,12 @@
                 {{> pagination}}
                 {{/pagination}}
                 <div class="justify-content-center">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                            <th scope="col">#</th>
-                            <th scope="col">Title</th>
-                            <th scope="col">Tools</th>
-                            </thead>
-                            <!--                        <div class="list-group">-->
-                            <tbody>
+                    <div class="container-fluid">
+                        <div class="list-group">
                             {{#pages}}
                             {{> filepage_list_item}}
                             {{/pages}}
-                            </tbody>
-                            <!--                        </div>-->
-
-                        </table>
+                        </div>
                     </div>
                 </div>
                 {{#pagination}}
