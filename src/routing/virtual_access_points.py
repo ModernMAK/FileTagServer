@@ -111,11 +111,11 @@ class RequiredVap:
             def internal_serve(request, page):
                 headers = {}
                 if request is not None:
-                    range = request.get('HEADERS', {}).get('RANGE')
+                    range = request.get('HEADERS').get('RANGE')
                     if range is not None:
                         headers = {'RANGE': range}
 
-                return serve(os.path.join(r_path, page), headers=headers)
+                return serve(os.path.join(r_path, page), range=range)
 
             return internal_serve
 

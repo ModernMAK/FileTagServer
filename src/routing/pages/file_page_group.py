@@ -28,6 +28,10 @@ class FilePageGroup(PageGroup):
         route(FilePageGroup.get_group_path(), function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
         route(FilePageGroup.get_index(), function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
 
+        route(FilePageGroup.get_group_path('grid'), function=cls.as_route_func(cls.index_grid_paged), no_end_slash=True,
+              methods=['GET'])
+        route(FilePageGroup.get_group_path('list'), function=cls.as_route_func(cls.index_list_paged), no_end_slash=True,
+              methods=['GET'])
         route(FilePageGroup.get_page("(\d*)"), function=cls.as_route_func(cls.file), methods=['GET'])
         route(FilePageGroup.get_page_edit("(\d*)"), function=cls.as_route_func(cls.file_edit), methods=['GET'])
 
@@ -50,6 +54,18 @@ class FilePageGroup(PageGroup):
 
     @classmethod
     def index_paged(cls, request: Dict[str, Any]):
+        return cls.shared_index_paged(request, 'index_grid.html')
+
+    @classmethod
+    def index_grid_paged(cls, request: Dict[str, Any]):
+        return cls.shared_index_paged(request, 'index_grid.html')
+
+    @classmethod
+    def index_list_paged(cls, request: Dict[str, Any]):
+        return cls.shared_index_paged(request, 'index_list.html')
+
+    @classmethod
+    def shared_index_paged(cls, request: Dict[str, Any], html_name: str):
         GET = request.get('GET', {})
         page = GET.get('page', 1)
         display_page_number = int(page)
@@ -63,11 +79,10 @@ class FilePageGroup(PageGroup):
             if display_page_number != 1 and count != 0:
                 return None, 404
 
-
         ctx = FilePageGroup.get_shared_index_data(pages, count, args, display_page_number, cls.get_index)
         ctx['navbar'] = cls.get_shared_navbar()
 
-        file = RequiredVap.file_html_real('index.html')
+        file = RequiredVap.file_html_real(html_name)
         result = serve(file)
         return reformat_serve(cls.renderer, result, ctx)
 
@@ -117,7 +132,7 @@ class FilePageGroup(PageGroup):
         ctx['search'] = search
 
         ctx['navbar'] = cls.get_shared_navbar()
-        file = RequiredVap.file_html_real('index.html')
+        file = RequiredVap.file_html_real('index_grid.html')
         result = serve(file)
         return reformat_serve(cls.renderer, result, ctx)
 
