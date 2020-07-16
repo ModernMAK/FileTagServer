@@ -105,11 +105,16 @@ class RequiredVap:
     def js_virtual(cls, local_file: str):
         return os.path.join(cls.css_virtual_def, local_file)
 
+    icons_real_def = os.path.join(path_util.project_root(), 'web', 'static','icons')
+    icons_virtual_def = "/" + 'icons'
+
+
     @classmethod
     def add_to_vap(cls):
         def get_serve(r_path):
             def internal_serve(request, page):
                 headers = {}
+                range = None
                 if request is not None:
                     range = request.get('HEADERS').get('RANGE')
                     if range is not None:
@@ -123,5 +128,6 @@ class RequiredVap:
             VirtualAccessPoints.register_vap(name, real, virtual, get_serve(real))
 
         register_helper('dynamic_generated', cls.dynamic_generated_real_def, cls.dynamic_generated_virtual_def)
+        register_helper('icon', cls.icons_real_def, cls.icons_virtual_def)
         register_helper('css', cls.css_real_def, cls.css_virtual_def)
         register_helper('js', cls.js_real_def, cls.js_virtual_def)
