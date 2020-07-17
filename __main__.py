@@ -75,6 +75,6 @@ if __name__ == '__main__':
     WebPages.add_routes()
 
     # launch_prep(watch_paths=path_list)
-    watcher.start(False)
+    watcher.start(True)
     start_with_args()
     watcher.observer.join()

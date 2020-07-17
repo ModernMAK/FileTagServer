@@ -1,0 +1,29 @@
+<tr>
+    <td>
+        {{#list_icon}}
+            <img src="{{path}}"
+                 alt="{{alt}}"/>
+        {{/list_icon}}
+        {{^list_icon}}
+            <img src="/icons/bootstrap/file-earmark-fill.svg"
+                 class="mx-auto my-auto d-block w-100"
+                 alt="Generic File"/>
+        {{/list_icon}}
+    </td>
+    <td>
+        <h4>
+            {{#name}}{{name}}{{/name}}
+            {{^name}}'Untitled Page'{{/name}}
+        </h4>
+    </td>
+    <td>
+        {{#file}}
+            {{#extension}}{{extension}}{{/extension}}
+            {{^extension}}???{{/extension}}
+        {{/file}}
+    </td>
+    <td>
+        <a class="btn btn-outline-info"
+           href="{{page_path}}">Open</a>
+    </td>
+</tr>

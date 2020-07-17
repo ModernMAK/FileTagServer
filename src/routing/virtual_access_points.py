@@ -113,14 +113,15 @@ class RequiredVap:
     def add_to_vap(cls):
         def get_serve(r_path):
             def internal_serve(request, page):
-                headers = {}
                 range = None
                 if request is not None:
                     range = request.get('HEADERS').get('RANGE')
-                    if range is not None:
-                        headers = {'RANGE': range}
+                b = 1
+                kbb = 1024 * b
+                mbb = 1024 * kbb
+                byte_dl_rate = mbb
 
-                return serve(os.path.join(r_path, page), range=range)
+                return serve(os.path.join(r_path, page), range=range, max_bytes_per_request=byte_dl_rate)
 
             return internal_serve
 

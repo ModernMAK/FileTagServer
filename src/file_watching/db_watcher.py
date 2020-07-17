@@ -149,7 +149,8 @@ class DatabaseWatchHandler(WatchmanHandler):
             # TODO
             # Add to the database
             # Create metadata
-            self.__perform_add(data_path, meta_path)
+            if self.__perform_get(data_path, meta_path) == None:
+                self.__perform_add(data_path,meta_path)
 
     def __gen_content(self, data_path, meta_path):
         if self.gen_content_callback is None:

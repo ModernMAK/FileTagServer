@@ -64,9 +64,12 @@
                     {{/sources}}
                     {{/audio}}
                     {{#video}}
-                    <video controls>
+                    <video controls
+                       preload="metadata">
                         {{#sources}}
-                        <source src="{{path}}" type="video/{{type}}">
+                        <source
+                                src="{{path}}"
+                                type="video/{{type}}">
                         {{/sources}}
                         Cannot Display Video
                     </video>
