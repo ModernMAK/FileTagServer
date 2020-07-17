@@ -11,6 +11,12 @@
         {{/list_icon}}
     </td>
     <td>
+        {{#file}}
+            {{#id}}{{id}}{{/id}}
+            {{^id}}???{{/id}}
+        {{/file}}
+    </td>
+    <td>
         <h4>
             {{#name}}{{name}}{{/name}}
             {{^name}}'Untitled Page'{{/name}}
@@ -23,7 +29,19 @@
         {{/file}}
     </td>
     <td>
+        {{#file}}
+            {{#size}}{{size}}{{/size}}
+            {{^size}}???{{/size}}
+        {{/file}}
+    </td>
+    <td>
         <a class="btn btn-outline-info"
            href="{{page_path}}">Open</a>
+    </td>
+    <td style="display: none">
+        <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input" id="file_checkbox_{{#file}}{{id}}{{/file}}">
+            <label class="custom-control-label" for="file_checkbox_{{#file}}{{id}}{{/file}}">Selected</label>
+        </div>
     </td>
 </tr>
