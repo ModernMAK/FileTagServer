@@ -1,15 +1,30 @@
 import shutil
-from typing import List
+from io import BytesIO
+from typing import List, Tuple
 
 from src.util import path_util
 from PIL import Image
 import os.path
 
-from src.content.content_gen import AbstractContentGenerator, GeneratedContentType
+from src.content.content_gen import AbstractContentGenerator, GeneratedContentType, DynamicContentGenerator
+
+
+class DynamicImageContentGenerator(DynamicContentGenerator):
+    def generate(self, file: BytesIO, ranges: List[Tuple[int, int]] = None, **kwargs) -> List[bytes]:
+        format = kwargs.get('format')
+        if format is None:
+            return super().generate(file, ranges=ranges, **kwargs)
+
+        with Image.open(file) as file:
+            with BytesIO() as output:
+                if 'thumbnail' in kwargs:
+                    w, h = kwargs.get('thumbnail')
+                    file.thumbnail(w, h)
+                file.save(output, format=format)
+                return super().generate(output, ranges=ranges, **kwargs)
 
 
 class ImageContentGenerator(AbstractContentGenerator):
-
     @staticmethod
     def get_supported_types() -> List[str]:
         # Ripped from
