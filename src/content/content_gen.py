@@ -66,6 +66,22 @@ class StaticContentGenerator(DynamicContentGenerator):
         raise NotImplementedError
 
 
+class SimpleContentGenerator:
+    def _generate_thumbnail(self, file: BytesIO, file_type: str) -> Union[Tuple[bytes,str], None]:
+        raise NotImplementedError
+
+    def _generate_viewable(self, file: BytesIO, file_type: str) -> Union[Tuple[bytes,str], None]:
+        raise NotImplementedError
+
+    def generate(self, file: BytesIO, file_type: str, content: GeneratedContentType) -> Union[Tuple[bytes,str], None]:
+        if content == GeneratedContentType.Thumbnail:
+            return self._generate_thumbnail(file, file_type)
+        elif content == GeneratedContentType.Viewable:
+            return self._generate_thumbnail(file, file_type)
+        else:
+            raise ValueError(content + " is not supported!")
+
+
 class AbstractContentGenerator:
     def generate(self, source_path: str, dest_folder: str, **kwargs):
         raise NotImplementedError
