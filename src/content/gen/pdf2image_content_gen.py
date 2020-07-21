@@ -1,14 +1,43 @@
 import shutil
-from typing import List
+from io import BytesIO
+from typing import List, Tuple
+
+from PIL.Image import Image
 
 from src.util import path_util
 import os.path
 from pdf2image import pdf2image
 
-from src.content.content_gen import AbstractContentGenerator, GeneratedContentType
+from src.content.content_gen import StaticContentGenerator, GeneratedContentType, DynamicContentGenerator
 
 
-class DocumentContentGenerator(AbstractContentGenerator):
+class DynamicPdfContentGenerator(DynamicContentGenerator):
+    POPPLER_PATH = os.path.join(path_util.project_root(), 'depends', 'poppler', 'bin'),
+
+    def generate(self, file: BytesIO, **kwargs) -> List[bytes]:
+        if 'format' not in kwargs:
+            return super().generate(file, **kwargs)
+
+        with BytesIO() as output:
+            format = kwargs.get('format')
+            pdf_format = kwargs.get('pdf_format', 'jpeg')
+            # w, h = kwargs.get('thumbnail')
+            image = pdf2image.convert_from_bytes(
+                file,
+                dpi=72,
+                fmt=pdf_format,
+                poppler_path=self.POPPLER_PATH,
+                single_file=True,
+                strict=True
+            )
+            if 'thumbnail' in kwargs:
+                w, h = kwargs.get('thumbnail')
+                image.thumbnail(w, h)
+            image.save(output, format=format)
+            return super().generate(output, **kwargs)
+
+
+class DocumentContentGenerator(StaticContentGenerator):
 
     @staticmethod
     def get_supported_types() -> List[str]:

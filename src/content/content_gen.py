@@ -1,5 +1,6 @@
 import enum
 from io import BytesIO
+from os.path import exists
 from typing import Union, List, Tuple
 from src.util import path_util
 
@@ -7,7 +8,8 @@ from src.util import path_util
 class GeneratedContentType(enum.Enum):
     Thumbnail = 1  # Image
     Viewable = 2  # Original-Like File
-    LocalCopy = 3  # Original File
+
+    LocalCopy = -1  # Original File # DEPRICATED, not a 'generated' file
 
 
 # Content Request
@@ -17,8 +19,9 @@ class GeneratedContentType(enum.Enum):
 class DynamicContentGenerator:
     # Given a file, handle the request
     # Because we expect to do file conversion, if we can batch requests like this, it would be better
-    def generate(self, file: BytesIO, ranges: List[Tuple[int, int]] = None, **kwargs) -> List[bytes]:
+    def generate(self, file: BytesIO, **kwargs) -> List[bytes]:
         # Return whole file
+        ranges = kwargs.get('ranges')
         if ranges is None:
             return [file.read()]
 
@@ -34,6 +37,33 @@ class DynamicContentGenerator:
             partial = file.read(end - start)
             requests.append(partial)
         return requests
+
+
+class StaticContentGenerator(DynamicContentGenerator):
+    def generate_cache(self, file: BytesIO, cache_path: str, file_ext: str, **kwargs):
+        content_types = kwargs.get('content_types')
+        if content_types is None:
+            content_types = [c for c in GeneratedContentType]
+
+        for content_type in content_types:
+            path = self.get_path(cache_path, content_types, file_ext)
+            if path is None:
+                continue
+            if not exists(path) or kwargs.get('regenerate', False):
+                with open(path, 'wb') as file:
+                    output = self._generate_cache(file, content_type, file_ext, **kwargs)
+                    file.write(output)
+
+    def _generate_cache(self, file: BytesIO, content_type: GeneratedContentType, file_ext: str, **kwargs) -> bytes:
+        raise NotImplementedError
+
+    def get_bytes(self, cache_path: str, content_type: GeneratedContentType, file_ext: str, **kwargs) -> List[bytes]:
+        path = self.get_path(cache_path, content_type, file_ext)
+        with open(path, 'rb') as file:
+            return super().generate(file, **kwargs)
+
+    def get_path(self, cache_path: str, content_type: GeneratedContentType, file_ext: str):
+        raise NotImplementedError
 
 
 class AbstractContentGenerator:

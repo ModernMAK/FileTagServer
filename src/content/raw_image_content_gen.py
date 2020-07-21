@@ -4,10 +4,10 @@ from typing import List
 from src.util import path_util
 import os.path
 
-from src.content.content_gen import AbstractContentGenerator, GeneratedContentType
+from src.content.content_gen import StaticContentGenerator, GeneratedContentType
 
 
-class ImageContentGenerator(AbstractContentGenerator):
+class ImageContentGenerator(StaticContentGenerator):
     @staticmethod
     def get_supported_types() -> List[str]:
         return ['png', 'jpeg', 'jpg', 'gif', 'svg', 'bmp']

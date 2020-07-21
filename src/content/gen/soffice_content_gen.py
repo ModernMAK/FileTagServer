@@ -5,11 +5,11 @@ from src.util import path_util
 import os.path
 from pdf2image import pdf2image
 
-from src.content.content_gen import AbstractContentGenerator, GeneratedContentType
+from src.content.content_gen import StaticContentGenerator, GeneratedContentType
 from depends.LibreOffice.soffice import SOffice
 
 
-class LibreOfficeContentGenerator(AbstractContentGenerator):
+class LibreOfficeContentGenerator(StaticContentGenerator):
 
     @staticmethod
     def get_supported_types() -> List[str]:

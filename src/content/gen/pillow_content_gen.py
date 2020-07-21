@@ -4,16 +4,16 @@ from typing import List, Tuple
 
 from src.util import path_util
 from PIL import Image
-import os.path
+from os.path import exists, join
 
-from src.content.content_gen import AbstractContentGenerator, GeneratedContentType, DynamicContentGenerator
+from src.content.content_gen import StaticContentGenerator, GeneratedContentType, DynamicContentGenerator
 
 
 class DynamicImageContentGenerator(DynamicContentGenerator):
-    def generate(self, file: BytesIO, ranges: List[Tuple[int, int]] = None, **kwargs) -> List[bytes]:
+    def generate(self, file: BytesIO, **kwargs) -> List[bytes]:
         format = kwargs.get('format')
         if format is None:
-            return super().generate(file, ranges=ranges, **kwargs)
+            return super().generate(file, **kwargs)
 
         with Image.open(file) as file:
             with BytesIO() as output:
@@ -21,10 +21,44 @@ class DynamicImageContentGenerator(DynamicContentGenerator):
                     w, h = kwargs.get('thumbnail')
                     file.thumbnail(w, h)
                 file.save(output, format=format)
-                return super().generate(output, ranges=ranges, **kwargs)
+                return super().generate(output, **kwargs)
 
 
-class ImageContentGenerator(AbstractContentGenerator):
+class StaticImageContentGenerator(StaticContentGenerator):
+    ignore_exts = ['svg']
+    remap_exts = {}
+    default_exts = 'webp'
+    thumb_size =(256,256)
+
+    @classmethod
+    def get_proper_ext(cls, ext):
+        if ext in cls.ignore_exts:
+            return ext
+        return cls.remap_exts.get(ext, cls.default_exts)  # Remap or use default
+
+    def _generate_cache(self, file: BytesIO, content_type: GeneratedContentType, file_ext: str, **kwargs) -> bytes:
+        with BytesIO() as output:
+            with Image.open(file) as image:
+                if content_type == GeneratedContentType.Thumbnail:
+                    image.thumbnail(self.thumb_size)
+                image.save(output)
+            return output.getvalue()
+
+    if not os.path.exists(viewable_path) or kwargs.get('rebuild', False):
+        viewable = img.copy()
+        viewable.save(viewable_path)
+        viewable.close()
+
+
+
+    # Just because a path exists does not mean it is used
+    def get_path(self, cache_path: str, content_type: GeneratedContentType, file_ext: str):
+        file_ext = self.get_proper_ext(file_ext)
+        if content_type == GeneratedContentType.Thumbnail:
+            return join(cache_path, f"Thumbnail.{file_ext}")
+        elif content_type == GeneratedContentType.Viewable:
+            return join(cache_path, f"Viewable.{file_ext}")
+
     @staticmethod
     def get_supported_types() -> List[str]:
         # Ripped from
