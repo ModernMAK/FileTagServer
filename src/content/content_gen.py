@@ -1,5 +1,7 @@
 import enum
+import math
 from io import BytesIO
+from os.path import join
 from typing import Union, List, Tuple
 from src.util import path_util
 
@@ -79,12 +81,27 @@ class ContentGenerationManager:
 
 
 class ContentManager:
-    def get_content_local_path(self, file_id: int, content_type: StaticContentType) -> Union[str, None]:
 
 
+    # The Local Path, WITHOUT EXTENSIONS
+    def get_content_local_path(self, file_id: int, content_type: StaticContentType) -> str:
+        content_gen_directory = join(path_util.project_root(), 'web', 'dynamic', 'generated')
+        group_range = 100
+        file_id_group = int(math.floor(file_id / group_range)) * group_range
+        file_id_group_name = f"{file_id_group}-{file_id_group + (group_range - 1)}"
+        content_gen_directory = join(content_gen_directory, file_id_group_name)
 
-    def generate_content(self, file_id:int, content_type:StaticContentType):
+        if content_type == StaticContentType.Raw:
+            raise NotImplementedError
+        elif content_type == StaticContentType.Viewable:
+            return join(content_gen_directory, 'Viewable')
+        elif content_type == StaticContentType.Thumbnail:
+            return join(content_gen_directory, 'Thumbnail')
+        raise ValueError(content_type)
 
+    def get_
+
+    def generate_content(self, file_id: int, content_type: StaticContentType):
 
 
 class ContentGeneration:

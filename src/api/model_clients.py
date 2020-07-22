@@ -330,5 +330,41 @@ class File(BaseClient):
 
         return collection_util.create_lookup(self.get(**kwargs), get_key)
 
+
+class FileGenerated(BaseClient):
+    def assemble_query(self, **kwargs):
+        allowed_ids = kwargs.get('ids', None)
+        allowed_file_ids = kwargs.get('file_ids', None)
+        query = f"SELECT id, file_id, name, path, extension from file_generated"
+        where_query = ""
+        if allowed_file_ids is not None:
+            if len(where_query) > 0:
+                where_query += " or"
+            where_query += f" file_id in {create_entry_string(allowed_file_ids)}"
+        if allowed_ids is not None:
+            if len(where_query) > 0:
+                where_query += " or"
+            where_query += f" id in {create_entry_string(allowed_ids)}"
+
+        if len(where_query) > 0:
+            query += f"{query} where {where_query}"
+        return query
+
+    def get(self, **kwargs):
+        query = self.assemble_query(**kwargs)
+        rows = self._perform_select(query)
+        mapping = ("id", "file_id", "name", "path", 'extension')
+        formatted = collection_util.tuple_to_dict(rows, mapping)
+        results = []
+        for row in formatted:
+            results.append(Models.FileGenerated(**row))
+        return results
+
+    def get_table(self, **kwargs) -> Dict[int, Models.FileGenerated]:
+        def get_key(file: Models.FileGenerated) -> int:
+            return file.file_id
+
+        return collection_util.create_lookup(self.get(**kwargs), get_key)
+
     def count(self, **kwargs) -> Union[None, int]:
         return self._perform_count(self.assemble_query(**kwargs))

@@ -129,6 +129,10 @@ class File(BaseModel):
         self.__id = kwargs.get('id', None)
         self.path = kwargs.get('path', None)
         self.extension = kwargs.get('extension', None)
+        temp_generated = kwargs.get('generated', None)
+        self.generated = []
+        for generated in temp_generated:
+            self.generated.append(FileGenerated(**generated))
 
     @property
     def file_id(self):
@@ -138,8 +142,37 @@ class File(BaseModel):
         self.__init__(**kwargs)
 
     def to_dictionary(self):
+        temp_generated = []
+        for generated in self.generated:
+            temp_generated.append(generated.to_dictionary())
         return {
             'id': self.__id,
+            'path': self.path,
+            'extension': self.extension,
+            'generated': temp_generated
+        }
+
+
+class FileGenerated(BaseModel):
+    def __init__(self, **kwargs):
+        self.__id = kwargs.get('id', None)
+        self.name = kwargs.get('name', None)
+        self.file_id = kwargs.get('file_id', None)
+        self.path = kwargs.get('path', None)
+        self.extension = kwargs.get('extension', None)
+
+    @property
+    def generated_file_id(self):
+        return self.__id
+
+    def from_dictionary(self, **kwargs):
+        self.__init__(**kwargs)
+
+    def to_dictionary(self):
+        return {
+            'id': self.__id,
+            'file_id': self.file_id,
+            'name': self.name,
             'path': self.path,
             'extension': self.extension
         }
