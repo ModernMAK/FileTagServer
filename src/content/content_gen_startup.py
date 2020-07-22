@@ -6,7 +6,7 @@ from src.content.gen.pillow_content_gen import ImageContentGenerator
 # Requires PIL and pdf2Image (Poppler)
 from src.content.gen.poppler_content_gen import DocumentContentGenerator
 # Requires PIL and pdf2Image (Poppler) and Unoconv (LibreOffice/OpenOffice/Other Uno Support)
-from src.content.gen.soffice_content_gen import LibreOfficeContentGenerator
+from src.content.gen.libre_office_content_gen import LibreOfficeContentGenerator
 # No Requirements
 from src.content.raw_content_gen import ImageContentGenerator as RawImageContentGenerator
 from src.content.raw_video_content_gen import VideoContentGenerator as RawVideoContentGenerator

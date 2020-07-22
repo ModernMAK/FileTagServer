@@ -60,7 +60,6 @@ class TestCollectionUtil(unittest.TestCase):
         def get_key_func(key):
             def wrapper(d):
                 return d[key]
-
             return wrapper
 
         pairs = [
