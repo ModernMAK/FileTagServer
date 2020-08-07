@@ -31,7 +31,7 @@ def sanitize(data: Union[object, List[object], Tuple[object]]) -> Union[str, Lis
         return sanatize_single(data)
 
 
-def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool = False) -> str:
+def to_sql_list(data: Union[object, List[object]], skip_sanitize: bool = False) -> str:
     if isinstance(data, Set):
         data = list(data)
     if isinstance(data, (List, Tuple)):
@@ -49,13 +49,13 @@ def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool =
             return f"({sanitize(data)})"
 
 
-def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
+def to_sql_values(values: Union[object, List[object], List[List[object]]]) -> str:
     if isinstance(values, (List, Tuple)):
         values = values.copy()
         for i in range(len(values)):
-            values[i] = create_entry_string(values[i])
+            values[i] = to_sql_list(values[i])
     else:
-        values = create_entry_string(values)
+        values = to_sql_list(values)
     return ','.join(values)
 
 

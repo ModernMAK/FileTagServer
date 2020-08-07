@@ -80,6 +80,9 @@ class ContentGenerationManager:
 
 class ContentManager:
     def get_content_local_path(self, file_id: int, content_type: StaticContentType) -> Union[str, None]:
+        if content_type == StaticContentType.Raw:
+            # TODO File Client to get path
+            return
 
 
 

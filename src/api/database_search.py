@@ -37,14 +37,14 @@ def create_query_from_search_groups(groups: Tuple[List[str], List[str], List[str
     if ors is not None and len(ors) > 0:
         if require_intersect:
             result_query += " INTERSECT"
-        result_query += f" {select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
+        result_query += f" {select_query} where tag.name IN {DbUtil.to_sql_list(ors)}"
         require_intersect = True
     if nots is not None and len(nots) > 0:
         if require_intersect:
             result_query += " INTERSECT"
         result_query += f" {select_query}"
         result_query += " EXCEPT"
-        result_query += f" {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
+        result_query += f" {select_query} where tag.name IN {DbUtil.to_sql_list(nots)}"
         require_intersect = True
     if ands is not None and len(ands) > 0:
         for single_and in ands:

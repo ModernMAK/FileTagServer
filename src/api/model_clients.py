@@ -4,7 +4,7 @@ from typing import Dict, Union, List
 
 from src.api import database_search
 from src.util import db_util
-from src.util.db_util import Conwrapper, create_entry_string, create_value_string, sanitize
+from src.util.db_util import Conwrapper, to_sql_list, to_sql_values, sanitize
 import src.api.models as Models
 import src.util.collection_util as collection_util
 
@@ -47,7 +47,7 @@ class Page(BaseClient):
             if requested_ids is not None:
                 if append_or:
                     query += " or"
-                query += f" id in {create_entry_string(requested_ids)}"
+                query += f" id in {to_sql_list(requested_ids)}"
                 append_or = True
 
         if page_size is not None:
@@ -112,12 +112,12 @@ class FilePage(BaseClient):
             if requested_ids is not None:
                 if append_or:
                     query += " or"
-                query += f" file_page.id in {create_entry_string(requested_ids)}"
+                query += f" file_page.id in {to_sql_list(requested_ids)}"
                 append_or = True
             if requested_page_ids is not None:
                 if append_or:
                     query += " or"
-                query += f" file_page.page_id in {create_entry_string(requested_page_ids)}"
+                query += f" file_page.page_id in {to_sql_list(requested_page_ids)}"
                 append_or = True
 
         if page_size is not None:
@@ -170,18 +170,18 @@ class FilePage(BaseClient):
         # Leaving this here for now in case i need to find it again
         # necro-ed from commit #42638a95c77eb314d5c075c7bf69efeba83a0eca
         with Conwrapper(self.db_path) as (con, cursor):
-            formatted_tag_list = create_entry_string(tags)
+            formatted_tag_list = to_sql_list(tags)
             # Get tag_ids to set
             cursor.execute(f"SELECT id FROM tag WHERE name IN {formatted_tag_list}")
             rows = cursor.fetchall()
             tag_id_list = db_util.convert_tuple_to_list(rows)
-            formatted_tag_id_list = create_entry_string(tag_id_list)
+            formatted_tag_id_list = to_sql_list(tag_id_list)
             cursor.execute(
                 f"DELETE FROM tag_map where page_id = {file_page_id} and tag_id NOT IN {formatted_tag_id_list}")
             pairs = []
             for tag_id in tag_id_list:
                 pairs.append((file_page_id, tag_id))
-            formatted_pairs = create_value_string(pairs)
+            formatted_pairs = to_sql_values(pairs)
             cursor.execute(f"INSERT OR IGNORE INTO tag_map (page_id, tag_id) VALUES {formatted_pairs}")
             con.commit()
 
@@ -253,10 +253,10 @@ class FilePageSearch(BaseClient):
 
 class Tag(BaseClient):
     def assemble_query(self, **kwargs):
-        allowed_ids = create_entry_string(kwargs.get('ids', []))
-        allowed_names = create_entry_string(kwargs.get('names', []))
-        allowed_pages = create_entry_string(kwargs.get('page_ids', []))
-        allowed_classes = create_entry_string(kwargs.get('classes', []))
+        allowed_ids = to_sql_list(kwargs.get('ids', []))
+        allowed_names = to_sql_list(kwargs.get('names', []))
+        allowed_pages = to_sql_list(kwargs.get('page_ids', []))
+        allowed_classes = to_sql_list(kwargs.get('classes', []))
         query = f"SELECT tag.id, name, description, class, count(page_id) as count from tag" \
                 f" left join tag_map on tag.id = tag_map.tag_id" \
                 f" where tag.id in {allowed_ids} or name in {allowed_names} or class in {allowed_classes}" \
@@ -275,8 +275,8 @@ class Tag(BaseClient):
         return results
 
     def get_map(self, **kwargs) -> Dict[int, List[int]]:
-        allowed_pages = create_entry_string(kwargs.get('page_ids', []))
-        allowed_tags = create_entry_string(kwargs.get('tag_ids', []))
+        allowed_pages = to_sql_list(kwargs.get('page_ids', []))
+        allowed_tags = to_sql_list(kwargs.get('tag_ids', []))
         query = f"SELECT page_id, tag_id from tag_map where page_id in {allowed_pages} or tag_id in {allowed_tags}"
         rows = self._perform_select(query)
         mapping = ("page_id", "tag_id")
@@ -301,7 +301,7 @@ class Tag(BaseClient):
 
     def add_missing_tags(self, tags: List[str]):
         with Conwrapper(self.db_path) as (con, cursor):
-            formatted_tag_list = create_value_string(tags)
+            formatted_tag_list = to_sql_values(tags)
             # Get tag_ids to set
             cursor.execute(f"INSERT OR IGNORE INTO tag (name) VALUES {formatted_tag_list}")
             con.commit()
@@ -309,7 +309,7 @@ class Tag(BaseClient):
 
 class File(BaseClient):
     def assemble_query(self, **kwargs):
-        allowed_ids = create_entry_string(kwargs.get('ids', []))
+        allowed_ids = to_sql_list(kwargs.get('ids', []))
         query = f"SELECT id, path, extension from file" \
                 f" where id in {allowed_ids}"
         return query
