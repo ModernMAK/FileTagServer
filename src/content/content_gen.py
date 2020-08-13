@@ -1,6 +1,6 @@
 import enum
 from io import BytesIO
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Callable, Dict
 from src.util import path_util
 
 
@@ -14,6 +14,46 @@ class StaticContentType(enum.Enum):
     Thumbnail = 1
     Viewable = 2
 
+
+MimeType = Tuple[str, str]
+GeneratorFunction = Callable[[BytesIO, BytesIO], None]
+RegisterFuncType = Callable[[MimeType, MimeType, GeneratorFunction], None]
+
+
+class FileConverter:
+    def __init__(self):
+        self.map = {}
+
+    def get_source_map(self, source_type: MimeType) -> Union[Dict[MimeType, GeneratorFunction], None]:
+        return self.map.get(source_type, None)
+
+    def get_function(self, source_type: MimeType, req_type: MimeType) -> Union[GeneratorFunction, None]:
+        source_map = self.map.get(source_type, None)
+        if source_map is None:
+            return None
+        return source_map.get(req_type, None)
+
+    def register(self, source_type: MimeType, req_type: MimeType, function: GeneratorFunction):
+        source_map = self.get_source_map(source_type)
+        if source_map is None:
+            self.map[source_type] = {req_type: function}
+        else:
+            source_map[req_type] = function
+
+    def generate(self, source_type: MimeType, req_type: MimeType, file: BytesIO, output: BytesIO) -> None:
+        func = self.get_function(source_type, req_type)
+        if func is None:
+            raise NotImplementedError
+        else:
+            func(file, output)
+
+    def get_request_map(self, req_type: MimeType) -> List[MimeType]:
+        results = []
+        for source, pair in self.map:
+            for request, _ in pair:
+                if request in req_type:
+                    results.append(request)
+        return results
 
 # Content Request
 #   range: (start, stop) if None assumes the start and end of the file
@@ -84,10 +124,7 @@ class ContentManager:
             # TODO File Client to get path
             return
 
-
-
-    def generate_content(self, file_id:int, content_type:StaticContentType):
-
+    def generate_content(self, file_id: int, content_type: StaticContentType):
 
 
 class ContentGeneration:
