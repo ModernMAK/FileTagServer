@@ -1,48 +1,60 @@
+import mimetypes
 import os
+from functools import partial
 from math import ceil
 from typing import Dict, Tuple, Union, List, Set, Any
 from litespeed import serve, route
 from pystache import Renderer
+
+from src.content.management.content_management import ContentManager, ContentGenerator
+from src.routing.content_gen_group import GeneratedContentGroup
 from src.routing.pages import page_utils
-import src.api.model_clients as clients
-import src.api.models as models
 from src.routing.pages.page_group import PageGroup
 from src.routing.pages.tag_page_group import TagPageGroup
 from src.routing.virtual_access_points import RequiredVap
-from src.content.content_gen import ContentGeneration, GeneratedContentType
+from src.content.gen.content_gen import StaticContentType
 from src.util import dict_util, path_util
 from src.routing.pages.page_utils import reformat_serve, escape_js_string
-
-renderer = None
-db_path = None
-
+from src.database.clients import PageClient, TagClient, MasterClient
 
 
 class FilePageGroup(PageGroup):
     renderer = None
-    file_client = None
     file_search_client = None
-    tag_client = None
+
+    client = None  # MasterClient()
+    content_manager = None  # ContentManager()
 
     @classmethod
     def add_routes(cls):
-        route(FilePageGroup.get_group_path(), f=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
-        route(FilePageGroup.get_index(), f=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
-
-        route(FilePageGroup.get_page("(\d*)"), f=cls.as_route_func(cls.file), methods=['GET'])
-        route(FilePageGroup.get_page_edit("(\d*)"), f=cls.as_route_func(cls.file_edit), methods=['GET'])
-
-        route(FilePageGroup.get_search(), f=cls.as_route_func(cls.search), no_end_slash=True, methods=['GET'])
-
-        route(FilePageGroup.get_action_update_page("(\d*)"), f=cls.as_route_func(cls.action_update_page),
-              no_end_slash=True, methods=['POST'])
+        route(FilePageGroup.get_group_path(),
+              function=cls.as_route_func(cls.index),
+              no_end_slash=True,
+              methods=['GET'])
+        route(FilePageGroup.get_index(),
+              function=cls.as_route_func(cls.index),
+              no_end_slash=True,
+              methods=['GET'])
+        route(FilePageGroup.get_page("(\d*)"),
+              function=cls.as_route_func(cls.file),
+              methods=['GET'])
+        route(FilePageGroup.get_page_edit("(\d*)"),
+              function=cls.as_route_func(cls.file_edit),
+              methods=['GET'])
+        route(FilePageGroup.get_search(),
+              function=cls.as_route_func(cls.search),
+              no_end_slash=True,
+              methods=['GET'])
+        route(FilePageGroup.get_action_update_page("(\d*)"),
+              function=cls.as_route_func(cls.action_update_page),
+              no_end_slash=True,
+              methods=['POST'])
 
     @classmethod
     def initialize(cls, **kwargs):
         db_path = dict_util.nested_get(kwargs, 'config.Launch Args.db_path')
-        cls.file_client = clients.FilePage(db_path=db_path)
-        cls.tag_client = clients.Tag(db_path=db_path)
-        cls.file_search_client = clients.FilePageSearch(db_path=db_path)
+        cls.client = MasterClient(db_path=db_path)
+        cls.content_manager = kwargs.get('content_manager')  # ContentManager(ContentGenerator())
         cls.renderer = Renderer(search_dirs=[RequiredVap.html_real("templates")])
 
     @classmethod
@@ -57,7 +69,7 @@ class FilePageGroup(PageGroup):
         count = GET.get('count', None)
         args = {}
         FilePageGroup.update_paged_args(display_page_number, page_size=count, args=args)
-        pages = cls.file_client.get(**args)
+        pages = cls.get_file_page_info(**args)
         count = cls.file_client.count()
 
         if not FilePageGroup.is_valid_page(display_page_number, args.get('page_size'), count):
@@ -72,10 +84,10 @@ class FilePageGroup(PageGroup):
     @classmethod
     def get_shared_index_data(cls, pages, count, args, display_page_number, get_page_path):
         pagination_ctx = page_utils.get_pagination_symbols(count, args['page_size'], display_page_number, get_page_path)
-        page_content = FilePageGroup.get_content(pages, GeneratedContentType.Thumbnail)
-        page_ctx = FilePageGroup.reformat_page(page_content)
-        sorted_unique_tags = FilePageGroup.sort_tags(FilePageGroup.get_unique_tags(pages))
-        tag_ctx = FilePageGroup.reformat_tags(sorted_unique_tags, support_search=True)
+        page_content = cls.get_content(pages, GeneratedContentType.Thumbnail)
+        page_ctx = cls.reformat_page(page_content)
+        sorted_unique_tags = cls.sort_tags(FilePageGroup.get_unique_tags(pages))
+        tag_ctx = cls.reformat_tags(sorted_unique_tags, support_search=True)
 
         return {
             'page_title': "File Index",
@@ -120,92 +132,67 @@ class FilePageGroup(PageGroup):
         return reformat_serve(cls.renderer, result, ctx)
 
     @classmethod
-    def file(cls, request: Dict[str, Any], page_id: Union[str, int]):
-        page_id = int(page_id)
-        pages = cls.file_client.get(ids=[page_id])
-        if pages is None or len(pages) < 0:
+    def file(cls, request: Dict[str, Any], file_id: Union[str, int]):
+        file_id = int(file_id)
+        file_pages = cls.client.file_page_info.fetch(file_ids=[file_id])
+        if file_pages is None or len(file_pages) < 0:
             return None, 404
-        page = pages[0]
-        ctx = {}
-        _, content_virtual_path, content_real_path = cls.get_content(page, GeneratedContentType.Viewable)
-        if content_real_path is not None and os.path.exists(content_real_path):
-            v_ext = path_util.get_formatted_ext(content_virtual_path)
-            content_type = page_utils.guess_content(v_ext)
-            ctx['content'] = {}
-            if content_type in ['video', 'audio']:
-                remap_ext = {
-                    'ogv': 'ogg'
-                }
-                r_ext = remap_ext.get(v_ext, v_ext)
-                ctx['content'][content_type] = {
-                    'sources': {
-                        'path': content_virtual_path,
-                        'type': r_ext
-                    }
-                }
-            else:
-                ctx['content'][content_type] = {
-                    'content_path': content_virtual_path
-                }
-        ctx.update(page.to_dictionary())
-        if page.name is not None:
-            ctx['page_title'] = page.name
-        else:
-            del ctx['name']
-        if page.description is not None:
-            ctx['description'] = page.description
-        else:
-            del ctx['description']
+        file_page = file_pages[0]
+        cls.reformat_page_info(file_page, StaticContentType.Viewable)
+        tags = cls.get_file_tag_info(file_ids=[file_id])
+        tags = cls.sort_tags(tags)
+        cls.reformat_tags(tags)
+        context = {}
 
-        ctx['file']['extension'] = ctx['file']['extension'].upper()
-        ctx['file']['name'] = os.path.basename(ctx['file']['path'])
-        ctx['tags'] = cls.reformat_tags(page.tags)
-        ctx['navbar'] = cls.get_shared_navbar()
-        ctx['edit_path'] = cls.get_page_edit(page_id)
+        context['page'] = file_page
+        context['tags'] = tags
+        context['navbar'] = cls.get_shared_navbar()
+
         file = RequiredVap.file_html_real('page.html')
         result = serve(file)
-        return reformat_serve(cls.renderer, result, ctx)
+        return reformat_serve(cls.renderer, result, context)
 
     @classmethod
     def file_edit(cls, request: Dict[str, Any], page_id: Union[str, int]):
-        page_id = int(page_id)
-        pages = cls.file_client.get(ids=[page_id])
-        if pages is None or len(pages) < 0:
-            return None, 404
-        page = pages[0]
-        ctx = {}
-        _, content_virtual_path, content_real_path = cls.get_content(page, GeneratedContentType.Viewable)
-        if content_real_path is not None and os.path.exists(content_real_path):
-            v_ext = path_util.get_formatted_ext(content_virtual_path)
-            content_type = page_utils.guess_content(v_ext)
-            ctx['content'] = {}
-            if content_type in ['video', 'audio']:
-                remap_ext = {
-                    'ogv': 'ogg'
-                }
-                r_ext = remap_ext.get(v_ext, v_ext)
-                ctx['content'][content_type] = {
-                    'sources': {
-                        'path': content_virtual_path,
-                        'type': r_ext
-                    }
-                }
-            else:
-                ctx['content'][content_type] = {
-                    'content_path': content_virtual_path
-                }
-        ctx.update(page.to_dictionary())
-        if page.name is not None:
-            ctx['page_title'] = page.name
-        ctx['file']['extension'] = ctx['file']['extension'].upper()
-        ctx['file']['name'] = os.path.basename(ctx['file']['path'])
-        ctx['tags'] = cls.reformat_tags(page.tags)
-        ctx['navbar'] = cls.get_shared_navbar()
-        ctx['show_path'] = cls.get_page(page_id)
-        ctx['actions'] = {'edit_filepage': {'path': cls.get_action_update_page(page_id)}}
-        file = RequiredVap.file_html_real('edit.html')
-        result = serve(file)
-        return reformat_serve(cls.renderer, result, ctx)
+        # page_id = int(page_id)
+        # pages = cls.file_client.get(ids=[page_id])
+        # if pages is None or len(pages) < 0:
+        #     return None, 404
+        # page = pages[0]
+        # ctx = {}
+        # _, content_virtual_path, content_real_path = cls.get_content(page, GeneratedContentType.Viewable)
+        # if content_real_path is not None and os.path.exists(content_real_path):
+        #     v_ext = path_util.get_formatted_ext(content_virtual_path)
+        #     content_type = page_utils.guess_content(v_ext)
+        #     ctx['content'] = {}
+        #     if content_type in ['video', 'audio']:
+        #         remap_ext = {
+        #             'ogv': 'ogg'
+        #         }
+        #         r_ext = remap_ext.get(v_ext, v_ext)
+        #         ctx['content'][content_type] = {
+        #             'sources': {
+        #                 'path': content_virtual_path,
+        #                 'type': r_ext
+        #             }
+        #         }
+        #     else:
+        #         ctx['content'][content_type] = {
+        #             'content_path': content_virtual_path
+        #         }
+        # ctx.update(page.to_dictionary())
+        # if page.name is not None:
+        #     ctx['page_title'] = page.name
+        # ctx['file']['extension'] = ctx['file']['extension'].upper()
+        # ctx['file']['name'] = os.path.basename(ctx['file']['path'])
+        # ctx['tags'] = cls.reformat_tags(page.tags)
+        # ctx['navbar'] = cls.get_shared_navbar()
+        # ctx['show_path'] = cls.get_page(page_id)
+        # ctx['actions'] = {'edit_filepage': {'path': cls.get_action_update_page(page_id)}}
+        # file = RequiredVap.file_html_real('edit.html')
+        # result = serve(file)
+        # return reformat_serve(cls.renderer, result, ctx)
+        return 404
 
     @classmethod
     def action_update_page(cls, request: Dict[str, Any], page_id: Union[str, int]):
@@ -214,14 +201,14 @@ class FilePageGroup(PageGroup):
         # FIX NAME?/DESC
         name = request['POST'].get('title')
         description = request['POST'].get('description')
-        cls.file_client.set_page_values(page_id, name, description)
+        # cls.file_client.set_page_values(page_id, name, description)
 
         # FIX TAGS
-        tags = request['POST'].get('tags','').splitlines()
+        tags = request['POST'].get('tags', '').splitlines()
         for i in range(0, len(tags)):
             tags[i] = tags[i].strip()
-        cls.tag_client.add_missing_tags(tags)
-        cls.file_client.set_tags(page_id, tags)
+        # cls.tag_client.add_missing_tags(tags)
+        # cls.file_client.set_tags(page_id, tags)
 
         file = RequiredVap.html_real('redirect.html')
         ctx = {
@@ -290,57 +277,15 @@ class FilePageGroup(PageGroup):
         return min_page <= display_page <= max_page
 
     @staticmethod
-    def get_unique_tags(pages: Union[models.Page, List[models.Page]]) -> List[models.Tag]:
-        def parse(page: models.Page) -> Set[models.Tag]:
-            return set(page.tags)
-
-        if not isinstance(pages, List):
-            return list(parse(pages))
-
-        output_rows = set()
-        for page in pages:
-            output_rows.update(parse(page))
-        return list(output_rows)
-
-    @staticmethod
-    def sort_tags(tags: List[models.Tag], desc: bool = True) -> List[models.Tag]:
-        def get_key(tag: models.Tag) -> Any:
+    def sort_tags(tags: List[Dict[str, Any]], desc: bool = True) -> List[Dict[str, Any]]:
+        def get_key(tag: Dict[str, Any]) -> Any:
             if desc:
-                return (-tag.count, tag.name)
+                return (-tag['count'], tag['name'])
             else:
-                return (tag.count, tag.name)
+                return (tag['count'], tag['name'])
 
         tags.sort(key=get_key)
         return tags
-
-    @staticmethod
-    def reformat_page(
-            pages: Union[Tuple[models.Page, str, str], List[Tuple[models.Page, str, str]]]
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-
-        def parse(page_content_pair: Tuple[models.Page, str, str]) -> Dict[str, Any]:
-            page, content_virtual_path, content_real_path = page_content_pair
-            d = page.to_dictionary()
-            d['page_path'] = FilePageGroup.get_page(page.page_id)
-            ext = d['file']['extension']
-            d['file']['extension'] = ext.upper()
-
-            if content_real_path is not None and os.path.exists(content_real_path):
-                v_ext = path_util.get_formatted_ext(content_virtual_path)
-                content_type = page_utils.guess_content(v_ext)
-                d['content'] = {}
-                d['content'][content_type] = {
-                    'content_path': content_virtual_path
-                }
-            return d
-
-        if not isinstance(pages, List):
-            return parse(pages)
-
-        output_rows = []
-        for page in pages:
-            output_rows.append(parse(page))
-        return output_rows
 
     @classmethod
     def get_shared_navbar(cls):
@@ -361,51 +306,71 @@ class FilePageGroup(PageGroup):
         ]
         return navs
 
+    @classmethod
+    def get_file_page_info(cls, **kwargs) -> List[Dict[str, Any]]:
+        return cls.client.file_page_info.fetch(**kwargs)
+
+    @classmethod
+    def get_file_tag_info(cls, **kwargs) -> List[Dict[str, Any]]:
+        lookup = cls.client.file_tag_info.fetch_lookup(key='tag_id', **kwargs)
+        unique = lookup.values()
+        for item in unique:
+            del item['file_id']
+        return unique
+
+    @classmethod
+    def get_file_content_context(cls, file_id: int, content_type: StaticContentType) -> Dict[str, Any]:
+        return GeneratedContentGroup.get_file_content_context(file_id, content_type)
+
+    @classmethod
+    def set_page_content(cls, page: Dict[str, Any], content_type: StaticContentType):
+        page['content'] = cls.get_file_content_context(page['id'], content_type)
+
+    @classmethod
+    def set_page_path(cls, page: Dict[str, Any]):
+        page['page_url'] = cls.get_page(page['id'])
+
+    @classmethod
+    def set_page_edit_path(cls, page: Dict[str, Any]):
+        page['page_edit_url'] = cls.get_page_edit(page['id'])
+
+    @classmethod
+    def reformat_page_info(cls, pages: Dict[str, Any], content_type: StaticContentType):
+        functions = [
+            partial(cls.set_page_content, content_type=content_type),
+            cls.set_page_path,
+            cls.set_page_edit_path
+        ]
+        cls.apply_modifiers(pages, functions)
+
+    @classmethod
+    def apply_modifiers(cls, pages: Union[Dict[str, Any], List[Dict[str, Any]]], *functions):
+
+        def fix_page(page: Dict[str, Any]):
+            for function in functions:
+                function(page)
+
+        if not isinstance(pages, List):
+            return fix_page(pages)
+
+        for i in range(len(pages)):
+            fix_page(pages[i])
+
     @staticmethod
-    def get_content(
-            file_pages: Union[models.FilePage, List[models.FilePage]],
-            content_type: GeneratedContentType
-    ) -> Union[Tuple[models.FilePage, str, str], List[Tuple[models.FilePage, str, str]]]:
-
-        def parse(file_page: models.FilePage) -> Tuple[models.FilePage, Any, Any]:
-            ext = file_page.file.extension.lower()
-            resource_path = ContentGeneration.get_file_name(content_type, ext)
-            partial_path = f"file/{file_page.file.file_id}/{resource_path}"
-            virtual_path = RequiredVap.dynamic_generated_virtual(partial_path)
-            real_path = RequiredVap.dynamic_generated_real(partial_path)
-            if content_type is None or not os.path.exists(real_path):
-                return file_page, None, None
-            else:
-                return file_page, virtual_path, real_path
-
-        if not isinstance(file_pages, List):
-            return parse(file_pages)
-
-        output_rows = []
-        for img in file_pages:
-            output_rows.append(parse(img))
-        return output_rows
-
-    @staticmethod
-    def reformat_tags(
-            tags: Union[models.Tag, List[models.Tag]], support_search: bool = False
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    def reformat_tags(tags: Union[Dict[str, Any], List[Dict[str, Any]]], support_search: bool = False):
         SEARCH_FORM_ID = 'tagsearchbox'
 
-        def parse(tag: models.Tag) -> Dict[str, Any]:
-            tag_d = tag.to_dictionary()
-            tag_d['page_path'] = TagPageGroup.get_page(tag.id)
+        def fix_tag(tag: Dict[str, Any]):
+            tag['page_path'] = TagPageGroup.get_page(tag['id'])
             if support_search:
-                tag_d['search_support'] = {
+                escaped_name = tag['name']
+                tag['search_support'] = {
                     'search_id': SEARCH_FORM_ID,
-                    'js_name': escape_js_string(tag.name.replace(' ', '_'))
+                    'js_name': escape_js_string(escaped_name.replace(' ', '_'))
                 }
-            return tag_d
 
         if not isinstance(tags, List):
-            return parse(tags)
+            return fix_tag(tags)
 
-        output_rows = []
-        for tag in tags:
-            output_rows.append(parse(tag))
-        return output_rows
+        for i in range(len(tags)):
+            fix_tag(tags[i])

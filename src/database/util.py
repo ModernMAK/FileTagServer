@@ -1,13 +1,18 @@
 from typing import List, Dict, Any, Tuple, Union
-
 from src.util import collection_util
-from src.util.db_util import Conwrapper, to_sql_list, sanitize
+from src.util.db_util import Conwrapper, to_sql_list, sanitize, to_sql_values
 
 
 def sql_in(name: str, values: List[Any], allow_empty: bool = False) -> Union[str, None]:
     if values is None or (not allow_empty and len(values) == 0):
         return None
     return f"{name} IN {to_sql_list(values)}"
+
+
+def sql_insert_into(table: str, columns: List[str], values: List[Tuple]) -> str:
+    return f"INSERT OR REPLACE INTO {table} " \
+           f"({', '.join(columns)}) VALUES " \
+           f"{to_sql_values(values)};"
 
 
 def sql_in_like(name: str, values: List[Any], allow_empty: bool = False) -> Union[str, None]:
@@ -110,6 +115,44 @@ def sql_create_unique_value(name: str, values: List[str]):
     return f"CONSTRAINT {name} UNIQUE ({', '.join(values)})"
 
 
+def sql_action(no_action=False, restrict=False, set_null=False, set_default=False, cascade=False):
+    if no_action:
+        return "NO ACTION"
+    elif restrict:
+        return "RESTRICT"
+    elif set_null:
+        return "SET NULL"
+    elif set_default:
+        return "SET DEFAULT"
+    elif cascade:
+        return "CASCADE"
+    return None
+
+
+def sql_on_change(on_update=False, on_delete=False):
+    if on_update:
+        return "ON UPDATE"
+    elif on_delete:
+        return "ON DELETE"
+    else:
+        return None
+
+
+def sql_on_action(on_clause, action_clause):
+    if on_clause is None or action_clause is None:
+        return None
+    return f"{on_clause} {action_clause}"
+
+
+def sql_create_foreign_key(name: str, other_table: str, other_name: str, on_action_clause: List[str] = None) -> str:
+    if on_action_clause is None:
+        on_action_clause = ""
+    else:
+        on_action_clause = " ".join(on_action_clause)
+
+    return f"FOREIGN KEY ({name}) REFERENCES {other_table} ({other_name}) {on_action_clause}"
+
+
 def sql_create_table_value(name: str, type: str, modifiers: Union[str, None] = None):
     if modifiers is not None:
         return f"{name} {type} {modifiers}"
@@ -126,17 +169,23 @@ class BaseClient:
             cursor.execute(query)
             return cursor.fetchall()
 
-    def _fetch_all_mapped(self, query: str, mapping: Tuple) -> List[Dict[str, Any]]:
+    def _fetch_all_mapped(self, query: str, mapping: Union[List, Tuple]) -> List[Dict[str, Any]]:
         rows = self._fetch_all(query)
         return collection_util.tuple_to_dict(rows, mapping)
 
-    def _fetch_all_lookup(self, query: str, mapping: Tuple, key: str) -> Dict[Any, Dict[str, Any]]:
+    def _fetch_all_lookup(self, query: str, mapping: Union[List, Tuple], key: str) -> Dict[Any, Dict[str, Any]]:
         formatted = self._fetch_all_mapped(query, mapping)
+        return self._convert_map_to_lookup(formatted, key)
 
+    def _convert_map_to_lookup(self, formatted: List[Dict[str, Any]], key: str) -> Dict[Any, Dict[str, Any]]:
         def get_key(d: Dict[str, Any]) -> Any:
             return d[key]
 
         return collection_util.create_lookup(formatted, get_key)
+
+    def _convert_map_to_lookup_groups(self, formatted: List[Dict[str, Any]], key: str, drop_key=False) -> Dict[
+        Any, List[Dict[str, Any]]]:
+        return collection_util.group_dicts_on_key(formatted, key, drop_key=drop_key)
 
     def _count(self, query: str) -> int:
         with Conwrapper(self.db_path) as (con, cursor):

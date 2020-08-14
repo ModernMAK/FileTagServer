@@ -36,7 +36,7 @@ class VirtualAccessPoints:
     def add_routes(cls):
         for vap_data in cls.lookup.values():
             r_path, func = vap_data['route'], vap_data['function']
-            route(r_path, f=func, no_end_slash=True, methods=['GET'])
+            route(r_path, function=func, no_end_slash=True, methods=['GET'])
 
 
 class RequiredVap:

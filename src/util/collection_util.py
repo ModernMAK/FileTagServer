@@ -33,10 +33,13 @@ def get_unique_values(rows: Dict[Any, List[Any]]) -> Set[Any]:
     return {value for row in rows.values() for value in row}
 
 
-def group_dicts_on_key(list_dict: List[Dict[Any, Any]], key: str) -> Dict[Any, List[Dict[Any, Any]]]:
+def group_dicts_on_key(list_dict: List[Dict[Any, Any]], key: str, drop_key: bool = False) -> Dict[
+    Any, List[Dict[Any, Any]]]:
     result = {}
     for d in list_dict:
         k = d[key]
+        if drop_key:
+            del d[key]
         if k in result:
             result[k].append(d)
         else:

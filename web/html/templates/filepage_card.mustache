@@ -1,63 +1,72 @@
 <div class="col-sm-5 col-md-4 col-lg-3 col-xl-2 py-2">
     <div class="card mb-4 h-100">
         <h6 class="card-header">
-            {{#name}}{{name}}{{/name}}
-            {{^name}}'Untitled Page'{{/name}}
+            {{#page}}{{name}}{{/page}}
+            {{^page}}'Untitled Page'{{/page}}
         </h6>
-        {{#content}}
-            {{#image}}
-                {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
-                <img class="card-img-top" alt="{{description}}" src="{{content_path}}"
-                     style="max-height: 256px; max-width: 256px">
-                {{#page_path}}</a>{{/page_path}}
-            {{/image}}
-            {{#embed}}
-                <embed class="card-img-top" alt="{{description}}" src="{{content_path}}">
-            {{/embed}}
-            {{#audio}}
-                <audio controls>
-                    {{#sources}}
-                        <source src="{{path}}" type="audio/{{type}}">
+        {{#page}}
+            {{#content}}
+                {{#image}}
+                    {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                    <img class="card-img-top" alt="{{description}}" src="{{content_path}}"
+                         style="max-height: 256px; max-width: 256px">
+                    {{#page_path}}</a>{{/page_path}}
+                {{/image}}
+                {{#embed}}
+                    <embed class="card-img-top" src="{{content_path}}">
+                {{/embed}}
+                {{#audio}}
+                    <audio controls>
+                        {{#sources}}
+                            <source src="{{path}}" type="audio/{{type}}">
+                        {{/sources}}
+                        Cannot Display Audio
+                    </audio>
+                    {{^sources}}
+                        <div>No Audio Provided</div>
                     {{/sources}}
-                    Cannot Display Audio
-                </audio>
-                {{^sources}}
-                    <div>No Audio Provided</div>
-                {{/sources}}
-            {{/audio}}
-            {{#video}}
-                <video controls>
-                    {{#sources}}
-                        <source src="{{path}}" type="video/{{type}}">
+                {{/audio}}
+                {{#video}}
+                    <video controls>
+                        {{#sources}}
+                            <source src="{{path}}" type="video/{{type}}">
+                        {{/sources}}
+                        Cannot Display Video
+                    </video>
+                    {{^sources}}
+                        <div>No Video Provided</div>
                     {{/sources}}
-                    Cannot Display Video
-                </video>
-                {{^sources}}
-                    <div>No Video Provided</div>
-                {{/sources}}
-            {{/video}}
-            {{#unsupported}}
+                {{/video}}
+                {{#unsupported}}
+                    <div class="card-body align-content-center">
+                        {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+                        <div class="card-text text-center">
+                            Preview Not Supported
+                            {{#file}}<br>{{extension}}{{/file}}
+                            {{#description}}<br>{{description}}{{/description}}
+                        </div>
+                        {{#page_path}}</a>{{/page_path}}
+                    </div>
+                {{/unsupported}}
+            {{/content}}
+            {{^content}}
                 <div class="card-body align-content-center">
                     {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
                     <div class="card-text text-center">
-                        Preview Not Supported
-                        {{#file}}<br>{{extension}}{{/file}}
+                        No Preview Available
+                        {{#file}}<br><br>{{extension}}{{/file}}
                         {{#description}}<br>{{description}}{{/description}}
                     </div>
                     {{#page_path}}</a>{{/page_path}}
                 </div>
-            {{/unsupported}}
-        {{/content}}
-        {{^content}}
+            {{/content}}
+        {{/page}}
+        {{^page}}
             <div class="card-body align-content-center">
-                {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
                 <div class="card-text text-center">
-                    No Preview Available
-                    {{#file}}<br><br>{{extension}}{{/file}}
-                    {{#description}}<br>{{description}}{{/description}}
+                    No Info Given
                 </div>
-                {{#page_path}}</a>{{/page_path}}
             </div>
-        {{/content}}
+        {{/page}}
     </div>
 </div>
