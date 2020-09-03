@@ -1,0 +1,10 @@
+Content Generation was a cool idea
+But ultimately, it was a feature that was difficult for me to impliment, and ultimately, I just stopped working on this in general
+I'll likely still attempt to display content, but only in the file's native format;
+    This sucks for plenty of reasons, but it's a problem that isn't important enough to prevent me from working
+
+It was too frustrating to find a solution that I liked and impeded progress.
+
+Similarly, while I normalized the DB, it was clumsy and I didnt like it either, so I simplified it; I merged pages and files since a page should always have a file associated
+
+Ultimately, I wanted to use page_groups so it would be easy to store similar information together, but as I am now remembering; I can't have cyclic references to files. Ultimately, this means that the pathing aspect of Page_Groups is pointless, and that instead, I'd have to move all path related logic to a single file. I may or may not do this; I've been trying to stop hardcoding webpages but with templates, I feel it is easier to change things; so long as I avoid variants of the same template

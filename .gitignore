@@ -18,5 +18,5 @@ web/dynamic/generated/*
 *.db
 
 # Ignore personal settings/configs
-settings.ini
-config.ini
+src/old/settings.ini
+src/old/config.ini

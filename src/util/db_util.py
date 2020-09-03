@@ -4,9 +4,13 @@ from typing import Union, List, Tuple, Set
 
 class Conwrapper():
     def __init__(self, db_path: str):
-        self.con = sqlite3.connect(db_path)
-        self.cursor = self.con.cursor()
-
+        try:
+            self.con = sqlite3.connect(db_path)
+            self.cursor = self.con.cursor()
+        except sqlite3.OperationalError:
+            print(f"db_path = '{db_path}'")
+            raise
+        
     def __enter__(self):
         return self.con, self.cursor
 

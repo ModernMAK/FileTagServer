@@ -2,11 +2,6 @@ from typing import List, Tuple, Any, Union, Dict, Set, Callable, Iterable
 
 
 def list_tuple_to_list(values: List[Tuple[Any]]) -> List[Any]:
-    # result = []
-    # for value in values:
-    #     result.extend(value)
-    # return result
-    # Equivalent to
     return [v for value in values for v in value]
 
 
@@ -24,12 +19,6 @@ def get_unique_values_on_key(rows: List[Dict[str, Any]], key: str) -> Set[Any]:
 
 
 def get_unique_values(rows: Dict[Any, List[Any]]) -> Set[Any]:
-    # unique = set()
-    # for row in rows.values():
-    #     for value in row:
-    #         unique.add(value)
-    # return unique
-
     return {value for row in rows.values() for value in row}
 
 
@@ -50,16 +39,6 @@ def create_lookup(data: List[Any], get_key: Callable[[Any], Any]) -> Dict[Any, A
 
 # List Of List,Value
 def flatten(data: List[Union[Any, List[Any]]]) -> List[Any]:
-    # result = []
-    # for v in data:
-    #     if isinstance(v, (list, tuple)):
-    #         flat = flatten(v)
-    #         result.extend(flat)
-    #     else:
-    #         result.append(v)
-    # return result
-
-    # breaks our test cases, so its flawed somewhere
     return [
         value for content in data for value in
         (

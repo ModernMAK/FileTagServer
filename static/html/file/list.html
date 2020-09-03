@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{TITLE}}</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <!--    <script src="/js/tagsearch.js"></script>-->
+</head>
+<body>
+{{> navbar}}
+{{> file_subnavbar}}
+<div id="content">
+    <div class="row">
+        <div class="col-md-2">
+            <nav id="sidebarMenu" class="d-md-block bg-light sidebar">
+                <div class="sidebar-sticky pt-3">
+                    <!--                    <div class="container">-->
+                    <!--                        <form class="form-inline" action="/show/file/search" method="get">-->
+                    <!--                            <div class="input-group">-->
+                    <!--                                <input type="text" class="form-control" placeholder="" value="{{search}}"-->
+                    <!--                                       id="tagsearchbox"-->
+                    <!--                                       name="search">-->
+                    <!--                                <div class="input-group-append">-->
+                    <!--                                    <button class="btn btn-outline-primary" type="submit">Search</button>-->
+                    <!--                                </div>-->
+                    <!--                            </div>-->
+                    <!--                        </form>-->
+                    <!--                    </div>-->
+                    {{> sidebar_taglist}}
+                </div>
+            </nav>
+        </div>
+
+        <div class="col-md-10">
+            <main class="container-fluid">
+                {{#pagination}}
+                {{> pagination}}
+                {{/pagination}}
+                <div class="justify-content-center">
+                    <div class="container-fluid">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>MimeType</th>
+                                    <th>Tags</th>
+                                    <th>Link</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#results}}
+                                <tr>
+                                    <th>{{id}}</th>
+                                    <td>{{name}}</td>
+                                    <td>{{description}}</td>
+                                    <td>{{mime}}</td>
+                                    <td>
+                                        {{#tags}}
+                                        <a href="{{page_path}}" class="badge badge-primary">{{name}}
+                                            <span class="badge">{{count}}</span>
+                                        </a>
+                                        {{/tags}}
+                                    </td>
+                                    <td>
+                                        <a href="{{page_path}}">Open</a>
+                                    </td>
+                                </tr>
+                                {{/results}}
+                                {{^results}}
+                                <tr>
+                                    <td align="center" colspan="6">
+                                        No Results Found
+                                    </td>
+                                </tr>
+                                {{/results}}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {{#pagination}}
+                {{> pagination}}
+                {{/pagination}}
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
+</body>
+</html>
