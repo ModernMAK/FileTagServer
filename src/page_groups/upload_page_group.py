@@ -23,22 +23,26 @@ class UploadGroup(PageGroup):
 
         helper(routing.UploadPage.root, cls.index, ['GET'])
 
+        helper(routing.UploadPage.upload_file, cls.upload_files, ['GET'])
         helper(routing.UploadPage.action_upload_file, cls.action_upload_files, ['POST'])
 
-        route(routing.UploadPage.upload_file,
-              function=cls.as_route_func(cls.upload_files),
-              no_end_slash=True,
-              methods=['GET'])
+        helper(routing.UploadPage.add_file, cls.add_files, ['GET'])
+        helper(routing.UploadPage.action_add_file, cls.action_add_files, ['POST'])
 
-        route(routing.UploadPage.action_add_file,
-              function=cls.as_route_func(cls.action_add_files),
-              no_end_slash=True,
-              methods=['POST'])
-
-        route(routing.UploadPage.add_file,
-              function=cls.as_route_func(cls.add_files),
-              no_end_slash=True,
-              methods=['GET'])
+        # route(routing.UploadPage.upload_file,
+        #       function=cls.as_route_func(cls.upload_files),
+        #       no_end_slash=True,
+        #       methods=['GET'])
+        #
+        # route(routing.UploadPage.action_add_file,
+        #       function=cls.as_route_func(cls.action_add_files),
+        #       no_end_slash=True,
+        #       methods=['POST'])
+        #
+        # route(routing.UploadPage.add_file,
+        #       function=cls.as_route_func(cls.add_files),
+        #       no_end_slash=True,
+        #       methods=['GET'])
 
     @classmethod
     def initialize(cls, **kwargs):
@@ -73,7 +77,12 @@ class UploadGroup(PageGroup):
 
     @classmethod
     def action_upload_files(cls, request) -> ServeResponse:
+        return request
+
+        print("act up")
         files = request.get('FILES')
+        for k, v in request.items():
+            print(f"{k}\t\t\t{v}")
         if len(files) == 0:
             return StatusPageGroup.serve_redirect(HTTPStatus.SEE_OTHER, routing.UploadPage.upload_file)
         for file in files:
@@ -92,8 +101,12 @@ class UploadGroup(PageGroup):
 
     @classmethod
     def action_add_files(cls, request) -> ServeResponse:
+        return request
+
+        print("help")
         post = request.get('POST')
         files = request.get('FILES')
+
         if 'paths' in post:
             print(post.get('paths'))
         elif len(files) > 0:
