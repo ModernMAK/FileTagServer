@@ -1,4 +1,3 @@
-import os
 from functools import partial
 from typing import Dict, Tuple, Any, Callable
 
@@ -18,12 +17,3 @@ class PageGroup:
     @classmethod
     def as_route_func(cls, func: ServeFunction):
         return partial(func)
-
-    @staticmethod
-    def create_get_string(**kwargs) -> str:
-        listed = []
-        for k, v in kwargs.items():
-            listed.append(f"{k}={v}")
-        if len(listed) == 0:
-            return ""
-        return "?" + "&".join(listed)

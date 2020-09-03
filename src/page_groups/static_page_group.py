@@ -1,14 +1,11 @@
-import os
-from typing import Callable, Tuple, Any, Dict
+from typing import Callable
 
 from litespeed import route, serve
-from src.util import path_util
-import collections
 from src.page_groups.page_group import PageGroup, ServeResponse, ServeFunction
 from src.page_groups import routing, pathing
 
 
-class Static(PageGroup):
+class StaticGroup(PageGroup):
     # serves the file; using the path function to resolve the full path
     @staticmethod
     def __serve_path_func(path_func: Callable[[str], str]) -> ServeFunction:

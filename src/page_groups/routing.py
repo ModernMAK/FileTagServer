@@ -3,10 +3,7 @@ from os.path import join
 
 # This is primarily for me to group constants together
 # None of these classes should be instantiated
-
-
 def append_get_args(path: str, **kwargs) -> str:
-    #
     args = []
     for keyword in kwargs:
         value = kwargs[keyword]
@@ -74,3 +71,14 @@ class TagPage:
     @classmethod
     def get_index_list(cls, page: int):
         return append_get_args(cls.index_list, page=page)
+
+
+class UploadPage:
+    root = web_join(WebRoot.root, "upload")
+    action_root = web_join(root, "action")
+
+    upload_file = web_join(root, "file")
+    action_upload_file = web_join(action_root, "file")
+
+    add_file = web_join(root, "path")
+    action_add_file = web_join(action_root, "path")

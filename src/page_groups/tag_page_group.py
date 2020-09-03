@@ -1,14 +1,13 @@
 from math import ceil
 from typing import Dict, Any, List
 
-from src.page_groups import status
 from litespeed import serve, route
 from pystache import Renderer
 
 from src import config
+from src.page_groups import routing, pathing
 import src.database_api.clients as dbapi
-from src.page_groups import pathing, routing
-from src.page_groups.status import serve_error
+from src.page_groups.status_code_page_group import StatusPageGroup
 from src.util.page_utils import reformat_serve
 from src.page_groups.page_group import PageGroup, ServeResponse
 
@@ -25,13 +24,13 @@ class TagPageGroup(PageGroup):
             return info
 
         return [
-            helper(FilePage.root, "File"),
-            helper(TagPage.root, "Tag", "active")
+            helper(routing.FilePage.root, "File"),
+            helper(routing.TagPage.root, "Tag", "active"),
+            helper(routing.UploadPage.root, "Upload"),
         ]
 
     @classmethod
     def add_routes(cls):
-
         route(routing.TagPage.root,
               function=cls.as_route_func(cls.index),
               no_end_slash=True,
@@ -51,10 +50,6 @@ class TagPageGroup(PageGroup):
     def initialize(cls, **kwargs):
         cls.renderer = Renderer(search_dirs=[config.template_path])
 
-    @classmethod
-    def get_navbar_context(cls):
-        return {'tag': 'active'}
-
     #########
     # Displays the primary page of the tag page group
     # This should almost always either be;
@@ -64,7 +59,7 @@ class TagPageGroup(PageGroup):
     #########
     @classmethod
     def index(cls, request: Dict[str, Any]) -> ServeResponse:
-        return status.error_307(request, location=routing.TagPage.index_list)
+        return StatusPageGroup.serve_redirect(307, routing.TagPage.index_list)
         # return cls.view_as_list(request)
 
     #########
@@ -121,7 +116,7 @@ class TagPageGroup(PageGroup):
             tag_id = int(tag_id)
         except (TypeError, ValueError):
             print("invalid tag id")
-            return serve_error(400)
+            return StatusPageGroup.serve_error(400)
 
         client = dbapi.MasterClient(db_path=config.db_path)
 
@@ -129,7 +124,7 @@ class TagPageGroup(PageGroup):
         tags = client.tag.fetch(ids=[tag_id])
         if len(tags) != 1:
             print("bad results")
-            return serve_error(404)
+            return StatusPageGroup.serve_error(404)
         tag = tags[0]
 
         # Reformat results

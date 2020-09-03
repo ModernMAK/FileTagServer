@@ -1,20 +1,44 @@
-import os
 from typing import Dict, Any, List
 from litespeed import serve, route
 from pystache import Renderer
-import src.page_groups.status as status
 from src import config
+from src.page_groups import pathing, routing
 import src.database_api.clients  as dbapi
-from src.page_groups import pathing
 from src.util.collection_util import get_unique_values_on_key
-from src.page_groups.status import serve_error
+from src.page_groups.status_code_page_group import StatusPageGroup
 from src.util.page_utils import reformat_serve
 from src.page_groups.page_group import PageGroup, ServeResponse
-from src.page_groups.routing import FilePage, TagPage
 
 
 class FilePageGroup(PageGroup):
     renderer = None
+
+
+    @classmethod
+    def add_routes(cls):
+        route("/",
+              function=cls.as_route_func(cls.index),
+              no_end_slash=True,
+              methods=['GET'])
+
+        route(routing.FilePage.root,
+              function=cls.as_route_func(cls.index),
+              no_end_slash=True,
+              methods=['GET'])
+
+        route(routing.FilePage.index_list,
+              function=cls.as_route_func(cls.view_as_list),
+              no_end_slash=True,
+              methods=['GET'])
+
+        route(routing.FilePage.view_file,
+              function=cls.as_route_func(cls.view_file),
+              no_end_slash=True,
+              methods=['GET'])
+
+    @classmethod
+    def initialize(cls, **kwargs):
+        cls.renderer = Renderer(search_dirs=[config.template_path])
 
     @classmethod
     def get_navbar_context(cls) -> List[Dict[str, Any]]:
@@ -25,36 +49,10 @@ class FilePageGroup(PageGroup):
             return info
 
         return [
-            helper(FilePage.root, "File", "active"),
-            helper(TagPage.root, "Tag", )
+            helper(routing.FilePage.root, "File", "active"),
+            helper(routing.TagPage.root, "Tag"),
+            helper(routing.UploadPage.root, "Upload"),
         ]
-
-    @classmethod
-    def add_routes(cls):
-        route("/",
-              function=cls.as_route_func(cls.index),
-              no_end_slash=True,
-              methods=['GET'])
-
-        route(FilePage.root,
-              function=cls.as_route_func(cls.index),
-              no_end_slash=True,
-              methods=['GET'])
-
-        route(FilePage.index_list,
-              function=cls.as_route_func(cls.view_as_list),
-              no_end_slash=True,
-              methods=['GET'])
-
-        route(FilePage.view_file,
-              function=cls.as_route_func(cls.view_file),
-              no_end_slash=True,
-              methods=['GET'])
-
-    @classmethod
-    def initialize(cls, **kwargs):
-        cls.renderer = Renderer(search_dirs=[config.template_path])
-
     #########
     # Displays the primary page of the file page group
     # This should almost always either be;
@@ -65,7 +63,7 @@ class FilePageGroup(PageGroup):
     @classmethod
     def index(cls, request: Dict[str, Any]) -> ServeResponse:
         print("file page index")
-        return status.error_307(request,location=FilePage.index_list)
+        return StatusPageGroup.serve_redirect(301, routing.FilePage.index_list)
         # return cls.view_as_list(request)
 
     #########
@@ -87,7 +85,7 @@ class FilePageGroup(PageGroup):
         file_count = client.file.count(**search_args)
         # Determine if page is valid
         if not cls.is_page_valid(page, page_size, file_count) and page != 1:
-            return serve_error(404)
+            return StatusPageGroup.serve_error(404)
 
         # Fetch results for page
         files = client.file.fetch(
@@ -116,7 +114,7 @@ class FilePageGroup(PageGroup):
                 'name': pair['name'],
                 'description': pair['description'],
                 'count': pair['count'],
-                'page_path': TagPage.get_view_tag(pair['id'])
+                'page_path': routing.TagPage.get_view_tag(pair['id'])
             }
         formatted_tag_info = [v for v in formatted_tag_info_lookup.values()]
 
@@ -138,7 +136,7 @@ class FilePageGroup(PageGroup):
                 'name': file['name'],
                 'description': file['description'],
                 'tags': my_tags,
-                'page_path': FilePage.get_view_file(file['id'])
+                'page_path': routing.FilePage.get_view_file(file['id'])
             }
             formatted_file_info.append(info)
 
@@ -168,7 +166,7 @@ class FilePageGroup(PageGroup):
             file_id = int(file_id)
         except (ValueError, TypeError):
             print("invalid file id")
-            return serve_error(400)
+            return StatusPageGroup.serve_error(400)
 
         client = dbapi.MasterClient(db_path=config.db_path)
 
@@ -176,7 +174,7 @@ class FilePageGroup(PageGroup):
         files = client.file.fetch(ids=[file_id])
         if len(files) != 1:
             print("bad results")
-            return serve_error(404)
+            return StatusPageGroup.serve_error(404)
         file = files[0]
 
         # fetch file to tag lookup
@@ -198,7 +196,7 @@ class FilePageGroup(PageGroup):
                 'name': pair['name'],
                 'description': pair['description'],
                 'count': pair['count'],
-                'page_path': TagPage.get_view_tag(pair['id'])
+                'page_path': routing.TagPage.get_view_tag(pair['id'])
             }
         formatted_tag_info = [v for v in formatted_tag_info_lookup.values()]
 
@@ -217,7 +215,7 @@ class FilePageGroup(PageGroup):
             'name': file['name'],
             'description': file['description'],
             'tags': my_tags,
-            'page_path': FilePage.get_view_file(file['id'])
+            'page_path': routing.FilePage.get_view_file(file['id'])
         }
 
         serve_file = pathing.Static.get_html("file/page.html")
