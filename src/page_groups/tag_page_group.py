@@ -10,24 +10,11 @@ import src.database_api.clients as dbapi
 from src.page_groups.status_code_page_group import StatusPageGroup
 from src.util.page_utils import reformat_serve
 from src.page_groups.page_group import PageGroup, ServeResponse
+from src.page_groups.shared_page_util import get_navbar_context
 
 
 class TagPageGroup(PageGroup):
     renderer = None
-
-    @classmethod
-    def get_navbar_context(cls) -> List[Dict[str, Any]]:
-        def helper(link: str, text: str, status: str = None) -> Dict[str, Any]:
-            info = {'path': link, 'text': text}
-            if status is not None:
-                info['status'] = status
-            return info
-
-        return [
-            helper(routing.FilePage.root, "File"),
-            helper(routing.TagPage.root, "Tag", "active"),
-            helper(routing.UploadPage.root, "Upload"),
-        ]
 
     @classmethod
     def add_routes(cls):
@@ -105,7 +92,7 @@ class TagPageGroup(PageGroup):
         result = serve(file)
         context = {
             'results': formatted_tag_info,
-            'navbar': cls.get_navbar_context()
+            'navbar': get_navbar_context()
         }
         return reformat_serve(cls.renderer, result, context)
 
@@ -139,7 +126,7 @@ class TagPageGroup(PageGroup):
         result = serve(serve_file)
         context = {
             'result': formatted_tag_info,
-            'navbar': cls.get_navbar_context()
+            'navbar': get_navbar_context()
         }
         return reformat_serve(cls.renderer, result, context)
 

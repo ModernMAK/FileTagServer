@@ -4,6 +4,7 @@ from litespeed import route, serve
 from pystache import Renderer
 
 from src import config
+from src.page_groups.shared_page_util import get_navbar_context
 from src.page_groups.page_group import PageGroup, ServeResponse, ServeFunction
 from src.util.page_utils import reformat_serve
 from src.page_groups import routing, pathing
@@ -49,20 +50,6 @@ class UploadGroup(PageGroup):
         cls.renderer = Renderer(search_dirs=[config.template_path])
 
     @classmethod
-    def get_navbar_context(cls) -> List[Dict[str, Any]]:
-        def helper(link: str, text: str, status: str = None) -> Dict[str, Any]:
-            info = {'path': link, 'text': text}
-            if status is not None:
-                info['status'] = status
-            return info
-
-        return [
-            helper(routing.FilePage.root, "File"),
-            helper(routing.TagPage.root, "Tag"),
-            helper(routing.UploadPage.root, "Upload", "active"),
-        ]
-
-    @classmethod
     def index(cls, request):
         return StatusPageGroup.serve_redirect(HTTPStatus.TEMPORARY_REDIRECT, routing.UploadPage.upload_file)
 
@@ -70,16 +57,13 @@ class UploadGroup(PageGroup):
     def upload_files(cls, request) -> ServeResponse:
         result = serve(pathing.Static.get_html('upload/upload_file.html'))
         context = {
-            'navbar': cls.get_navbar_context(),
+            'navbar': get_navbar_context(active="Upload"),
             'action_path': routing.UploadPage.action_upload_file
         }
         return reformat_serve(cls.renderer, result, context)
 
     @classmethod
     def action_upload_files(cls, request) -> ServeResponse:
-        return request
-
-        print("act up")
         files = request.get('FILES')
         for k, v in request.items():
             print(f"{k}\t\t\t{v}")
@@ -94,16 +78,13 @@ class UploadGroup(PageGroup):
     def add_files(cls, request) -> ServeResponse:
         result = serve(pathing.Static.get_html('upload/add_file.html'))
         context = {
-            'navbar': cls.get_navbar_context(),
+            'navbar': get_navbar_context(active="Upload"),
             'action_path': routing.UploadPage.action_add_file
         }
         return reformat_serve(cls.renderer, result, context)
 
     @classmethod
     def action_add_files(cls, request) -> ServeResponse:
-        return request
-
-        print("help")
         post = request.get('POST')
         files = request.get('FILES')
 

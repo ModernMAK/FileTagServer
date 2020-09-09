@@ -14,6 +14,7 @@ class Static:
     html = join(root, "html")
     js = join(root, "js")
     css = join(root, "css")
+    image = join(root, "image")
     db = join(root, 'data')
 
     @classmethod
@@ -31,3 +32,7 @@ class Static:
     @classmethod
     def get_css(cls, path: str) -> str:
         return join(cls.css, path)
+
+    @classmethod
+    def get_image(cls, path: str) -> str:
+        return join(cls.image, path)

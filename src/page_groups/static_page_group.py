@@ -10,6 +10,7 @@ class StaticGroup(PageGroup):
     @staticmethod
     def __serve_path_func(path_func: Callable[[str], str]) -> ServeFunction:
         def __internal(request, path: str) -> ServeResponse:
+            print(path_func(path))
             return serve(path_func(path))
 
         return __internal
@@ -18,13 +19,19 @@ class StaticGroup(PageGroup):
     def add_routes(cls):
         # capture everything after our text
         capture_regex = "(.*)"
-        route(routing.Static.get_css(capture_regex),
-              function=cls.__serve_path_func(pathing.Static.get_css),
-              no_end_slash=True,
-              methods=['GET'])
+        route(
+            routing.Static.get_css(capture_regex),
+            function=cls.__serve_path_func(pathing.Static.get_css),
+            no_end_slash=True,
+            methods=['GET'])
 
         route(routing.Static.get_javascript(capture_regex),
               function=cls.__serve_path_func(pathing.Static.get_javascript),
+              no_end_slash=True,
+              methods=['GET'])
+
+        route(routing.Static.get_image(capture_regex),
+              function=cls.__serve_path_func(pathing.Static.get_image),
               no_end_slash=True,
               methods=['GET'])
 

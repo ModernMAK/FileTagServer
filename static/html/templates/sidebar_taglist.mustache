@@ -4,12 +4,12 @@
         <li class="nav-item  w-100 mx-auto">
             <div class="nav-link active">
                 <div class="btn-group w-100">
-                    <a class=" w-100" href="/show/tag?id={{id}}">
-                    <button class="btn-outline-primary  w-100">
-                        {{#formatted_name}}{{formatted_name}}{{/formatted_name}}
-                        {{^formatted_name}}{{name}}{{/formatted_name}}
-                        <span class="badge badge-secondary">{{count}}</span>
-                    </button>
+                    <a class=" w-100" href="{{page_path}}">
+                        <button class="btn-outline-primary  w-100">
+                            {{#formatted_name}}{{formatted_name}}{{/formatted_name}}
+                            {{^formatted_name}}{{name}}{{/formatted_name}}
+                            <span class="badge badge-secondary">{{count}}</span>
+                        </button>
                     </a>
                 </div>
                 {{#search_support}}

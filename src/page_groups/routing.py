@@ -33,6 +33,7 @@ class WebRoot:
 class Static:
     root = WebRoot.root
     html = web_join(root, "html")
+    image = join(root, "img")
     js = web_join(root, "js")
     css = web_join(root, "css")
 
@@ -43,6 +44,10 @@ class Static:
     @classmethod
     def get_javascript(cls, path_or_regex: str) -> str:
         return web_join(cls.js, path_or_regex)
+
+    @classmethod
+    def get_image(cls, path_or_regex: str) -> str:
+        return web_join(cls.image, path_or_regex)
 
 
 class FilePage:

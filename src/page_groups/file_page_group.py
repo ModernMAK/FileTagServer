@@ -7,52 +7,41 @@ import src.database_api.clients  as dbapi
 from src.util.collection_util import get_unique_values_on_key
 from src.page_groups.status_code_page_group import StatusPageGroup
 from src.util.page_utils import reformat_serve
+from src.page_groups.shared_page_util import get_navbar_context
 from src.page_groups.page_group import PageGroup, ServeResponse
 
 
 class FilePageGroup(PageGroup):
     renderer = None
 
-
     @classmethod
     def add_routes(cls):
-        route("/",
-              function=cls.as_route_func(cls.index),
-              no_end_slash=True,
-              methods=['GET'])
+        get_only = ['GET']
 
-        route(routing.FilePage.root,
-              function=cls.as_route_func(cls.index),
-              no_end_slash=True,
-              methods=['GET'])
+        cls._add_route(
+            routing.WebRoot.root,
+            function=cls.index,
+            methods=get_only)
 
-        route(routing.FilePage.index_list,
-              function=cls.as_route_func(cls.view_as_list),
-              no_end_slash=True,
-              methods=['GET'])
+        cls._add_route(
+            routing.FilePage.root,
+            function=cls.index,
+            methods=get_only)
 
-        route(routing.FilePage.view_file,
-              function=cls.as_route_func(cls.view_file),
-              no_end_slash=True,
-              methods=['GET'])
+        cls._add_route(
+            routing.FilePage.index_list,
+            function=cls.view_as_list,
+            methods=get_only)
+
+        cls._add_route(
+            routing.FilePage.view_file,
+            function=cls.view_file,
+            methods=get_only)
 
     @classmethod
     def initialize(cls, **kwargs):
         cls.renderer = Renderer(search_dirs=[config.template_path])
 
-    @classmethod
-    def get_navbar_context(cls) -> List[Dict[str, Any]]:
-        def helper(link: str, text: str, status: str = None) -> Dict[str, Any]:
-            info = {'path': link, 'text': text}
-            if status is not None:
-                info['status'] = status
-            return info
-
-        return [
-            helper(routing.FilePage.root, "File", "active"),
-            helper(routing.TagPage.root, "Tag"),
-            helper(routing.UploadPage.root, "Upload"),
-        ]
     #########
     # Displays the primary page of the file page group
     # This should almost always either be;
@@ -144,9 +133,10 @@ class FilePageGroup(PageGroup):
         print(file)
         result = serve(file)
         context = {
+            'page_title': "Files",
             'results': formatted_file_info,
             'tags': formatted_tag_info,
-            'navbar': cls.get_navbar_context(),
+            'navbar': get_navbar_context(active=routing.FilePage.root),
             'subnavbar': {'list': 'active'}
         }
         return reformat_serve(cls.renderer, result, context)
@@ -223,7 +213,7 @@ class FilePageGroup(PageGroup):
         context = {
             'result': formatted_file_info,
             'tags': formatted_tag_info,
-            'navbar': cls.get_navbar_context(),
+            'navbar': get_navbar_context(),
             'subnavbar': {}
         }
         return reformat_serve(cls.renderer, result, context)
