@@ -26,3 +26,8 @@ web/dynamic/generated/*
 static/image/icon/bs/*
 # This is empty (as it should be), but i accidentally did this once, im sure ill do it again
 static/html/image/icon/bs/*
+
+# Dont commit old files
+/file/*
+config.ini
+settings.ini
