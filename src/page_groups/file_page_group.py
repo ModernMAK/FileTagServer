@@ -1,14 +1,16 @@
-from typing import Dict, Any, List
-from litespeed import serve, route
+from typing import Dict, Any
+
+from litespeed import serve
 from pystache import Renderer
+
+import src.database_api.clients  as dbapi
 from src import config
 from src.page_groups import pathing, routing
-import src.database_api.clients  as dbapi
-from src.util.collection_util import get_unique_values_on_key
-from src.page_groups.status_code_page_group import StatusPageGroup
-from src.util.page_utils import reformat_serve
-from src.page_groups.shared_page_util import get_navbar_context
 from src.page_groups.page_group import PageGroup, ServeResponse
+from src.page_groups.shared_page_util import get_navbar_context
+from src.page_groups.status_code_page_group import StatusPageGroup
+from src.util.collection_util import get_unique_values_on_key
+from src.util.page_utils import reformat_serve
 
 
 class FilePageGroup(PageGroup):
@@ -37,6 +39,23 @@ class FilePageGroup(PageGroup):
             routing.FilePage.view_file,
             function=cls.view_file,
             methods=get_only)
+
+        cls._add_route(
+            routing.FilePage.serve_file_raw,
+            function=cls.serve_raw_file,
+            methods=get_only
+        )
+        cls._add_route(
+            routing.FilePage.serve_page_raw,
+            function=cls.serve_raw_page,
+            methods=get_only
+        )
+
+        cls._add_route(
+            routing.FilePage.slideshow,
+            function=cls.serve_slideshow,
+            methods=get_only
+        )
 
     @classmethod
     def initialize(cls, **kwargs):
@@ -111,9 +130,10 @@ class FilePageGroup(PageGroup):
 
         formatted_file_info = []
         for file in files:
+            print(file)
             f_id = file['id']
             my_tags = []
-            for pair in file_tags[f_id]:
+            for pair in file_tags.get(f_id, []):
                 tag_id = pair['tag_id']
                 my_tags.append(formatted_tag_info_lookup[tag_id])
             my_tags.sort(key=lambda x: x['name'])
@@ -125,7 +145,8 @@ class FilePageGroup(PageGroup):
                 'name': file['name'],
                 'description': file['description'],
                 'tags': my_tags,
-                'page_path': routing.FilePage.get_view_file(file['id'])
+                'page_path': routing.FilePage.get_view_file(file['id']),
+                'raw_file_path': routing.FilePage.get_serve_file_raw(file['id'])
             }
             formatted_file_info.append(info)
 
@@ -193,7 +214,7 @@ class FilePageGroup(PageGroup):
         formatted_tag_info.sort(key=lambda x: (-x['count'], x['name']))
 
         my_tags = []
-        for pair in file_tags[file_id]:
+        for pair in file_tags.get(file_id, []):
             tag_id = pair['tag_id']
             my_tags.append(formatted_tag_info_lookup[tag_id])
         my_tags.sort(key=lambda x: x['name'])
@@ -205,6 +226,7 @@ class FilePageGroup(PageGroup):
             'name': file['name'],
             'description': file['description'],
             'tags': my_tags,
+            'raw_file_path': routing.FilePage.get_serve_file_raw(file['id']),
             'page_path': routing.FilePage.get_view_file(file['id'])
         }
 
@@ -228,3 +250,74 @@ class FilePageGroup(PageGroup):
         page    ~ The page #, from 1 to infinity
         """
         return FilePageGroup.is_page_offset_valid((page - 1) * page_size, page_size, items)
+
+    @classmethod
+    def serve_raw_file(cls, request: Dict[str, Any]) -> ServeResponse:
+        file_id = request.get('GET').get('id')
+        client = dbapi.MasterClient(db_path=config.db_path)
+        results = client.file.fetch(ids=[file_id])
+        if len(results) == 0:
+            return StatusPageGroup.serve_error(404)
+        else:
+            return serve(results[0]['path'])
+
+    @classmethod
+    def serve_raw_page(cls, request: Dict[str, Any]) -> ServeResponse:
+        file_id = request.get('GET').get('id')
+        client = dbapi.MasterClient(db_path=config.db_path)
+        results = client.file.fetch(ids=[file_id])
+        if len(results) == 0:
+            return StatusPageGroup.serve_error(404)
+        else:
+            result = results[0]
+            # print(result)
+            mime = result['mime']
+            # print(mime)
+            # .split("/")[0]
+            mime = mime.split("/")
+            if len(mime) > 0:
+                mime = mime[0]
+            else:
+                mime = ""
+
+            raw_url = routing.FilePage.get_serve_file_raw(result['id'])
+            if mime == "image":
+                serve_file = pathing.Static.get_html("raw/image.html")
+                ctx = {
+                    "title": result['name'],
+                    "source": raw_url
+                }
+                s = serve(serve_file)
+                return reformat_serve(cls.renderer, s, ctx)
+            else:
+                return StatusPageGroup.serve_error(404)
+
+    @classmethod
+    def serve_slideshow(cls, request: Dict[str, Any]) -> ServeResponse:
+        file_id = request.get('GET').get('id')
+        client = dbapi.MasterClient(db_path=config.db_path)
+        results = client.file.fetch(ids=[file_id])
+        if len(results) == 0:
+            return StatusPageGroup.serve_error(404)
+        else:
+            result = results[0]
+            mime = result['mime'].split("/")
+            if len(mime) > 0:
+                mime = mime[0]
+            else:
+                mime = ""
+
+            raw_url = routing.FilePage.get_serve_file_raw(result['id'])
+            serve_file = pathing.Static.get_html("file/ss.html")
+            if mime == "image":
+                ctx = {
+                    "title": result['name'],
+                    "image": {
+                        "alt": result['description'],
+                        "source": raw_url
+                    }
+                }
+                s = serve(serve_file)
+                return reformat_serve(cls.renderer, s, ctx)
+            else:
+                return StatusPageGroup.serve_error(404)

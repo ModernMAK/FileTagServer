@@ -209,6 +209,7 @@ class BaseClient:
         with Conwrapper(self.db_path) as (con, cursor):
             try:
                 cursor.execute(query)
+                con.commit()
             except sqlite3.OperationalError:
                 print(f"query= '{query}'")
                 raise
