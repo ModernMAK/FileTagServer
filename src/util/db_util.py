@@ -54,13 +54,13 @@ def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool =
 
 
 def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
+    result = []
     if isinstance(values, (List, Tuple)):
-        values = values.copy()
         for i in range(len(values)):
-            values[i] = create_entry_string(values[i])
+            result.append(create_entry_string(values[i]))
     else:
-        values = create_entry_string(values)
-    return ','.join(values)
+        result = create_entry_string(result)
+    return ','.join(result)
 
 
 def convert_tuple_to_list(values: List[Tuple[object]]) -> List[object]:

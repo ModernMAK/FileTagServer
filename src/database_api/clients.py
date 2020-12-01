@@ -1,4 +1,3 @@
-from typing import List, Any, Dict, Tuple
 from src.database_api.util import *
 
 
@@ -6,42 +5,62 @@ class FileClient(BaseClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    table_name = 'file'
+    id_column = 'id'
+
+    @classmethod
+    def id_column_qualified(cls) -> str:
+        return f"{cls.table_name}.{cls.id_column}"
+
+    name_column = 'name'
+
+    @classmethod
+    def name_column_qualified(self)-> str:
+        return f"{self.table_name}.{self.name_column}"
+
+    desc_column = 'description'
+
+    @classmethod
+    def desc_column_qualified(self):
+        return f"{self.table_name}.{self.desc_column}"
+
+    path_column = 'path'
+
+    @classmethod
+    def path_column_qualified(self):
+        return f"{self.table_name}.{self.path_column}"
+
+    mimetype_column = 'mime'
+
+    @classmethod
+    def mimetype_column_qualified(self):
+        return f"{self.table_name}.{self.id_column}"
+
     @staticmethod
     def _get_mapping() -> Tuple:
         return 'id', 'name', 'description', 'path', 'mime'
 
     @classmethod
-    def get_select_query(cls, **kwargs):
-        """
-        Keyword Args
-            limit       ~ # of items to select
-            offset      ~ # to offset selection
-            order_by    ~ key-value pairs to order by; (name, ascending)
-            ids         ~ list of ids to fetch
-            paths       ~ list of ids to fetch
-            mimes       ~ list of ids to fetch
-            mime_likes -> list of
-        """
+    def get_select_query(cls,
+                         limit: int = None, offset: int = None,
+                         ids: List[int] = None, paths: List[str] = None, mimes: List[str] = None,
+                         mime_likes: List[int] = None, name_likes: List[str] = None, desc_likes: List[str] = None,
+                         order_by: List[Tuple[str, bool]] = None,
+                         **kwargs):
+
         mapping = cls._get_mapping()
-        limit = kwargs.get('limit', None)
-        offset = kwargs.get('offset', None)
 
-        order_by = kwargs.get('order_by', [('id', True)])
-        ids = kwargs.get('ids', None)
-        paths = kwargs.get('paths', None)
-        mimes = kwargs.get('mimes', None)
-        mime_likes = kwargs.get('mime_likes', None)
-        name_likes = kwargs.get('name_likes', None)
-        desc_likes = kwargs.get('desc_likes', None)
+        if order_by is None:
+            order_by = [('id', True)]
 
-        query = sql_select_from(mapping, 'file')
+        query = sql_select_from(mapping, cls.table_name)
         constraint_clauses = [
-            sql_in('file.id', ids),
-            sql_in('file.path', paths),
-            sql_in('file.mime', mimes),
-            sql_in_like('file.mime', mime_likes),
-            sql_in_like('file.name', name_likes),
-            sql_in_like('file.description', desc_likes)
+            sql_in(f'{cls.table_name}.{cls.id_column}', ids),
+            sql_in(f'{cls.table_name}.{cls.path_column}', paths),
+            sql_in(f'{cls.table_name}.{cls.mimetype_column}', mimes),
+            sql_in_like(f'{cls.table_name}.{cls.mimetype_column}', mime_likes),
+            sql_in_like(f'{cls.table_name}.{cls.name_column}', name_likes),
+            sql_in_like(f'{cls.table_name}.{cls.desc_column}', desc_likes)
         ]
 
         constraint_clause = sql_and_clauses(constraint_clauses)
@@ -53,20 +72,20 @@ class FileClient(BaseClient):
 
         return sql_assemble_query(query, constraint_clause, structure_clauses)
 
-    @staticmethod
-    def get_create_table_query():
+    @classmethod
+    def get_create_table_query(cls):
         values = [
-            sql_create_table_value('id', 'INTEGER', sql_assemble_modifiers(True, True)),
+            sql_create_table_value(cls.id_column, 'INTEGER', sql_assemble_modifiers(True, True)),
 
-            sql_create_table_value('path', 'TEXT'),
-            sql_create_table_value('mime', "TINYTEXT"),
+            sql_create_table_value(cls.path_column, 'TEXT'),
+            sql_create_table_value(cls.mimetype_column, "TINYTEXT"),
 
-            sql_create_table_value('name', "TINYTEXT"),
-            sql_create_table_value('description', 'TEXT'),
+            sql_create_table_value(cls.name_column, "TINYTEXT"),
+            sql_create_table_value(cls.desc_column, 'TEXT'),
 
-            sql_create_unique_value('path_unique', ['path'])
+            sql_create_unique_value(f'{cls.path_column}_unique', ['path'])
         ]
-        return sql_create_table('file', values)
+        return sql_create_table(cls.table_name, values)
 
     def create(self):
         query = self.get_create_table_query()
@@ -86,7 +105,7 @@ class FileClient(BaseClient):
         mapping = self._get_mapping()
         return self._fetch_all_mapped(query, mapping)
 
-    def fetch_lookup(self, key: str = 'id', **kwargs) -> Dict[Any, Dict[str, Any]]:
+    def fetch_lookup(self, key: str = None, **kwargs) -> Dict[Any, Dict[str, Any]]:
         """
             Returns a lookup table, if two items have the same key, the last one processed is used.
             Each element is formatted as such:
@@ -96,6 +115,8 @@ class FileClient(BaseClient):
                 path    ~ the local path to the file
                 mime    ~ the mimetype of the file
         """
+        if key is None:
+            key = self.id_column
         query = self.get_select_query(**kwargs)
         mapping = self._get_mapping()
         return self._fetch_all_lookup(query, mapping, key)
@@ -105,7 +126,8 @@ class FileClient(BaseClient):
         return self._count(query)
 
     def insert(self, values: List[Tuple[str, str, str, str]]):
-        query = sql_insert_into('file', ['path', 'mime', 'name', 'description'], values)
+        query = sql_insert_into(self.table_name,
+                                [self.path_column, self.mimetype_column, self.name_column, self.desc_column], values)
         self._execute(query)
 
 
@@ -113,12 +135,22 @@ class TagClient(BaseClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @staticmethod
-    def get_mapping() -> Tuple:
-        return 'id', 'name', 'description', 'count'
+    table_name = 'tag'
+    id_column = 'id'
+    name_column = 'name'
+    desc_column = 'description'
+    count_column = 'count'
 
-    @staticmethod
-    def get_select_query(**kwargs):
+    @classmethod
+    def _prefixed_column(cls, col):
+        return f"{cls.table_name}.{col}"
+
+    @classmethod
+    def get_mapping(cls) -> Tuple:
+        return cls.id_column, cls.name_column, cls.desc_column, cls.count_column
+
+    @classmethod
+    def get_select_query(cls, **kwargs):
         mapping = TagClient.get_mapping()
         limit = kwargs.get('limit', None)
         offset = kwargs.get('offset', None)
@@ -129,7 +161,7 @@ class TagClient(BaseClient):
 
         # This query essentially creates a temporary 'tag' table with a tag counts column
         # we dont use any of my sql hoodoo helpers because thats mostly for
-        inner_query = "select tag.id, tag.name, tag.description, count(file_tag.file_id) as count from tag" \
+        inner_query = f"select {cls._prefixed_column(cls.id_column)}, {cls._prefixed_column(cls.name_column)}, {cls._prefixed_column(cls.desc_column)}, count(file_tag.file_id) as count from tag" \
                       " left join file_tag on tag.id = file_tag.tag_id" \
                       " group by tag.id"
 
@@ -179,10 +211,19 @@ class TagClient(BaseClient):
         query = self.get_select_query(**kwargs)
         return self._count(query)
 
+    @classmethod
+    def id_column_qualified(cls):
+        return f"{cls.table_name}.{cls.id_column}"
+
 
 class FileTagMapClient(BaseClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    table_name = 'file_tag'
+    id_column = 'id'
+    file_id_column = 'file_id'
+    tag_id_column = 'tag_id'
 
     @staticmethod
     def get_mapping() -> Tuple:
@@ -259,6 +300,14 @@ class FileTagMapClient(BaseClient):
     def count(self, **kwargs) -> int:
         query = self.get_select_query(**kwargs)
         return self._count(query)
+
+    @classmethod
+    def file_id_column_qualified(cls):
+        return f"{cls.table_name}.{cls.file_id_column}"
+
+    @classmethod
+    def tag_id_column_qualified(cls):
+        return f"{cls.table_name}.{cls.tag_id_column}"
 
 
 class MasterClient:
