@@ -143,7 +143,7 @@ class FileClient(BaseClient):
         return self._count(query)
 
     def insert(self, values: List[Tuple[str, str, str, str]]):
-        query = sql_insert_into(FileTable.table, [FileTable.path, FileTable.mimetype, FileTable.name, FileTable.desc],
+        query = sql_insert_into(FileTable.table, [FileTable.path, FileTable.mimetype, FileTable.name, FileTable.description],
                                 values)
         self._execute(query)
 

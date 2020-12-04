@@ -1,5 +1,5 @@
 {
-  "exts": ["jpeg","jpg","png","webp","gif"],
+  "exts": ["jpeg","jpg","png","webp","gif", "webm"],
   "patterns": [],
   "paths": ["D:\\LocalViewer\\LocalContent"]
 }

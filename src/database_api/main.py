@@ -4,18 +4,17 @@ import os
 import re
 from typing import List
 
-from src import config
 from src.database_api.clients import MasterClient
 from src.page_groups import pathing
 
 
-def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts = List[str]):
+def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts: List[str] = None):
     if patterns is None:
         patterns = []
     if exts is None:
         exts = []
 
-    def check_ext(path:str) -> bool:
+    def check_ext(path: str) -> bool:
         my_e = os.path.splitext(path)[1].lstrip('.').lower()
         # print(my_e, *exts)
         if my_e in exts:
@@ -46,6 +45,13 @@ def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts = List[
         value = (path, mime, name, desc)
         mc.file.insert([value])
 
+    def update_into_db(path: str):
+        current = mc.file.fetch(paths=[path])[0]
+        mime = mimetypes.guess_type(path)[0]
+        if mime is None:
+            mime = ""
+        mc.file._execute(f"UPDATE file SET mime = '{mime}' where id = '{current['id']}'")
+
     print(f"[Walking]\t{root_dir}\t=====================")
     for root, dirs, files in os.walk(root_dir):
         for file in files:
@@ -55,12 +61,16 @@ def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts = List[
                     insert_into_db(full_file_path)
                     print(f"[Inserted]\t{full_file_path}")
                 else:
-                    print(f"[Exists]\t{full_file_path}")
+                    update_into_db(full_file_path)
+                    print(f"[Updating]\t{full_file_path}")
             else:
                 print(f"[Not Allowed]\t{full_file_path}")
 
 
 if __name__ == "__main__":
+    mimetypes.add_type("video/webm", "webm")
+    mimetypes.add_type("image/webp", "webp")
+
     db = pathing.Static.get_database(r"local.db")
 
     with open("scan_settings.json") as f:
@@ -75,7 +85,6 @@ if __name__ == "__main__":
         patterns.append(compiled)
 
     exts = [e.lower() for e in exts]
-
 
     print(f"DB : {db}")
     input("Press Any Key to Continue...")

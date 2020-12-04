@@ -289,5 +289,16 @@ class FilePageGroup(PageGroup):
                 }
                 s = serve(serve_file)
                 return reformat_serve(cls.renderer, s, ctx)
+            elif mime == "video":
+                ctx = {
+                    "title": result['name'],
+                    "video": {
+                        "alt": result['description'],
+                        "source": raw_url,
+                        "mime": result['mime']
+                    }
+                }
+                s = serve(serve_file)
+                return reformat_serve(cls.renderer, s, ctx)
             else:
                 return StatusPageGroup.serve_error(404)

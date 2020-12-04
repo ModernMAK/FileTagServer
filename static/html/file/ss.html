@@ -11,9 +11,15 @@
 {{> navbar}}
 <div class="container-fluid">
     <div style="height: 95vh" class="text-center">
-    {{#image}}
+        {{#image}}
         <img src="{{source}}" alt="{{alt}}" class="img-fluid h-100">
-    {{/image}}
+        {{/image}}
+        {{#video}}
+        <video controls loop class="w-100">
+            <source src="{{source}}" type="{{mime}}">
+        </video>
+        <!--        src="{{source}}" alt="{{alt}}" class="img-fluid h-100">-->
+        {{/video}}
     </div>
 </div>
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -22,6 +28,6 @@
 <!-- Include all compiled plugins (below), or include individual files as needed -->
 <script src="/js/bootstrap.bundle.js"></script>
 
-<script src = "/js/simple_keyboard_advancer_script.js"></script>
+<script src="/js/simple_keyboard_advancer_script.js"></script>
 </body>
 </html>

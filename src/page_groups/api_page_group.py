@@ -91,7 +91,7 @@ class ApiPageGroup(PageGroup):
             # Create new tags field
             tags = []
             file['tags'] = tags
-            for map_info in file_tag_lookup[file[FileTable.id]]:
+            for map_info in file_tag_lookup.get(file[FileTable.id], []):
                 tag_id = map_info[FileTagMapTable.tag_id]
                 tags.append(tag_lookup[tag_id])
 
@@ -103,6 +103,7 @@ class ApiPageGroup(PageGroup):
 
             # this should be a url to the asset
             if display_remote_path:
-                file['url'] = routing.FilePage.get_serve_file_raw(file['id'])
+                partial_url = routing.FilePage.get_serve_file_raw(file['id'])
+                file['url'] = routing.full_path(partial_url)
 
         return files
