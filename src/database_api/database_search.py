@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 import src.util.db_util as DbUtil
 # Google uses - for NOT and OR for or, AND is probably inferred since i didnt see anything
-from src.database_api.clients import FileClient, FileTagMapClient, TagClient
+from src.database_api.clients import FileClient, FileTagMapClient, TagClient, FileTable, TagTable, FileTagMapTable
 
 SEARCH_NOT = '-'
 SEARCH_AND = ''
@@ -59,6 +59,25 @@ class SqliteQueryBuidler:
         self.parts.append(sql)
         return self
 
+    def Where(self, expr):
+        part = f"WHERE {expr}"
+        self.parts.append(part)
+        return self
+
+    def In(self, expr):
+        part = f"IN {expr}"
+        self.parts.append(part)
+        return self
+
+    def Not(self):
+        self.parts.append("NOT")
+        return self
+
+    def Intersect(self, query):
+        part = f"INTERSECT {query}"
+        self.parts.append(part)
+        return self
+
 
 # Or / And / Not
 def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
@@ -82,25 +101,43 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
     query = SqliteQueryBuidler()
 
     select_query = query \
-        .Select(FileClient.id_column_qualified()) \
-        .From(FileClient.table_name) \
-        .Join(FileTagMapClient.table_name, mode="Left") \
-        .On(f"{FileClient.id_column_qualified()} = {FileTagMapClient.file_id_column_qualified()}") \
-        .Join(TagClient.table_name, mode="Left") \
-        .On(f"{FileTagMapClient.tag_id_column_qualified()} = {TagClient.id_column_qualified()}")\
+        .Select(FileTable.id_qualified) \
+        .From(FileTable.table) \
+        .Join(FileTagMapTable.table, mode="Left") \
+        .On(f"{FileTable.id_qualified} = {FileTagMapTable.file_id_qualified}") \
+        .Join(TagTable.table, mode="Left") \
+        .On(f"{FileTagMapTable.tag_id_qualified} = {TagTable.id_qualified}") \
         .flush()
 
-        # "SELECT file.id from file left join file_tag on file.id = file_Tag.file_id left join tag on file_tag.tag_id = tag.id"
+    # "SELECT file.id from file left join file_tag on file.id = file_Tag.file_id left join tag on file_tag.tag_id = tag.id"
     parts = []
     if ors is not None and len(ors) > 0:
-        part = query.Raw(select_query).Where(TagClient.name_column_qualified()).In(DbUtil.create_entry_string(ors)) f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
+        part = query \
+            .Raw(select_query) \
+            .Where(TagClient.name_column_qualified())\
+            .In(DbUtil.create_entry_string(ors))
         parts.append(part)
+        # f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
     if nots is not None and len(nots) > 0:
-        part = f"{select_query} EXCEPT {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
+        part = query\
+            .Raw(select_query)\
+            .Where(TagClient.name_column_qualified())\
+            .Not()\
+            .In(DbUtil.create_entry_string(nots))
+
+        # part = f"{select_query} EXCEPT {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
         parts.append(part)
     if ands is not None and len(ands) > 0:
         for single_and in ands:
-            part = f"{select_query} where tag.name = {DbUtil.sanitize(single_and)}"
+            part = query.\
+                Raw(select_query).\
+                Where(f"{TagTable.name} = {DbUtil.sanitize(single_and)}").\
+                flush()
+            # part = f"{select_query} where tag.name = {DbUtil.sanitize(single_and)}"
             parts.append(part)
-    result_query = " INTERSECT ".join(parts)
-    return result_query
+
+    # Merge parts
+    query.Raw(parts[0])
+    for part in range(1,len(parts)):
+       query.Intersect(part)
+    return query.flush()

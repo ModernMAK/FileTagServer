@@ -21,6 +21,7 @@ class PageGroup:
 
     @classmethod
     def _add_route(cls, url, function, no_end_slash=True, methods=None, **kwargs):
+        # its really dumb, but i like it this way
         # Wrap the main routes for IDE's to easily read
         kwargs['url'] = url
         kwargs['no_end_slash'] = no_end_slash

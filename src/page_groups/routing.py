@@ -54,9 +54,9 @@ class FilePage:
     root = web_join(WebRoot.root, "file")
     view_file = web_join(root, "view")
     index_list = web_join(root, "list")
-    serve_file_raw = web_join(root,"raw")
-    serve_page_raw = web_join(root,"rawpage")
-    slideshow = web_join(root,"slideshow")
+    serve_file_raw = web_join(root, "raw")
+    serve_page_raw = web_join(root, "rawpage")
+    slideshow = web_join(root, "slideshow")
 
     @classmethod
     def get_view_file(cls, id: int):
@@ -67,12 +67,31 @@ class FilePage:
         return append_get_args(cls.index_list, page=page)
 
     @classmethod
-    def get_serve_file_raw(cls, id:int):
+    def get_serve_file_raw(cls, id: int):
         return append_get_args(cls.serve_file_raw, id=id)
 
     @classmethod
-    def get_serve_page_raw(cls, id:int):
+    def get_serve_page_raw(cls, id: int):
         return append_get_args(cls.serve_page_raw, id=id)
+
+
+class ApiPage:
+    root = web_join(WebRoot.root, "api")
+    file_root = web_join(root, "file")
+    file_list = web_join(file_root, "list")
+
+    @classmethod
+    def get_file_list(cls, format: str = "json", page: int = None, size: int = None, search: str = None):
+        file_path = f"{cls.file_list}.{format}"
+        get_args = {}
+        if page is not None:
+            get_args['page'] = page
+        if size is not None:
+            get_args['size'] = size
+        if search is not None:
+            get_args['search'] = search
+
+        return append_get_args(file_path, **get_args)
 
 
 class TagPage:

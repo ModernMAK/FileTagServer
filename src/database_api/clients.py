@@ -1,40 +1,57 @@
 from src.database_api.util import *
 
 
+class AbstractTable:
+    @staticmethod
+    def qualify_name(self, *parts):
+        return ".".join(parts)
+
+
+class FileTable(AbstractTable):
+    table = "file"
+
+    id = 'id'
+    name = 'name'
+    description = 'description'
+    path = 'path'
+    mimetype = 'mime'
+
+    id_qualified = AbstractTable.qualify_name(table, id)
+    name_qualified = AbstractTable.qualify_name(table, name)
+    description_qualified = AbstractTable.qualify_name(table, description)
+    path_qualified = AbstractTable.qualify_name(table, path)
+    mimetype_qualified = AbstractTable.qualify_name(table, mimetype)
+
+
+class TagTable(AbstractTable):
+    table = "tag"
+
+    id = 'id'
+    name = 'name'
+    description = 'description'
+    count = 'count'
+
+    id_qualified = AbstractTable.qualify_name(table, id)
+    name_qualified = AbstractTable.qualify_name(table, name)
+    description_qualified = AbstractTable.qualify_name(table, description)
+    count_qualified = AbstractTable.qualify_name(table, count)
+
+
+class FileTagMapTable(AbstractTable):
+    table = "file_tag"
+
+    id = 'id'
+    file_id = 'file_id'
+    tag_id = 'tag_id'
+
+    id_qualified = AbstractTable.qualify_name(table, id)
+    file_id_qualified = AbstractTable.qualify_name(table, file_id)
+    tag_id_qualified = AbstractTable.qualify_name(table, tag_id)
+
+
 class FileClient(BaseClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    table_name = 'file'
-    id_column = 'id'
-
-    @classmethod
-    def id_column_qualified(cls) -> str:
-        return f"{cls.table_name}.{cls.id_column}"
-
-    name_column = 'name'
-
-    @classmethod
-    def name_column_qualified(self)-> str:
-        return f"{self.table_name}.{self.name_column}"
-
-    desc_column = 'description'
-
-    @classmethod
-    def desc_column_qualified(self):
-        return f"{self.table_name}.{self.desc_column}"
-
-    path_column = 'path'
-
-    @classmethod
-    def path_column_qualified(self):
-        return f"{self.table_name}.{self.path_column}"
-
-    mimetype_column = 'mime'
-
-    @classmethod
-    def mimetype_column_qualified(self):
-        return f"{self.table_name}.{self.id_column}"
 
     @staticmethod
     def _get_mapping() -> Tuple:
@@ -53,14 +70,14 @@ class FileClient(BaseClient):
         if order_by is None:
             order_by = [('id', True)]
 
-        query = sql_select_from(mapping, cls.table_name)
+        query = sql_select_from(mapping, FileTable.table)
         constraint_clauses = [
-            sql_in(f'{cls.table_name}.{cls.id_column}', ids),
-            sql_in(f'{cls.table_name}.{cls.path_column}', paths),
-            sql_in(f'{cls.table_name}.{cls.mimetype_column}', mimes),
-            sql_in_like(f'{cls.table_name}.{cls.mimetype_column}', mime_likes),
-            sql_in_like(f'{cls.table_name}.{cls.name_column}', name_likes),
-            sql_in_like(f'{cls.table_name}.{cls.desc_column}', desc_likes)
+            sql_in(f'{FileTable.id_qualified}', ids),
+            sql_in(f'{FileTable.path_qualified}', paths),
+            sql_in(f'{FileTable.mimetype_qualified}', mimes),
+            sql_in_like(f'{FileTable.mimetype_qualified}', mime_likes),
+            sql_in_like(f'{FileTable.name_qualified}', name_likes),
+            sql_in_like(f'{FileTable.description_qualified}', desc_likes)
         ]
 
         constraint_clause = sql_and_clauses(constraint_clauses)
@@ -75,17 +92,17 @@ class FileClient(BaseClient):
     @classmethod
     def get_create_table_query(cls):
         values = [
-            sql_create_table_value(cls.id_column, 'INTEGER', sql_assemble_modifiers(True, True)),
+            sql_create_table_value(FileTable.id, 'INTEGER', sql_assemble_modifiers(True, True)),
 
-            sql_create_table_value(cls.path_column, 'TEXT'),
-            sql_create_table_value(cls.mimetype_column, "TINYTEXT"),
+            sql_create_table_value(FileTable.path, 'TEXT'),
+            sql_create_table_value(FileTable.mimetype, "TINYTEXT"),
 
-            sql_create_table_value(cls.name_column, "TINYTEXT"),
-            sql_create_table_value(cls.desc_column, 'TEXT'),
+            sql_create_table_value(FileTable.name, "TINYTEXT"),
+            sql_create_table_value(FileTable.description, 'TEXT'),
 
-            sql_create_unique_value(f'{cls.path_column}_unique', ['path'])
+            sql_create_unique_value(f'{FileTable.path}_unique', ['path'])
         ]
-        return sql_create_table(cls.table_name, values)
+        return sql_create_table(FileTable.table, values)
 
     def create(self):
         query = self.get_create_table_query()
@@ -126,8 +143,8 @@ class FileClient(BaseClient):
         return self._count(query)
 
     def insert(self, values: List[Tuple[str, str, str, str]]):
-        query = sql_insert_into(self.table_name,
-                                [self.path_column, self.mimetype_column, self.name_column, self.desc_column], values)
+        query = sql_insert_into(FileTable.table, [FileTable.path, FileTable.mimetype, FileTable.name, FileTable.desc],
+                                values)
         self._execute(query)
 
 
@@ -215,15 +232,14 @@ class TagClient(BaseClient):
     def id_column_qualified(cls):
         return f"{cls.table_name}.{cls.id_column}"
 
+    @classmethod
+    def name_column_qualified(cls):
+        pass
+
 
 class FileTagMapClient(BaseClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    table_name = 'file_tag'
-    id_column = 'id'
-    file_id_column = 'file_id'
-    tag_id_column = 'tag_id'
 
     @staticmethod
     def get_mapping() -> Tuple:
@@ -301,17 +317,10 @@ class FileTagMapClient(BaseClient):
         query = self.get_select_query(**kwargs)
         return self._count(query)
 
-    @classmethod
-    def file_id_column_qualified(cls):
-        return f"{cls.table_name}.{cls.file_id_column}"
 
-    @classmethod
-    def tag_id_column_qualified(cls):
-        return f"{cls.table_name}.{cls.tag_id_column}"
-
-
-class MasterClient:
+class MasterClient(BaseClient):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         db_path = kwargs.get('db_path')
         self.file = FileClient(db_path=db_path)
         self.tag = TagClient(db_path=db_path)

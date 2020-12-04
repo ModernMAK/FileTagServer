@@ -19,43 +19,13 @@ class FilePageGroup(PageGroup):
     @classmethod
     def add_routes(cls):
         get_only = ['GET']
-
-        cls._add_route(
-            routing.WebRoot.root,
-            function=cls.index,
-            methods=get_only)
-
-        cls._add_route(
-            routing.FilePage.root,
-            function=cls.index,
-            methods=get_only)
-
-        cls._add_route(
-            routing.FilePage.index_list,
-            function=cls.view_as_list,
-            methods=get_only)
-
-        cls._add_route(
-            routing.FilePage.view_file,
-            function=cls.view_file,
-            methods=get_only)
-
-        cls._add_route(
-            routing.FilePage.serve_file_raw,
-            function=cls.serve_raw_file,
-            methods=get_only
-        )
-        cls._add_route(
-            routing.FilePage.serve_page_raw,
-            function=cls.serve_raw_page,
-            methods=get_only
-        )
-
-        cls._add_route(
-            routing.FilePage.slideshow,
-            function=cls.serve_slideshow,
-            methods=get_only
-        )
+        cls._add_route(routing.WebRoot.root, function=cls.index, methods=get_only)
+        cls._add_route(routing.FilePage.root, function=cls.index, methods=get_only)
+        cls._add_route(routing.FilePage.index_list, function=cls.view_as_list, methods=get_only)
+        cls._add_route(routing.FilePage.view_file, function=cls.view_file, methods=get_only)
+        cls._add_route(routing.FilePage.serve_file_raw, function=cls.serve_raw_file, methods=get_only)
+        cls._add_route(routing.FilePage.serve_page_raw, function=cls.serve_raw_page, methods=get_only)
+        cls._add_route(routing.FilePage.slideshow, function=cls.serve_slideshow, methods=get_only)
 
     @classmethod
     def initialize(cls, **kwargs):

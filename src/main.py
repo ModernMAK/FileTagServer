@@ -2,6 +2,7 @@ from litespeed import start_with_args, App
 from src.database_api.clients import MasterClient
 import src.config as config
 from src.page_groups import FilePageGroup, StatusPageGroup, StaticGroup, TagPageGroup, UploadGroup
+from src.page_groups.api_page_group import ApiPageGroup
 
 if __name__ == '__main__':
     client = MasterClient(db_path=config.db_path).create_all()
@@ -10,7 +11,8 @@ if __name__ == '__main__':
         FilePageGroup,
         TagPageGroup,
         StaticGroup,
-        UploadGroup
+        UploadGroup,
+        ApiPageGroup
     ]
 
     for group in groups:
