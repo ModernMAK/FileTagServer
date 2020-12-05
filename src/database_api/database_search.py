@@ -79,6 +79,17 @@ class SqliteQueryBuidler:
         return self
 
 
+    def Limit(self, limit):
+        part = f"LIMIT {limit}"
+        self.parts.append(part)
+        return self
+
+    def Offset(self, offset):
+        part = f"OFFSET {offset}"
+        self.parts.append(part)
+        return self
+
+
 # Or / And / Not
 def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
     nots = []

@@ -141,12 +141,11 @@ class FilePageGroup(PageGroup):
     #########
     @classmethod
     def view_file(cls, request: Dict[str, Any]) -> ServeResponse:
-        print("file page")
-        file_id = request.get('GET').get('id')
+        file_id = request['GET'].get('id')
         try:
             file_id = int(file_id)
         except (ValueError, TypeError):
-            print("invalid file id")
+            print(f"invalid file id: {file_id}")
             return StatusPageGroup.serve_error(400)
 
         client = dbapi.MasterClient(db_path=config.db_path)
@@ -210,17 +209,6 @@ class FilePageGroup(PageGroup):
         }
         return reformat_serve(cls.renderer, result, context)
 
-    @staticmethod
-    def is_page_offset_valid(page_offset, page_size, items) -> bool:
-        return items - (page_offset + page_size) > 0
-
-    @staticmethod
-    def is_page_valid(page, page_size, items) -> bool:
-        """
-        page    ~ The page #, from 1 to infinity
-        """
-        return FilePageGroup.is_page_offset_valid((page - 1) * page_size, page_size, items)
-
     @classmethod
     def serve_raw_file(cls, request: Dict[str, Any]) -> ServeResponse:
         file_id = request.get('GET').get('id')
@@ -229,7 +217,7 @@ class FilePageGroup(PageGroup):
         if len(results) == 0:
             return StatusPageGroup.serve_error(404)
         else:
-            return serve(results[0]['path'])
+            return serve(results[0]['path'], range=request.get("range", "bytes=0-"))
 
     @classmethod
     def serve_raw_page(cls, request: Dict[str, Any]) -> ServeResponse:

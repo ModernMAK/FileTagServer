@@ -1,4 +1,4 @@
-from typing import List, Any, Dict, Union
+from typing import List, Any, Dict, Union, Callable
 
 from src import config
 from src.database_api import database_search
@@ -35,14 +35,22 @@ class ApiPageGroup(PageGroup):
         cls._add_route(routing.ApiPage.get_file_list("([A-Za-z0-9]*)"), cls.get_file_list, methods=['GET'])
 
     @classmethod
-    def get_file_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        results = cls.get_file_list_internal(**request['GET'])
-        results = {'files': results}
+    def serve_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
         format = format.lower()
         allowed_formats = ['json']
-
         if format in allowed_formats:
-            return results
+            return result
+
+    @classmethod
+    def quick_serve_result(cls, request: LiteSpeedRequest, format: str,
+                           func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
+        results = func(**request['GET'])
+        results = {'result': results}
+        return cls.serve_result(results, format)
+
+    @classmethod
+    def get_file_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+        return cls.quick_serve_result(request, format, cls.get_file_list_internal)
 
     @classmethod
     def get_file_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> \
@@ -54,6 +62,11 @@ class ApiPageGroup(PageGroup):
         # this would have been really helpful to raise 404 for invalid pages
         # but i decided the api should just return an empty list instead, as 404 implies that the url is invalid
         # still, the above is a great idea
+
+        page = int(page)
+        size = int(size)
+        if search is not None:
+            search = str(search)
 
         display_local_path = True
         display_remote_path = True
@@ -81,12 +94,12 @@ class ApiPageGroup(PageGroup):
         # Fetch all rows that match a file
         # This gets a lookup table; file_id -> many tag_ids
         file_tag_lookup = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.file_id, files=unique_ids)
-        # This gets a list; which we know is a unique set
+        # This gets a list; which we know is a unique set; hacky but that's what this does
         unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=unique_ids).keys()
         # Fetch tag lookup from unique_tags
         tag_lookup = cls.api.tag.fetch_lookup(ids=unique_tags)
 
-        # Add Tag Info
+        # Add Tag Info & Fix url
         for file in files:
             # Create new tags field
             tags = []
@@ -107,3 +120,42 @@ class ApiPageGroup(PageGroup):
                 file['url'] = routing.full_path(partial_url)
 
         return files
+
+    @classmethod
+    def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+        return cls.quick_serve_result(request, format, cls.get_tag_list_internal)
+
+    @classmethod
+    def get_tag_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> List[Dict[str, Any]]:
+        page = int(page)
+        size = int(size)
+
+        # TODO support search
+        # if search is not None:
+        #     search = str(search)
+
+        query = SqliteQueryBuidler()
+        # TODO support search
+        # if search is not None:
+        #     search_parts = search.split(" ")
+        #     groups = database_search.create_simple_search_groups(search_parts)
+        #     raw_query = database_search.create_query_from_search_groups(groups)
+        #     search_query = query \
+        #         .Raw(raw_query) \
+        #         .Limit(size) \
+        #         .Offset(page * size) \
+        #         .flush()
+        #
+        #     ids = cls.api._fetch_all_mapped(search_query, [FileTable.id])
+        #     files = cls.api.file.fetch(ids=ids)
+        # else:
+        tags = cls.api.tag.fetch(limit=size, offset=page * size)
+
+        # Dont; for redundancy sake
+        # # Add Tag Info & Fix url
+        # for tag in tags:
+        #     # Create new url field
+        #     partial_url = routing.TagPage.get_view_tag(tag['id'])
+        #     tag['url'] = routing.full_path(partial_url)
+
+        return tags

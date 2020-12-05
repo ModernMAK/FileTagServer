@@ -36,4 +36,6 @@ def get_navbar_context(active: Union[str, List[str]] = None) -> List[Dict[str, A
         dropdown_helper("Upload",
                         [link_helper(routing.UploadPage.add_file, "Path"),
                          link_helper(routing.UploadPage.upload_file, "File")]),
+        dropdown_helper("Api",
+                        [link_helper(routing.ApiPage.get_file_list(), "File")])
     ]
