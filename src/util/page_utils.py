@@ -4,7 +4,7 @@ from typing import Dict, Tuple, Any, Callable
 
 def escape_js_string(input: str) -> str:
     input = input.replace('/', '//')
-    input = input.replace("'", '/')
+    input = input.replace("'", "/'")
     input = input.replace('"', '/"')
     return input
 

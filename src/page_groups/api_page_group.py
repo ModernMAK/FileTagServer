@@ -100,6 +100,13 @@ class ApiPageGroup(PageGroup):
         tag_lookup = cls.api.tag.fetch_lookup(ids=unique_tags)
 
         # Add Tag Info & Fix url
+        for tag_id in tag_lookup:
+            tag = tag_lookup[tag_id]
+            # Create new url field
+            partial_url = routing.TagPage.get_view_tag(tag['id'])
+            tag['page'] = routing.full_path(partial_url)
+
+        # Add Tag Info & Fix url
         for file in files:
             # Create new tags field
             tags = []

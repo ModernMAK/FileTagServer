@@ -1,4 +1,5 @@
 import sqlite3
+from typing import List, Union, Tuple, Set
 
 
 class Conwrapper():
@@ -35,9 +36,9 @@ def sanitize(data: Union[object, List[object], Tuple[object]]) -> Union[str, Lis
 
 
 def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool = False) -> str:
-    if isinstance(data, Set):
+    if isinstance(data, set):
         data = list(data)
-    if isinstance(data, (List, Tuple)):
+    if isinstance(data, (list, tuple)):
         temp = []  # in the case of tuples, we cant assign back to data, so we use temp instead
         for i in range(len(data)):
             if skip_sanitize:
@@ -54,7 +55,7 @@ def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool =
 
 def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
     result = []
-    if isinstance(values, (List, Tuple)):
+    if isinstance(values, (list, tuple)):
         for i in range(len(values)):
             result.append(create_entry_string(values[i]))
     else:
