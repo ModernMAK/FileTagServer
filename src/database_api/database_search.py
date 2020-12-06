@@ -1,9 +1,9 @@
 # Convert String to Boolean Search
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import src.util.db_util as DbUtil
 # Google uses - for NOT and OR for or, AND is probably inferred since i didnt see anything
-from src.database_api.clients import FileClient, FileTagMapClient, TagClient, FileTable, TagTable, FileTagMapTable
+from src.database_api.clients import TagClient, FileTable, TagTable, FileTagMapTable
 
 SEARCH_NOT = '-'
 SEARCH_AND = ''
@@ -78,7 +78,6 @@ class SqliteQueryBuidler:
         self.parts.append(part)
         return self
 
-
     def Limit(self, limit):
         part = f"LIMIT {limit}"
         self.parts.append(part)
@@ -86,6 +85,23 @@ class SqliteQueryBuidler:
 
     def Offset(self, offset):
         part = f"OFFSET {offset}"
+        self.parts.append(part)
+        return self
+
+    def OrderBy(self, *columns: Union[str, Tuple[str, bool]]):
+        sub_parts = []
+        for col in columns:
+            p: str
+            if isinstance(col, tuple):
+                if col[1]:
+                    p = f"{col[0]} ASC"
+                else:
+                    p = f"{col[0]} DESC"
+            else:
+                p = col
+            sub_parts.append(p)
+
+        part = f"ORDER BY {', '.join(sub_parts)}"
         self.parts.append(part)
         return self
 
@@ -125,30 +141,30 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
     if ors is not None and len(ors) > 0:
         part = query \
             .Raw(select_query) \
-            .Where(TagClient.name_column_qualified())\
+            .Where(TagClient.name_column_qualified()) \
             .In(DbUtil.create_entry_string(ors))
         parts.append(part)
         # f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
     if nots is not None and len(nots) > 0:
-        part = query\
-            .Raw(select_query)\
-            .Where(TagClient.name_column_qualified())\
-            .Not()\
+        part = query \
+            .Raw(select_query) \
+            .Where(TagClient.name_column_qualified()) \
+            .Not() \
             .In(DbUtil.create_entry_string(nots))
 
         # part = f"{select_query} EXCEPT {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
         parts.append(part)
     if ands is not None and len(ands) > 0:
         for single_and in ands:
-            part = query.\
-                Raw(select_query).\
-                Where(f"{TagTable.name} = {DbUtil.sanitize(single_and)}").\
+            part = query. \
+                Raw(select_query). \
+                Where(f"{TagTable.name} = {DbUtil.sanitize(single_and)}"). \
                 flush()
             # part = f"{select_query} where tag.name = {DbUtil.sanitize(single_and)}"
             parts.append(part)
 
     # Merge parts
     query.Raw(parts[0])
-    for part in range(1,len(parts)):
-       query.Intersect(part)
+    for part in range(1, len(parts)):
+        query.Intersect(part)
     return query.flush()

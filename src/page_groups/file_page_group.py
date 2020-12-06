@@ -6,10 +6,10 @@ from pystache import Renderer
 import src.database_api.clients  as dbapi
 from src import config
 from src.page_groups import pathing, routing
+from src.page_groups.api_page_group import ApiPageGroup
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.page_groups.shared_page_util import get_navbar_context
 from src.page_groups.status_code_page_group import StatusPageGroup
-from src.util.collection_util import get_unique_values_on_key
 from src.util.page_utils import reformat_serve
 
 
@@ -53,80 +53,49 @@ class FilePageGroup(PageGroup):
     #########
     @classmethod
     def view_as_list(cls, request: Dict[str, Any]) -> ServeResponse:
-        print("file page list")
-        page = int(request.get('GET').get('page', 1))
+        FIRST_PAGE = 0
+        GET = request['GET']
+        page = int(GET.get('page', 1)) - 1  # Assume page is [1,Infinity), map to [0,Infinity)
         client = dbapi.MasterClient(db_path=config.db_path)
-        page_size = 50
-        search_args = {}
+        PAGE_SIZE = 50
 
-        # Count files
-        file_count = client.file.count(**search_args)
-        # Determine if page is valid
-        if not cls.is_page_valid(page, page_size, file_count) and page != 1:
-            return StatusPageGroup.serve_error(404)
+        # # Determine if page is valid
+        # if not PaginationUtil.is_page_valid(page, page_size, file_count) and page != FIRST_PAGE:
+        #     return StatusPageGroup.serve_error(404)
 
-        # Fetch results for page
-        files = client.file.fetch(
-            **search_args,
-            limit=page_size,
-            offset=(page - 1) * page_size,
-        )
-        # grab unique ids
-        unique_ids = get_unique_values_on_key(files, 'id')
-        # fetch file to tag lookup
-        file_tags = client.map.fetch_lookup_groups(key='file_id', files=unique_ids)
-        # fetch unique tags
-        unique_tag_ids = set()
-        for tagged_file in file_tags.values():
-            for pair in tagged_file:
-                unique_tag_ids.add(pair['tag_id'])
-        # fetch tag lookup
-        tag_lookup = client.tag.fetch_lookup(ids=unique_tag_ids)
+        file_list = ApiPageGroup.get_file_list_internal(page=page, size=PAGE_SIZE, search=GET.get("search", None))
 
-        # Reformat results
-        formatted_tag_info_lookup = {}
-        for id in unique_tag_ids:
-            pair = tag_lookup[id]
-            formatted_tag_info_lookup[id] = {
-                'id': pair['id'],
-                'name': pair['name'],
-                'description': pair['description'],
-                'count': pair['count'],
-                'page_path': routing.TagPage.get_view_tag(pair['id'])
-            }
-        formatted_tag_info = [v for v in formatted_tag_info_lookup.values()]
+        # Get unique tags
+        unique_tags = {}
+        for file in file_list:
+            for tag in file['tags']:
+                if tag['id'] not in unique_tags:
+                    unique_tags[tag['id']] = tag
+        # Convert to list & Sort
+        tag_list = [v for v in unique_tags.values()]
+        tag_list.sort(key=lambda x: (-x['count'], x['name']))
 
-        formatted_tag_info.sort(key=lambda x: (-x['count'], x['name']))
+        for file in file_list:
+            file['tags'].sort(key=lambda x: x['name'])  # Sort tags by name
 
-        formatted_file_info = []
-        for file in files:
-            print(file)
-            f_id = file['id']
-            my_tags = []
-            for pair in file_tags.get(f_id, []):
-                tag_id = pair['tag_id']
-                my_tags.append(formatted_tag_info_lookup[tag_id])
-            my_tags.sort(key=lambda x: x['name'])
+            # info = {
+            #     'id': file['id'],
+            #     'path': file['path'],
+            #     'mime': file['mime'],
+            #     'name': file['name'],
+            #     'description': file['description'],
+            #     'tags': my_tags,
+            #     'page_path': routing.FilePage.get_view_file(file['id']),
+            #     'raw_file_path': routing.FilePage.get_serve_file_raw(file['id'])
+            # }
+            # formatted_file_info.append(info)
 
-            info = {
-                'id': file['id'],
-                'path': file['path'],
-                'mime': file['mime'],
-                'name': file['name'],
-                'description': file['description'],
-                'tags': my_tags,
-                'page_path': routing.FilePage.get_view_file(file['id']),
-                'raw_file_path': routing.FilePage.get_serve_file_raw(file['id'])
-            }
-            formatted_file_info.append(info)
-
-        file = pathing.Static.get_html("file/list.html")
-        print(file)
-        result = serve(file)
+        serve_file = pathing.Static.get_html("file/list.html")
+        result = serve(serve_file)
         context = {
             'page_title': "Files",
-            'results': formatted_file_info,
-            'tags': formatted_tag_info,
+            'results': file_list,
+            'tags': tag_list,
             'navbar': get_navbar_context(active=routing.FilePage.root),
             'subnavbar': {'list': 'active'}
         }

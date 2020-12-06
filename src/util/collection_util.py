@@ -1,4 +1,3 @@
-from typing import List, Tuple, Any, Union, Dict, Set, Callable, Iterable
 
 
 def list_tuple_to_list(values: List[Tuple[Any]]) -> List[Any]:

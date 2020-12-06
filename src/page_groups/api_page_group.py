@@ -2,12 +2,12 @@ from typing import List, Any, Dict, Union, Callable
 
 from src import config
 from src.database_api import database_search
-from src.database_api.clients import MasterClient, FileTable, FileTagMapTable
+from src.database_api.clients import MasterClient, FileTable, FileTagMapTable, TagTable
 from src.database_api.database_search import SqliteQueryBuidler
 from src.page_groups import routing
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.util.collection_util import get_unique_values_on_key
-from src.util.typing import LiteSpeedRequest
+from src.util.mytyping import LiteSpeedRequest
 
 FileData = Dict[str, Any]
 TagData = Dict[str, Any]
@@ -37,7 +37,7 @@ class ApiPageGroup(PageGroup):
     @classmethod
     def serve_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
         format = format.lower()
-        allowed_formats = ['json']
+        allowed_formats = ['json']  # we only support json right now (Litespeed does natively)
         if format in allowed_formats:
             return result
 
@@ -119,6 +119,9 @@ class ApiPageGroup(PageGroup):
                 partial_url = routing.FilePage.get_serve_file_raw(file['id'])
                 file['url'] = routing.full_path(partial_url)
 
+            # a link to the page for this post
+            file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
+
         return files
 
     @classmethod
@@ -151,11 +154,23 @@ class ApiPageGroup(PageGroup):
         # else:
         tags = cls.api.tag.fetch(limit=size, offset=page * size)
 
-        # Dont; for redundancy sake
-        # # Add Tag Info & Fix url
-        # for tag in tags:
-        #     # Create new url field
-        #     partial_url = routing.TagPage.get_view_tag(tag['id'])
-        #     tag['url'] = routing.full_path(partial_url)
+        # Add Tag Info & Fix url
+        for tag in tags:
+            # Create new url field
+            partial_url = routing.TagPage.get_view_tag(tag['id'])
+            tag['page'] = routing.full_path(partial_url)
 
         return tags
+
+    @classmethod
+    def get_tag_autocorrect(cls, request: LiteSpeedRequest):
+        return cls.quick_serve_result(request, "json", cls.get_tag_autocorrect_internal)
+
+    @classmethod
+    def get_tag_autocorrect_internal(cls, tag: str, **kwargs):
+        query = SqliteQueryBuidler()
+        query \
+            .Select(TagTable.name_qualified, TagTable.count_qualified) \
+            .From(TagTable.table) \
+            .Where(f"{TagTable.name_qualified} LIKE '{tag}%'") \
+            .OrderBy((TagTable.count_qualified, False))
