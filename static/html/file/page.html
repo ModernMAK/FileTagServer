@@ -35,21 +35,18 @@
                             {{#image}}
                             <img src="{{url}}" alt="{{description}}" class="img-fluid card-img">
                             {{/image}}
-                            {{^image}}
                             {{#video}}
                             <video controls loop class="w-100">
                                 <source src="{{url}}" type="{{mime}}">
                             </video>
                             {{/video}}
-                            {{^video}}
+                            {{#unsupported}}
                             <a href="{{url}}">Preview Not Supported</a>
-                            {{/video}}
-                            {{/image}}
+                            {{/unsupported}}
                             {{/preview}}
                             {{^preview}}
                             <a href="{{url}}">No Preview Given</a>
                             {{/preview}}
-
                         </div>
                     </div>
                     <ul class="list-group list-group-flush">
@@ -87,7 +84,7 @@
                                 </dd>
                                 <dt class="card-title">URL</dt>
                                 <dd class="card-text">
-                                    {{#url}}{{url}}{{/url}}
+                                    {{#url}}<a href="{{url}}">{{url}}</a>{{/url}}
                                     {{^url}}Not Specified{{/url}}
                                 </dd>
                             </dl>

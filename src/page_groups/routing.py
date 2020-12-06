@@ -23,9 +23,12 @@ def web_join(*args) -> str:
     return join(*args).replace('\\', '/')
 
 
-def full_path(path: str):
+def full_path(path: str, protocol:str=None):
+    if protocol is None:
+        protocol="http"
+
     if path[0] == WebRoot.root:
-        return WebRoot.domain + path
+        return f"{protocol}://" + WebRoot.domain + path
     else:
         return path
 

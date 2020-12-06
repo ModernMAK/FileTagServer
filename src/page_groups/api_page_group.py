@@ -132,6 +132,46 @@ class ApiPageGroup(PageGroup):
         return files
 
     @classmethod
+    def get_file_internal(cls, file_id: int):
+        display_local_path = True
+        display_remote_path = True
+
+        file = cls.api.file.fetch(ids=[file_id])[0]
+
+        # Files should now be a list of dictionaries
+
+        # This gets a list; which we know is a unique set; hacky but that's what this does
+        unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[file_id]).keys()
+        # Fetch tag lookup from unique_tags
+        tags = cls.api.tag.fetch(ids=unique_tags)
+
+        # Add Tag Info & Fix url
+        for tag in tags:
+            # Create new url field
+            partial_url = routing.TagPage.get_view_tag(tag['id'])
+            tag['page'] = routing.full_path(partial_url)
+
+        # Add Tag Info & Fix url
+        # Create new tags field
+        file['tags'] = tags
+
+        # Cleanup 'path' field if we are hiding it
+        # (this would reveal the file path of the user, among other things)
+        # This is okay for personal use, but would be bad in most other situations
+        if not display_local_path:
+            del file[FileTable.path]
+
+        # this should be a url to the asset
+        if display_remote_path:
+            partial_url = routing.FilePage.get_serve_file_raw(file['id'])
+            file['url'] = routing.full_path(partial_url)
+
+            # a link to the page for this post
+        file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
+
+        return file
+
+    @classmethod
     def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
         return cls.quick_serve_result(request, format, cls.get_tag_list_internal)
 

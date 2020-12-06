@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from litespeed import serve
 from pystache import Renderer
@@ -45,14 +45,14 @@ class FilePageGroup(PageGroup):
         # return cls.view_as_list(request)
 
     @staticmethod
-    def append_file_previews(file_list: List[Dict[Any, Any]]):
-        for file in file_list:
-            mime: str = file['mime']
-            mime_parts = mime.split("/")
+    def append_file_previews(file: Dict[Any, Any]):
+        mime: str = file['mime']
+        mime_parts = mime.split("/")
 
-            file['preview'] = {mime_parts[0]: None}  # Specify key only
+        file['preview'] = {mime_parts[0]: file}  # specify preview as type:self
 
-    #########
+        #########
+
     # Displays the files in the file_page database as a list
     # This is primarily intended to be used to edit multiple file's tags at once
     # GET SUPPORT:
@@ -98,8 +98,6 @@ class FilePageGroup(PageGroup):
             # }
             # formatted_file_info.append(info)
 
-        FilePageGroup.append_file_previews(file_list)
-
         serve_file = pathing.Static.get_html("file/list.html")
         result = serve(serve_file)
         context = {
@@ -120,69 +118,74 @@ class FilePageGroup(PageGroup):
     #########
     @classmethod
     def view_file(cls, request: Dict[str, Any]) -> ServeResponse:
-        file_id = request['GET'].get('id')
-        try:
-            file_id = int(file_id)
-        except (ValueError, TypeError):
-            print(f"invalid file id: {file_id}")
-            return StatusPageGroup.serve_error(400)
+        file = ApiPageGroup.get_file_internal(request['GET'].get('id'))
+        #
+        # file_id = request['GET'].get('id')
+        # try:
+        #     file_id = int(file_id)
+        # except (ValueError, TypeError):
+        #     print(f"invalid file id: {file_id}")
+        #     return StatusPageGroup.serve_error(400)
 
-        client = dbapi.MasterClient(db_path=config.db_path)
-
-        # Fetch file info
-        files = client.file.fetch(ids=[file_id])
-        if len(files) != 1:
-            print("bad results")
-            return StatusPageGroup.serve_error(404)
-        file = files[0]
+        # client = dbapi.MasterClient(db_path=config.db_path)
+        #
+        # # Fetch file info
+        # files = client.file.fetch(ids=[file_id])
+        # if len(files) != 1:
+        #     print("bad results")
+        #     return StatusPageGroup.serve_error(404)
+        # file = files[0]
 
         # fetch file to tag lookup
-        file_tags = client.map.fetch_lookup_groups(key='file_id', files=[file_id])
+        # file_tags = client.map.fetch_lookup_groups(key='file_id', files=[file_id])
         # fetch unique tags
-        unique_tag_ids = set()
-        for tagged_file in file_tags.values():
-            for pair in tagged_file:
-                unique_tag_ids.add(pair['tag_id'])
-        # fetch tag lookup
-        tag_lookup = client.tag.fetch_lookup(ids=unique_tag_ids)
+        # unique_tag_ids = set()
+        # for tagged_file in file_tags.values():
+        #     for pair in tagged_file:
+        #         unique_tag_ids.add(pair['tag_id'])
+        # # fetch tag lookup
+        # tag_lookup = client.tag.fetch_lookup(ids=unique_tag_ids)
 
         # Reformat results
-        formatted_tag_info_lookup = {}
-        for id in unique_tag_ids:
-            pair = tag_lookup[id]
-            formatted_tag_info_lookup[id] = {
-                'id': pair['id'],
-                'name': pair['name'],
-                'description': pair['description'],
-                'count': pair['count'],
-                'page_path': routing.TagPage.get_view_tag(pair['id'])
-            }
-        formatted_tag_info = [v for v in formatted_tag_info_lookup.values()]
+        # formatted_tag_info_lookup = {}
+        # for id in unique_tag_ids:
+        #     pair = tag_lookup[id]
+        #     formatted_tag_info_lookup[id] = {
+        #         'id': pair['id'],
+        #         'name': pair['name'],
+        #         'description': pair['description'],
+        #         'count': pair['count'],
+        #         'page_path': routing.TagPage.get_view_tag(pair['id'])
+        #     }
 
-        formatted_tag_info.sort(key=lambda x: (-x['count'], x['name']))
+        # formatted_tag_info = [v for v in formatted_tag_info_lookup.values()]
+        #
+        # formatted_tag_info.sort(key=lambda x: (-x['count'], x['name']))
+        file['tags'].sort(key=lambda x: (-x['count'], x['name']))
+        # my_tags = []
+        # for pair in file_tags.get(file_id, []):
+        #     tag_id = pair['tag_id']
+        #     my_tags.append(formatted_tag_info_lookup[tag_id])
+        # my_tags.sort(key=lambda x: x['name'])
+        #
+        # formatted_file_info = {
+        #     'id': file['id'],
+        #     'file_path': file['path'],
+        #     'mime': file['mime'],
+        #     'name': file['name'],
+        #     'description': file['description'],
+        #     'tags': my_tags,
+        #     'raw_file_path': routing.FilePage.get_serve_file_raw(file['id']),
+        #     'page_path': routing.FilePage.get_view_file(file['id'])
+        # }
 
-        my_tags = []
-        for pair in file_tags.get(file_id, []):
-            tag_id = pair['tag_id']
-            my_tags.append(formatted_tag_info_lookup[tag_id])
-        my_tags.sort(key=lambda x: x['name'])
-
-        formatted_file_info = {
-            'id': file['id'],
-            'file_path': file['path'],
-            'mime': file['mime'],
-            'name': file['name'],
-            'description': file['description'],
-            'tags': my_tags,
-            'raw_file_path': routing.FilePage.get_serve_file_raw(file['id']),
-            'page_path': routing.FilePage.get_view_file(file['id'])
-        }
+        cls.append_file_previews(file)
 
         serve_file = pathing.Static.get_html("file/page.html")
         result = serve(serve_file)
         context = {
-            'result': formatted_file_info,
-            'tags': formatted_tag_info,
+            'result': file,
+            'tags': file['tags'],
             'navbar': get_navbar_context(),
             'subnavbar': {}
         }
