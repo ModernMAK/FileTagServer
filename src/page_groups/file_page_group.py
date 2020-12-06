@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from litespeed import serve
 from pystache import Renderer
@@ -43,6 +43,14 @@ class FilePageGroup(PageGroup):
         print("file page index")
         return StatusPageGroup.serve_redirect(301, routing.FilePage.index_list)
         # return cls.view_as_list(request)
+
+    @staticmethod
+    def append_file_previews(file_list: List[Dict[Any, Any]]):
+        for file in file_list:
+            mime: str = file['mime']
+            mime_parts = mime.split("/")
+
+            file['preview'] = {mime_parts[0]: None}  # Specify key only
 
     #########
     # Displays the files in the file_page database as a list
@@ -89,6 +97,8 @@ class FilePageGroup(PageGroup):
             #     'raw_file_path': routing.FilePage.get_serve_file_raw(file['id'])
             # }
             # formatted_file_info.append(info)
+
+        FilePageGroup.append_file_previews(file_list)
 
         serve_file = pathing.Static.get_html("file/list.html")
         result = serve(serve_file)
