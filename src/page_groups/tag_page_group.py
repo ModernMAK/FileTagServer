@@ -1,16 +1,16 @@
 from math import ceil
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from litespeed import serve, route
 from pystache import Renderer
 
+import src.database_api.clients as dbapi
 from src import config
 from src.page_groups import routing, pathing
-import src.database_api.clients as dbapi
-from src.page_groups.status_code_page_group import StatusPageGroup
-from src.util.page_utils import reformat_serve
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.page_groups.shared_page_util import get_navbar_context
+from src.page_groups.status_code_page_group import StatusPageGroup
+from src.util.page_utils import reformat_serve
 
 
 class TagPageGroup(PageGroup):
@@ -18,20 +18,10 @@ class TagPageGroup(PageGroup):
 
     @classmethod
     def add_routes(cls):
-        route(routing.TagPage.root,
-              function=cls.as_route_func(cls.index),
-              no_end_slash=True,
+        route(routing.TagPage.root, function=cls.as_route_func(cls.index), no_end_slash=True, methods=['GET'])
+        route(routing.TagPage.index_list, function=cls.as_route_func(cls.view_as_list), no_end_slash=True,
               methods=['GET'])
-
-        route(routing.TagPage.index_list,
-              function=cls.as_route_func(cls.view_as_list),
-              no_end_slash=True,
-              methods=['GET'])
-
-        route(routing.TagPage.view_tag,
-              function=cls.as_route_func(cls.view_tag),
-              no_end_slash=True,
-              methods=['GET'])
+        route(routing.TagPage.view_tag, function=cls.as_route_func(cls.view_tag), no_end_slash=True, methods=['GET'])
 
     @classmethod
     def initialize(cls, **kwargs):

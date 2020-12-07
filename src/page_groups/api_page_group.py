@@ -13,15 +13,6 @@ FileData = Dict[str, Any]
 TagData = Dict[str, Any]
 
 
-class PaginationUtil:
-    @staticmethod
-    def is_page_offset_valid(offset: int, size: int, count: int):
-        return count - (offset + size) > 0
-
-    @staticmethod
-    def is_page_valid(page: int, size: int, count: int):
-        return PaginationUtil.is_page_offset_valid(page * size, size, count)
-
 
 class ApiPageGroup(PageGroup):
     api: MasterClient = None
@@ -35,22 +26,60 @@ class ApiPageGroup(PageGroup):
         cls._add_route(routing.ApiPage.get_file_list("([A-Za-z0-9]*)"), cls.get_file_list, methods=['GET'])
 
     @classmethod
-    def serve_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+    def serve_api_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
         format = format.lower()
         allowed_formats = ['json']  # we only support json right now (Litespeed does natively)
         if format in allowed_formats:
             return result
 
     @classmethod
-    def quick_serve_result(cls, request: LiteSpeedRequest, format: str,
-                           func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
+    def serve_api_request(cls, request: LiteSpeedRequest, format: str,
+                          func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
         results = func(**request['GET'])
         results = {'result': results}
-        return cls.serve_result(results, format)
+        return cls.serve_api_result(results, format)
+
+    @classmethod
+    def reformat_tag_info(cls, tag_list: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
+        def reformat(tag: Dict[Any, Any]):
+            partial_url = routing.TagPage.get_view_tag(tag['id'])
+            tag['page'] = routing.full_path(partial_url)
+
+        if not isinstance(tag_list, dict):
+            for tag in tag_list:
+                reformat(tag)
+        else:
+            reformat(tag_list)
+
+    @classmethod
+    def reformat_file_info(cls, tag_list: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
+        display_local_path = True
+        display_remote_path = True
+
+        def reformat(file: Dict[Any, Any]):
+            # Cleanup 'path' field if we are hiding it
+            # (this would reveal the file path of the user, among other things)
+            # This is okay for personal use, but would be bad in most other situations
+            if not display_local_path:
+                del file[FileTable.path]
+
+            # this should be a url to the asset
+            if display_remote_path:
+                partial_url = routing.FilePage.get_serve_file_raw(file['id'])
+                file['url'] = routing.full_path(partial_url)
+
+            # a link to the page for this post
+            file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
+
+        if isinstance(tag_list, list):
+            for tag in tag_list:
+                reformat(tag)
+        else:
+            reformat(tag_list)
 
     @classmethod
     def get_file_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        return cls.quick_serve_result(request, format, cls.get_file_list_internal)
+        return cls.serve_api_request(request, format, cls.get_file_list_internal)
 
     @classmethod
     def get_file_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> \
@@ -67,9 +96,6 @@ class ApiPageGroup(PageGroup):
         size = int(size)
         if search is not None:
             search = str(search)
-
-        display_local_path = True
-        display_remote_path = True
 
         query = SqliteQueryBuidler()
         if search is not None:
@@ -100,13 +126,9 @@ class ApiPageGroup(PageGroup):
         tag_lookup = cls.api.tag.fetch_lookup(ids=unique_tags)
 
         # Add Tag Info & Fix url
-        for tag_id in tag_lookup:
-            tag = tag_lookup[tag_id]
-            # Create new url field
-            partial_url = routing.TagPage.get_view_tag(tag['id'])
-            tag['page'] = routing.full_path(partial_url)
+        cls.reformat_tag_info(tag_lookup.values())
 
-        # Add Tag Info & Fix url
+        # Match Tags to files & Fix url
         for file in files:
             # Create new tags field
             tags = []
@@ -115,65 +137,58 @@ class ApiPageGroup(PageGroup):
                 tag_id = map_info[FileTagMapTable.tag_id]
                 tags.append(tag_lookup[tag_id])
 
-            # Cleanup 'path' field if we are hiding it
-            # (this would reveal the file path of the user, among other things)
-            # This is okay for personal use, but would be bad in most other situations
-            if not display_local_path:
-                del file[FileTable.path]
-
-            # this should be a url to the asset
-            if display_remote_path:
-                partial_url = routing.FilePage.get_serve_file_raw(file['id'])
-                file['url'] = routing.full_path(partial_url)
-
-            # a link to the page for this post
-            file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
+        cls.reformat_file_info(files)
 
         return files
 
     @classmethod
-    def get_file_internal(cls, file_id: int):
-        display_local_path = True
-        display_remote_path = True
+    def get_file(cls, request: Dict, format: str):
+        cls.serve_api_request(request, format, cls.get_file_internal)
 
-        file = cls.api.file.fetch(ids=[file_id])[0]
+    @classmethod
+    def get_file_internal(cls, id: int, **kwargs):
+
+        results = cls.api.file.fetch(ids=[id])
+
+        if len(results) == 0:
+            raise NotImplementedError
+
+        file = results[0]
 
         # Files should now be a list of dictionaries
-
         # This gets a list; which we know is a unique set; hacky but that's what this does
-        unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[file_id]).keys()
+        unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[id]).keys()
         # Fetch tag lookup from unique_tags
         tags = cls.api.tag.fetch(ids=unique_tags)
 
         # Add Tag Info & Fix url
-        for tag in tags:
-            # Create new url field
-            partial_url = routing.TagPage.get_view_tag(tag['id'])
-            tag['page'] = routing.full_path(partial_url)
+        cls.reformat_tag_info(tags)
 
         # Add Tag Info & Fix url
         # Create new tags field
         file['tags'] = tags
 
-        # Cleanup 'path' field if we are hiding it
-        # (this would reveal the file path of the user, among other things)
-        # This is okay for personal use, but would be bad in most other situations
-        if not display_local_path:
-            del file[FileTable.path]
-
-        # this should be a url to the asset
-        if display_remote_path:
-            partial_url = routing.FilePage.get_serve_file_raw(file['id'])
-            file['url'] = routing.full_path(partial_url)
-
-            # a link to the page for this post
-        file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
+        cls.reformat_file_info(file)
 
         return file
 
     @classmethod
+    def get_file_count(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+        return cls.serve_api_request(request, format, cls.get_file_count_internal)
+
+    @classmethod
+    def get_file_count_internal(cls, search: str = None, **kwargs) -> int:
+        if search is not None:
+            search_parts = search.split(" ")
+            groups = database_search.create_simple_search_groups(search_parts)
+            raw_query = database_search.create_query_from_search_groups(groups)
+            return cls.api._count(raw_query)
+        else:
+            return cls.api.file.count()
+
+    @classmethod
     def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        return cls.quick_serve_result(request, format, cls.get_tag_list_internal)
+        return cls.serve_api_request(request, format, cls.get_tag_list_internal)
 
     @classmethod
     def get_tag_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> List[Dict[str, Any]]:
@@ -181,37 +196,15 @@ class ApiPageGroup(PageGroup):
         size = int(size)
 
         # TODO support search
-        # if search is not None:
-        #     search = str(search)
-
-        query = SqliteQueryBuidler()
-        # TODO support search
-        # if search is not None:
-        #     search_parts = search.split(" ")
-        #     groups = database_search.create_simple_search_groups(search_parts)
-        #     raw_query = database_search.create_query_from_search_groups(groups)
-        #     search_query = query \
-        #         .Raw(raw_query) \
-        #         .Limit(size) \
-        #         .Offset(page * size) \
-        #         .flush()
-        #
-        #     ids = cls.api._fetch_all_mapped(search_query, [FileTable.id])
-        #     files = cls.api.file.fetch(ids=ids)
-        # else:
         tags = cls.api.tag.fetch(limit=size, offset=page * size)
 
         # Add Tag Info & Fix url
-        for tag in tags:
-            # Create new url field
-            partial_url = routing.TagPage.get_view_tag(tag['id'])
-            tag['page'] = routing.full_path(partial_url)
-
+        cls.reformat_tag_info(tags)
         return tags
 
     @classmethod
     def get_tag_autocorrect(cls, request: LiteSpeedRequest):
-        return cls.quick_serve_result(request, "json", cls.get_tag_autocorrect_internal)
+        return cls.serve_api_request(request, "json", cls.get_tag_autocorrect_internal)
 
     @classmethod
     def get_tag_autocorrect_internal(cls, tag: str, **kwargs):

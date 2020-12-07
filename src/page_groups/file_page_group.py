@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from functools import partial
+from typing import Dict, Any, Union, List
 
 from litespeed import serve
 from pystache import Renderer
@@ -7,6 +8,7 @@ import src.database_api.clients  as dbapi
 from src import config
 from src.page_groups import pathing, routing
 from src.page_groups.api_page_group import ApiPageGroup
+from src.page_groups.common import PaginationUtil
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.page_groups.shared_page_util import get_navbar_context
 from src.page_groups.status_code_page_group import StatusPageGroup
@@ -45,13 +47,15 @@ class FilePageGroup(PageGroup):
         # return cls.view_as_list(request)
 
     @staticmethod
-    def append_file_previews(file: Dict[Any, Any]):
-        mime: str = file['mime']
-        mime_parts = mime.split("/")
+    def append_file_previews(file_list: Union[List[Dict[Any, Any]], Dict[Any, Any]]):
+        if not isinstance(file_list, list):
+            file_list = [file_list]
+        for file in file_list:
+            mime: str = file['mime']
+            mime_parts = mime.split("/")
+            file['preview'] = {mime_parts[0]: None}  # Specify key only
 
-        file['preview'] = {mime_parts[0]: file}  # specify preview as type:self
-
-        #########
+    #########
 
     # Displays the files in the file_page database as a list
     # This is primarily intended to be used to edit multiple file's tags at once
@@ -64,14 +68,16 @@ class FilePageGroup(PageGroup):
         FIRST_PAGE = 0
         GET = request['GET']
         page = int(GET.get('page', 1)) - 1  # Assume page is [1,Infinity), map to [0,Infinity)
-        client = dbapi.MasterClient(db_path=config.db_path)
         PAGE_SIZE = 50
+        PAGE_NEIGHBORS = 4
 
+        search = GET.get("search", None)
+        total_pages = ApiPageGroup.get_file_count_internal(search=search)
         # # Determine if page is valid
         # if not PaginationUtil.is_page_valid(page, page_size, file_count) and page != FIRST_PAGE:
         #     return StatusPageGroup.serve_error(404)
 
-        file_list = ApiPageGroup.get_file_list_internal(page=page, size=PAGE_SIZE, search=GET.get("search", None))
+        file_list = ApiPageGroup.get_file_list_internal(page=page, size=PAGE_SIZE, search=search)
 
         # Get unique tags
         unique_tags = {}
@@ -86,26 +92,16 @@ class FilePageGroup(PageGroup):
         for file in file_list:
             file['tags'].sort(key=lambda x: x['name'])  # Sort tags by name
 
-            # info = {
-            #     'id': file['id'],
-            #     'path': file['path'],
-            #     'mime': file['mime'],
-            #     'name': file['name'],
-            #     'description': file['description'],
-            #     'tags': my_tags,
-            #     'page_path': routing.FilePage.get_view_file(file['id']),
-            #     'raw_file_path': routing.FilePage.get_serve_file_raw(file['id'])
-            # }
-            # formatted_file_info.append(info)
-
         serve_file = pathing.Static.get_html("file/list.html")
         result = serve(serve_file)
+        urlgen = partial(routing.FilePage.get_index_list)
         context = {
             'page_title': "Files",
             'results': file_list,
             'tags': tag_list,
             'navbar': get_navbar_context(active=routing.FilePage.root),
-            'subnavbar': {'list': 'active'}
+            'subnavbar': {'list': 'active'},
+            'pagination': PaginationUtil.get_pagination(page, total_pages, PAGE_NEIGHBORS, urlgen)
         }
         return reformat_serve(cls.renderer, result, context)
 
