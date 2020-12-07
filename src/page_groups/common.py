@@ -21,11 +21,11 @@ class PaginationUtil:
     @staticmethod
     def get_pagination(current_page: int, total_pages: int, page_neighbors: int, url_generator: Callable[[int], str]):
         # Pages - > Link/Plain -> [url, status, text]
-        JUMP_FIRST = "&laquo;"
-        JUMP_PREV = "&lsaquo;"
-        SKIP_AREA = "&hellip;"
-        JUMP_NEXT = "&rsaquo;"
-        JUMP_LAST = "&raquo;"
+        JUMP_FIRST = "«"
+        JUMP_PREV = "‹"
+        SKIP_AREA = "…"
+        JUMP_NEXT = "›"
+        JUMP_LAST = "»"
 
         parts = []
 
@@ -35,7 +35,7 @@ class PaginationUtil:
                 part['status'] = "disabled"
             parts.append({"link": part})
 
-        def create_plain(text, disable: bool = False, **kwargs):
+        def create_plain(text, disable: bool = True, **kwargs):
             part = {"text": text}
             if disable:
                 part['status'] = "disabled"
@@ -44,7 +44,6 @@ class PaginationUtil:
         def create_optional(text, url, use_link: bool, **kwargs):
             kwargs['text'] = text
             kwargs['url'] = url
-
             if use_link:
                 create_link(**kwargs)
             else:
@@ -58,7 +57,7 @@ class PaginationUtil:
             create_plain(SKIP_AREA)
 
         min_page = max(0, current_page - page_neighbors)
-        max_page = min(total_pages, current_page + page_neighbors)
+        max_page = min(total_pages - 1, current_page + page_neighbors)
 
         for i in range(min_page, max_page + 1):
             create_optional(i + 1, url_generator(i), use_link=i != current_page)

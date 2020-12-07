@@ -1,4 +1,3 @@
-from functools import partial
 from typing import Dict, Any, Union, List
 
 from litespeed import serve
@@ -72,7 +71,8 @@ class FilePageGroup(PageGroup):
         PAGE_NEIGHBORS = 4
 
         search = GET.get("search", None)
-        total_pages = ApiPageGroup.get_file_count_internal(search=search)
+        total_files = ApiPageGroup.get_file_count_internal(search=search)
+        total_pages = PaginationUtil.get_page_count(PAGE_SIZE, total_files)
         # # Determine if page is valid
         # if not PaginationUtil.is_page_valid(page, page_size, file_count) and page != FIRST_PAGE:
         #     return StatusPageGroup.serve_error(404)
@@ -94,14 +94,17 @@ class FilePageGroup(PageGroup):
 
         serve_file = pathing.Static.get_html("file/list.html")
         result = serve(serve_file)
-        urlgen = partial(routing.FilePage.get_index_list)
+
+        def pagination_url_gen(id: int):
+            return routing.FilePage.get_index_list(page=id + 1)
+
         context = {
             'page_title': "Files",
             'results': file_list,
             'tags': tag_list,
             'navbar': get_navbar_context(active=routing.FilePage.root),
             'subnavbar': {'list': 'active'},
-            'pagination': PaginationUtil.get_pagination(page, total_pages, PAGE_NEIGHBORS, urlgen)
+            'pagination': PaginationUtil.get_pagination(page, total_pages, PAGE_NEIGHBORS, pagination_url_gen)
         }
         return reformat_serve(cls.renderer, result, context)
 
