@@ -44,3 +44,9 @@ class StatusPageGroup:
                                context={'path': location},
                                headers={'Location': location},
                                send_code=True)
+    @classmethod
+    def serve_submit_redirect(cls, location: str) -> ServeResponse:
+        return cls.serve_error(303,
+                               context={'path': location},
+                               headers={'Location': location},
+                               send_code=True)

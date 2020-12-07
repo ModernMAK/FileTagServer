@@ -23,9 +23,9 @@ def web_join(*args) -> str:
     return join(*args).replace('\\', '/')
 
 
-def full_path(path: str, protocol:str=None):
+def full_path(path: str, protocol: str = None):
     if protocol is None:
-        protocol="http"
+        protocol = "http"
 
     if path[0] == WebRoot.root:
         return f"{protocol}://" + WebRoot.domain + path
@@ -64,6 +64,7 @@ class Static:
 class FilePage:
     root = web_join(WebRoot.root, "file")
     view_file = web_join(root, "view")
+    edit_file = web_join(root, "edit")
     index_list = web_join(root, "list")
     serve_file_raw = web_join(root, "raw")
     serve_page_raw = web_join(root, "rawpage")
@@ -84,6 +85,10 @@ class FilePage:
     @classmethod
     def get_serve_page_raw(cls, id: int):
         return append_get_args(cls.serve_page_raw, id=id)
+
+    @classmethod
+    def get_edit_file(cls, id: int):
+        return append_get_args(cls.edit_file, id=id)
 
 
 class ApiPage:

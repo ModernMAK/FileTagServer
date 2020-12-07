@@ -20,12 +20,21 @@ class FilePageGroup(PageGroup):
     @classmethod
     def add_routes(cls):
         get_only = ['GET']
+        post_only = ['POST']
+        # TODO move this to startup
         cls._add_route(routing.WebRoot.root, function=cls.index, methods=get_only)
+
         cls._add_route(routing.FilePage.root, function=cls.index, methods=get_only)
+
         cls._add_route(routing.FilePage.index_list, function=cls.view_as_list, methods=get_only)
+
         cls._add_route(routing.FilePage.view_file, function=cls.view_file, methods=get_only)
+
+        cls._add_route(routing.FilePage.edit_file, function=cls.handle_edit, methods=['GET', 'POST'])
+
         cls._add_route(routing.FilePage.serve_file_raw, function=cls.serve_raw_file, methods=get_only)
         cls._add_route(routing.FilePage.serve_page_raw, function=cls.serve_raw_page, methods=get_only)
+
         cls._add_route(routing.FilePage.slideshow, function=cls.serve_slideshow, methods=get_only)
 
     @classmethod
@@ -122,7 +131,9 @@ class FilePageGroup(PageGroup):
         file['tags'].sort(key=lambda x: (-x['count'], x['name']))
 
         cls.append_file_previews(file)
+        cls.specify_edit_page(file)
 
+        print(file)
         serve_file = pathing.Static.get_html("file/page.html")
         result = serve(serve_file)
         context = {
@@ -132,6 +143,66 @@ class FilePageGroup(PageGroup):
             'subnavbar': {}
         }
         return reformat_serve(cls.renderer, result, context)
+
+    @classmethod
+    def handle_edit(cls, request: Dict[str, Any]) -> ServeResponse:
+        method = request['REQUEST_METHOD']
+        if method == "POST":
+            return cls.view_file_edit_action(request)
+        elif method == "GET":
+            return cls.view_file_edit(request)
+        else:
+            return 405
+
+    @classmethod
+    def view_file_edit(cls, request: Dict[str, Any]) -> ServeResponse:
+        file = ApiPageGroup.get_file_internal(request['GET'].get('id'))
+        file['tags'].sort(key=lambda x: (x['name']))
+
+        cls.append_file_previews(file)
+        cls.specify_edit_page(file)
+        serve_file = pathing.Static.get_html("file/page_edit.html")
+        result = serve(serve_file)
+        print(file)
+        context = {
+            'result': file,
+            'tags': file['tags'],
+            'navbar': get_navbar_context(),
+            'subnavbar': {},
+            'form': {
+                'action': routing.FilePage.edit_file,
+                'id': file['id']
+            }
+        }
+        return reformat_serve(cls.renderer, result, context)
+
+    @classmethod
+    def view_file_edit_action(cls, request: Dict[str, Any]) -> ServeResponse:
+        print(request)
+        POST = request['POST']
+        file_id = POST['id']
+        tags: str = POST['tags']
+        tag_list = tags.splitlines()
+        tag_list = [tag.strip() for tag in tag_list]
+
+        missing_tags = ApiPageGroup.get_valid_tags(tag_list, True)
+        missing_tags_values = [(tag['name'], "") for tag in missing_tags]
+        if len(missing_tags) > 0:
+            ApiPageGroup.api.tag.insert(missing_tags_values)
+        tag_ids: List[Union[str, int]] = [tag['id'] for tag in ApiPageGroup.get_valid_tags(tag_list)]
+
+        update_args = {}
+
+        def try_add(names: List[str], source: Dict, dest: Dict):
+            for name in names:
+                if name in source:
+                    dest[name] = source[name]
+
+        try_add(['name', 'description'], POST, update_args)
+        update_args['tags'] = tag_ids
+
+        ApiPageGroup.update_file_info_internal(file_id, **update_args)
+        return StatusPageGroup.serve_submit_redirect(routing.FilePage.get_edit_file(id=file_id))
 
     @classmethod
     def serve_raw_file(cls, request: Dict[str, Any]) -> ServeResponse:
@@ -214,3 +285,7 @@ class FilePageGroup(PageGroup):
                 return reformat_serve(cls.renderer, s, ctx)
             else:
                 return StatusPageGroup.serve_error(404)
+
+    @classmethod
+    def specify_edit_page(cls, file):
+        file['edit_page'] = routing.full_path(routing.FilePage.get_edit_file(file['id']))

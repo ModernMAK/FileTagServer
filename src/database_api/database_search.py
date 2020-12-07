@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 import src.util.db_util as DbUtil
 # Google uses - for NOT and OR for or, AND is probably inferred since i didnt see anything
-from src.database_api.clients import TagClient, FileTable, TagTable, FileTagMapTable
+from src.database_api.clients import FileTable, TagTable, FileTagMapTable
 
 SEARCH_NOT = '-'
 SEARCH_AND = ''
@@ -105,6 +105,54 @@ class SqliteQueryBuidler:
         self.parts.append(part)
         return self
 
+    def Update(self, table):
+        part = f"UPDATE {table}"
+        self.parts.append(part)
+        return self
+
+    def Set(self, values: str):
+        part = f"SET {values}"
+        self.parts.append(part)
+        return self
+
+    def Insert(self):
+        part = "INSERT"
+        self.parts.append(part)
+        return self
+
+    def Or(self):
+        part = "OR"
+        self.parts.append(part)
+        return self
+
+    def Ignore(self):
+        part = "IGNORE"
+        self.parts.append(part)
+        return self
+
+    def Into(self, table: str):
+        part = f"INTO {table}"
+        self.parts.append(part)
+        return self
+
+    def Columns(self, *cols: str):
+        part = f"({', '.join(cols)})"
+        self.parts.append(part)
+        return self
+
+    def Values(self, *cols: Tuple):
+        subs = []
+        for col in cols:
+            subs.append(DbUtil.create_entry_string(col))
+        part = "VALUES"
+        merged = ", ".join(subs)
+        self.parts.append(f"{part} {merged}")
+        return self
+
+    def Delete(self):
+        self.parts.append(f"DELETE")
+        return self
+
 
 # Or / And / Not
 def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
@@ -141,14 +189,14 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
     if ors is not None and len(ors) > 0:
         part = query \
             .Raw(select_query) \
-            .Where(TagClient.name_column_qualified()) \
+            .Where(TagTable.name_qualified) \
             .In(DbUtil.create_entry_string(ors))
         parts.append(part)
         # f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
     if nots is not None and len(nots) > 0:
         part = query \
             .Raw(select_query) \
-            .Where(TagClient.name_column_qualified()) \
+            .Where(TagTable.name_qualified) \
             .Not() \
             .In(DbUtil.create_entry_string(nots))
 
@@ -158,7 +206,7 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
         for single_and in ands:
             part = query. \
                 Raw(select_query). \
-                Where(f"{TagTable.name} = {DbUtil.sanitize(single_and)}"). \
+                Where(f"{TagTable.name_qualified} = {DbUtil.sanitize(single_and)}"). \
                 flush()
             # part = f"{select_query} where tag.name = {DbUtil.sanitize(single_and)}"
             parts.append(part)

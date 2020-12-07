@@ -20,7 +20,14 @@
                 </h6>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{edit_path}}">Edit</a>
+                        {{#result}}
+                        {{#edit_page}}
+                        <a class="nav-link active" href="{{edit_page}}">Edit</a>
+                        {{/edit_page}}
+                        {{^edit_page}}
+                        Editing Disabled
+                        {{/edit_page}}
+                        {{/result}}
                     </li>
                 </ul>
             </div>
@@ -90,7 +97,12 @@
                             </dl>
                         </li>
                         <li class="list-group-item">
-                            <a class="nav-link active" href="{{edit_path}}">Edit</a>
+                            {{#edit_page}}
+                            <a class="nav-link active" href="{{edit_page}}">Edit</a>
+                            {{/edit_page}}
+                            {{^edit_page}}
+                            Editing Disabled
+                            {{/edit_page}}
                         </li>
                     </ul>
 

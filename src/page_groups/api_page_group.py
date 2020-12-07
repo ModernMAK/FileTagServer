@@ -7,11 +7,11 @@ from src.database_api.database_search import SqliteQueryBuidler
 from src.page_groups import routing
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.util.collection_util import get_unique_values_on_key
+from src.util.db_util import sanitize
 from src.util.mytyping import LiteSpeedRequest
 
 FileData = Dict[str, Any]
 TagData = Dict[str, Any]
-
 
 
 class ApiPageGroup(PageGroup):
@@ -109,6 +109,7 @@ class ApiPageGroup(PageGroup):
                 .flush()
 
             ids = cls.api._fetch_all_mapped(search_query, [FileTable.id])
+            ids = [f['id'] for f in ids]
             files = cls.api.file.fetch(ids=ids)
         else:
             files = cls.api.file.fetch(limit=size, offset=page * size)
@@ -122,6 +123,7 @@ class ApiPageGroup(PageGroup):
         file_tag_lookup = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.file_id, files=unique_ids)
         # This gets a list; which we know is a unique set; hacky but that's what this does
         unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=unique_ids).keys()
+        unique_tags = [v for v in unique_tags]
         # Fetch tag lookup from unique_tags
         tag_lookup = cls.api.tag.fetch_lookup(ids=unique_tags)
 
@@ -158,9 +160,15 @@ class ApiPageGroup(PageGroup):
         # Files should now be a list of dictionaries
         # This gets a list; which we know is a unique set; hacky but that's what this does
         unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[id]).keys()
+        print("u tags")
+        print(unique_tags)
+        unique_tags = [tag for tag in unique_tags]
+        print("u tags")
+        print(unique_tags)
         # Fetch tag lookup from unique_tags
         tags = cls.api.tag.fetch(ids=unique_tags)
-
+        print("tags")
+        print(tags)
         # Add Tag Info & Fix url
         cls.reformat_tag_info(tags)
 
@@ -214,3 +222,63 @@ class ApiPageGroup(PageGroup):
             .From(TagTable.table) \
             .Where(f"{TagTable.name_qualified} LIKE '{tag}%'") \
             .OrderBy((TagTable.count_qualified, False))
+
+    @classmethod
+    def get_valid_tags(cls, tag_list, invert: bool = False):
+        valid_tags = cls.api.tag.fetch(names=tag_list)
+        print(valid_tags)
+        if invert:
+            missing_tags = {tag: {'name': tag} for tag in tag_list}
+            for valid_tag in valid_tags:
+                del missing_tags[valid_tag['name']]
+            missing_tags = [tag for tag in missing_tags.values()]  # dict to list
+            print(missing_tags)
+            for tag in missing_tags:
+                tag['id'] = None
+                tag['page'] = None
+                tag['description'] = None
+                tag['count'] = None
+            return missing_tags
+        else:
+            return valid_tags
+
+    @classmethod
+    def update_file_info_internal(cls, file_id, name: str = None, description: str = None, tags: List[int] = None,
+                                  **kwargs) -> None:
+        query = SqliteQueryBuidler()
+        f_set: List[str] = []
+
+        if name is not None:
+            f_set.append(f"{FileTable.name} = {sanitize(name)}")
+
+        if description is not None:
+            f_set.append(f"{FileTable.description} = {sanitize(description)}")
+
+        if len(f_set) > 0:
+            f_query = query \
+                .Update(FileTable.table) \
+                .Set(", ".join(f_set)) \
+                .Where(f"{FileTable.id} = {file_id}") \
+                .flush()
+            cls.api._execute(f_query)
+
+        if tags is not None:
+            ftm_clear_query = query \
+                .Delete().From(FileTagMapTable.table) \
+                .Where(f"{FileTagMapTable.file_id} = {file_id}") \
+                .flush()
+
+            cls.api._execute(ftm_clear_query)
+
+            # insert missing
+            ftm_values = []
+            for tag_id in tags:
+                v = (file_id, tag_id)
+                ftm_values.append(v)
+
+            ftm_query = query.Insert().Or().Ignore() \
+                .Into(FileTagMapTable.table) \
+                .Columns(FileTagMapTable.file_id, FileTagMapTable.tag_id) \
+                .Values(*ftm_values) \
+                .flush()
+            cls.api._execute(ftm_query)
