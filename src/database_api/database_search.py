@@ -1,5 +1,5 @@
 # Convert String to Boolean Search
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict, Any
 
 import src.util.db_util as DbUtil
 # Google uses - for NOT and OR for or, AND is probably inferred since i didnt see anything
@@ -12,7 +12,7 @@ SEARCH_OR = '~'
 SEARCH_GROUP_START = '('
 SEARCH_GROUP_END = ')'
 SEARCH_GROUP_LITERAL = '"'
-SimpleSearchGroups = Tuple[List[str], List[str], List[str]]
+SimpleSearchGroups = Tuple[List[str], List[str], List[str], Dict[str, Any]]
 
 
 class SqliteQueryBuidler:
@@ -31,9 +31,9 @@ class SqliteQueryBuidler:
     def Select(self, *items: str, mode: str = None) -> 'SqliteQueryBuidler':
         if mode is not None:
             mode = mode.upper()
-            part = f"SELECT {mode} {' '.join(items)}"
+            part = f"SELECT {mode} {', '.join(items)}"
         else:
-            part = f"SELECT {' '.join(items)}"
+            part = f"SELECT {', '.join(items)}"
         self.parts.append(part)
         return self
 
@@ -156,23 +156,34 @@ class SqliteQueryBuidler:
 
 # Or / And / Not
 def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
+    KW_Untagged = 'untagged'
+    keywords = [KW_Untagged]
     nots = []
     ands = []
     ors = []
+    kwargs = {}
+
+    def handle_kwarg(text: str):
+        if text == KW_Untagged:
+            kwargs['include_untagged'] = True
+
     for item in search:
-        if item[0] == SEARCH_NOT:
-            nots.append(item[1:])
-        elif item[0] == SEARCH_OR:
-            ors.append(item[1:])
-        elif item[0] == SEARCH_AND:
-            ands.append(item[1:])
+        if item.lower() in keywords:
+            handle_kwarg(item)
         else:
-            ands.append(item)
-    return ors, ands, nots
+            if item[0] == SEARCH_NOT:
+                nots.append(item[1:])
+            elif item[0] == SEARCH_OR:
+                ors.append(item[1:])
+            elif item[0] == SEARCH_AND:
+                ands.append(item[1:])
+            else:
+                ands.append(item)
+    return ors, ands, nots, kwargs
 
 
 def create_query_from_search_groups(groups: SimpleSearchGroups):
-    ors, ands, nots = groups
+    ors, ands, nots, kwargs = groups
     query = SqliteQueryBuidler()
 
     select_query = query \
@@ -191,7 +202,7 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
             .Raw(select_query) \
             .Where(TagTable.name_qualified) \
             .In(DbUtil.create_entry_string(ors))
-        parts.append(part)
+        parts.append(part.flush())
         # f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
     if nots is not None and len(nots) > 0:
         part = query \
@@ -215,4 +226,6 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
     query.Raw(parts[0])
     for part in range(1, len(parts)):
         query.Intersect(part)
-    return query.flush()
+    q =  query.flush()
+    print(q)
+    return q

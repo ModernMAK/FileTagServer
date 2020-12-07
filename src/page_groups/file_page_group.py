@@ -64,7 +64,6 @@ class FilePageGroup(PageGroup):
             file['preview'] = {mime_parts[0]: file}  # specify preview as type:self
 
     #########
-
     # Displays the files in the file_page database as a list
     # This is primarily intended to be used to edit multiple file's tags at once
     # GET SUPPORT:

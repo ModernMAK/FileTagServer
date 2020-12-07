@@ -94,6 +94,15 @@
                                     {{#url}}<a href="{{url}}">{{url}}</a>{{/url}}
                                     {{^url}}Not Specified{{/url}}
                                 </dd>
+                                <dt class="card-title">Duplicates</dt>
+                                <dd class="card-text">
+                                    {{#duplicates}}
+                                    <a href="{{page}}"># {{id}}</a><br>
+                                    {{/duplicates}}
+                                    {{^duplicates}}
+                                    None Found
+                                    {{/duplicates}}
+                                </dd>
                             </dl>
                         </li>
                         <li class="list-group-item">

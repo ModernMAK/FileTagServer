@@ -67,9 +67,10 @@ class FileExtraInfoClient(BaseClient):
 
             sql_create_foreign_key(FileExtraInfoTable.file_id, FileTable.table, FileTable.id, action_clauses),
         ]
-        return sql_create_table(FileTable.table, values)
+        return sql_create_table(FileExtraInfoTable.table, values)
 
     def create(self):
+        print("Create fei")
         query = self.get_create_table_query()
         return self._execute(query)
 
@@ -89,7 +90,7 @@ class FileExtraInfoClient(BaseClient):
         query = self.get_select_query(**kwargs)
         return self._count(query)
 
-    def insert(self, values: List[Tuple[int, bytes, int]]):
+    def insert(self, values: List[Tuple[int, str, int]]):
         query = sql_insert_into(FileExtraInfoTable.table,
                                 [FileExtraInfoTable.file_id, FileExtraInfoTable.hash, FileExtraInfoTable.size],
                                 values)

@@ -3,6 +3,7 @@ from typing import List, Any, Dict, Union, Callable
 from src import config
 from src.database_api import database_search
 from src.database_api.clients import MasterClient, FileTable, FileTagMapTable, TagTable
+from src.database_api.clients.file_extra_info import FileExtraInfoTable, FileExtraInfoClient
 from src.database_api.database_search import SqliteQueryBuidler
 from src.page_groups import routing
 from src.page_groups.page_group import PageGroup, ServeResponse
@@ -52,7 +53,7 @@ class ApiPageGroup(PageGroup):
             reformat(tag_list)
 
     @classmethod
-    def reformat_file_info(cls, tag_list: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
+    def reformat_file_info(cls, files: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
         display_local_path = True
         display_remote_path = True
 
@@ -71,11 +72,20 @@ class ApiPageGroup(PageGroup):
             # a link to the page for this post
             file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
 
-        if isinstance(tag_list, list):
-            for tag in tag_list:
-                reformat(tag)
+            # TOO INNEFICIENT for a list
+            # dupe_ids = cls.get_file_duplicates_internal(file['id'])
+            # file['duplicates'] = []
+            # for id in dupe_ids:
+            #     file['duplicates'].append({
+            #         'id': id,
+            #         'page': routing.full_path(routing.FilePage.get_view_file(id))
+            #     })
+
+        if isinstance(files, list):
+            for file in files:
+                reformat(file)
         else:
-            reformat(tag_list)
+            reformat(files)
 
     @classmethod
     def get_file_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
@@ -160,15 +170,9 @@ class ApiPageGroup(PageGroup):
         # Files should now be a list of dictionaries
         # This gets a list; which we know is a unique set; hacky but that's what this does
         unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[id]).keys()
-        print("u tags")
-        print(unique_tags)
         unique_tags = [tag for tag in unique_tags]
-        print("u tags")
-        print(unique_tags)
         # Fetch tag lookup from unique_tags
         tags = cls.api.tag.fetch(ids=unique_tags)
-        print("tags")
-        print(tags)
         # Add Tag Info & Fix url
         cls.reformat_tag_info(tags)
 
@@ -226,13 +230,13 @@ class ApiPageGroup(PageGroup):
     @classmethod
     def get_valid_tags(cls, tag_list, invert: bool = False):
         valid_tags = cls.api.tag.fetch(names=tag_list)
-        print(valid_tags)
+        # print(valid_tags)
         if invert:
             missing_tags = {tag: {'name': tag} for tag in tag_list}
             for valid_tag in valid_tags:
                 del missing_tags[valid_tag['name']]
             missing_tags = [tag for tag in missing_tags.values()]  # dict to list
-            print(missing_tags)
+            # print(missing_tags)
             for tag in missing_tags:
                 tag['id'] = None
                 tag['page'] = None
@@ -241,6 +245,62 @@ class ApiPageGroup(PageGroup):
             return missing_tags
         else:
             return valid_tags
+
+    @classmethod
+    def get_all_duplicates_internal(cls):
+        query = SqliteQueryBuidler()
+        iq = query.Select(FileExtraInfoTable.file_id, "COUNT(*) as duplicates").From(FileExtraInfoTable.table).Raw(
+            f"GROUP BY {FileExtraInfoTable.hash_qualified} {FileExtraInfoTable.size_qualified}").flush()
+
+        # "SELECT file_id, duplicates from (SELECT file_id, COUNT(*) AS duplicates FROM file_extra_info GROUP BY hash, size) where duplicates > 1"
+        q = query \
+            .Select(FileExtraInfoTable.file_id, "duplicates") \
+            .From(f"({iq})") \
+            .Where("duplicates > 1") \
+            .flush()
+
+        r = cls.api._fetch_all_mapped(q, ['file_id', 'count'])
+        touched = set()
+        dupes = []
+        for row in r:
+            id = row['file_id']
+            if id in touched:
+                continue
+            f_dupes = cls.get_file_duplicates_internal(id, ignore_self=False)
+            dupes.append(f_dupes)
+            for f_id in f_dupes:
+                touched.update(f_id)
+        return dupes
+
+    @classmethod
+    def get_file_duplicates_internal(cls, file_id, ignore_self: bool = True, **kwargs):
+        results = cls.api.file_info.fetch(files=[file_id])
+        if len(results) == 0:
+            return []
+        # print(results)
+        result = results[0]
+        query = SqliteQueryBuidler()
+
+        where_parts = [
+            f"{FileExtraInfoTable.hash_qualified} = '{result['hash']}'",
+            f"{FileExtraInfoTable.size_qualified} = {result['size']}",
+        ]
+        if ignore_self:
+            where_parts.append(f"{FileExtraInfoTable.file_id_qualified} != {file_id}")
+
+        q = query \
+            .Select(FileExtraInfoTable.id_qualified, FileExtraInfoTable.file_id_qualified,
+                    FileExtraInfoTable.size_qualified, FileExtraInfoTable.hash_qualified) \
+            .From(FileExtraInfoTable.table) \
+            .Where(" AND ".join(where_parts)) \
+            .flush()
+        # print(q)
+
+        ids = cls.api.file_info._fetch_all_mapped(q, FileExtraInfoClient._get_mapping())
+        # print(ids)
+        ids = [row['file_id'] for row in ids]
+
+        return ids
 
     @classmethod
     def update_file_info_internal(cls, file_id, name: str = None, description: str = None, tags: List[int] = None,
