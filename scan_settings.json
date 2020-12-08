@@ -1,5 +1,15 @@
 {
-  "exts": ["jpeg","jpg","png","webp","gif", "webm"],
+  "exts": [
+    "jpeg",
+    "jpg",
+    "png",
+    "webp",
+    "gif",
+    "webm"
+  ],
   "patterns": [],
-  "paths": ["D:\\LocalViewer\\LocalContent"]
+  "paths": [
+    "D:\\LocalViewer\\LocalContent",
+    "C:\\Users\\moder\\Desktop\\Google Drive"
+  ]
 }

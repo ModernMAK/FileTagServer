@@ -15,6 +15,13 @@
         <div class="col-md-2">
             <nav id="sidebarMenu" class="d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
+                    <form class="form w-100" action="{{search_action}}" method="GET">
+                        <div class="form-group mb-2">
+                            <input type="text" class="form-control" id="search" name="search" placeholder="tags..."
+                                   value="{{search}}">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
                     {{> sidebar_taglist}}
                 </div>
             </nav>
@@ -55,13 +62,13 @@
                                     </td>
                                     <td>
                                         <a href="{{page}}">
-<!--                                         TODO Link SVG, would use image as svg but i cant get use to work;    -->
+                                            <!--                                         TODO Link SVG, would use image as svg but i cant get use to work;    -->
                                             <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-link"
                                                  fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/>
                                                 <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/>
                                             </svg>
-<!--                                            <img src="/img/icon/bs/link.svg" alt="Open"/>-->
+                                            <!--                                            <img src="/img/icon/bs/link.svg" alt="Open"/>-->
                                         </a>
                                     </td>
                                 </tr>
@@ -91,5 +98,6 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
 <script src="/js/bootstrap.bundle.js"></script>
+<script src="/js/tagsearch.js"></script>
 </body>
 </html>

@@ -63,6 +63,16 @@ class FilePageGroup(PageGroup):
             mime_parts = mime.split("/")
             file['preview'] = {mime_parts[0]: file}  # specify preview as type:self
 
+    @classmethod
+    def add_search_support(cls, tags: List):
+        for tag in tags:
+            safe_name: str = tag['name']
+            safe_name = safe_name.replace(" ", "_")
+            tag['search_support'] = {
+                'search_id': "search",
+                'js_name': safe_name,  # '"",
+            }
+
     #########
     # Displays the files in the file_page database as a list
     # This is primarily intended to be used to edit multiple file's tags at once
@@ -104,15 +114,19 @@ class FilePageGroup(PageGroup):
         result = serve(serve_file)
 
         def pagination_url_gen(id: int):
-            return routing.FilePage.get_index_list(page=id + 1)
+            return routing.FilePage.get_index_list(page=id + 1, search=GET.get('search'), size=GET.get('size'))
 
+        cls.add_search_support(tag_list)
         context = {
             'page_title': "Files",
             'results': file_list,
             'tags': tag_list,
             'navbar': get_navbar_context(active=routing.FilePage.root),
             'subnavbar': {'list': 'active'},
-            'pagination': PaginationUtil.get_pagination(page, total_pages, PAGE_NEIGHBORS, pagination_url_gen)
+            'pagination': PaginationUtil.get_pagination(page, total_pages, PAGE_NEIGHBORS, pagination_url_gen),
+            'search_action': routing.FilePage.index_list,
+            'search': search if search is not None else ''
+
         }
         return reformat_serve(cls.renderer, result, context)
 
@@ -132,7 +146,6 @@ class FilePageGroup(PageGroup):
         cls.append_file_previews(file)
         cls.specify_edit_page(file)
 
-        print(file)
         serve_file = pathing.Static.get_html("file/page.html")
         result = serve(serve_file)
         context = {
@@ -162,7 +175,6 @@ class FilePageGroup(PageGroup):
         cls.specify_edit_page(file)
         serve_file = pathing.Static.get_html("file/page_edit.html")
         result = serve(serve_file)
-        print(file)
         context = {
             'result': file,
             'tags': file['tags'],

@@ -12,6 +12,9 @@ SEARCH_OR = '~'
 SEARCH_GROUP_START = '('
 SEARCH_GROUP_END = ')'
 SEARCH_GROUP_LITERAL = '"'
+# Fix whitespace
+SEARCH_WHITE_SPACE_SUB = "_"
+
 SimpleSearchGroups = Tuple[List[str], List[str], List[str], Dict[str, Any]]
 
 
@@ -157,7 +160,8 @@ class SqliteQueryBuidler:
 # Or / And / Not
 def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
     KW_Untagged = 'untagged'
-    keywords = [KW_Untagged]
+    KW_Tagged = 'tagged'
+    keywords = [KW_Untagged, KW_Tagged]
     nots = []
     ands = []
     ors = []
@@ -165,12 +169,16 @@ def create_simple_search_groups(search: List[str]) -> SimpleSearchGroups:
 
     def handle_kwarg(text: str):
         if text == KW_Untagged:
-            kwargs['include_untagged'] = True
+            kwargs['untagged'] = True
+        elif text == KW_Tagged:
+            kwargs['untagged'] = False
 
     for item in search:
         if item.lower() in keywords:
             handle_kwarg(item)
         else:
+            item = item.replace(SEARCH_WHITE_SPACE_SUB, " ")
+            print(item)
             if item[0] == SEARCH_NOT:
                 nots.append(item[1:])
             elif item[0] == SEARCH_OR:
@@ -201,31 +209,45 @@ def create_query_from_search_groups(groups: SimpleSearchGroups):
         part = query \
             .Raw(select_query) \
             .Where(TagTable.name_qualified) \
-            .In(DbUtil.create_entry_string(ors))
-        parts.append(part.flush())
+            .In(DbUtil.create_entry_string(ors)).flush()
+
+        parts.append(part)
         # f"{select_query} where tag.name IN {DbUtil.create_entry_string(ors)}"
     if nots is not None and len(nots) > 0:
         part = query \
             .Raw(select_query) \
             .Where(TagTable.name_qualified) \
             .Not() \
-            .In(DbUtil.create_entry_string(nots))
+            .In(DbUtil.create_entry_string(nots)).flush()
 
         # part = f"{select_query} EXCEPT {select_query} where tag.name IN {DbUtil.create_entry_string(nots)}"
         parts.append(part)
     if ands is not None and len(ands) > 0:
         for single_and in ands:
-            part = query. \
-                Raw(select_query). \
-                Where(f"{TagTable.name_qualified} = {DbUtil.sanitize(single_and)}"). \
-                flush()
+            print("ANDING " + single_and)
+            part = query.Raw(select_query).Where(f"{TagTable.name_qualified} = {DbUtil.sanitize(single_and)}").flush()
             # part = f"{select_query} where tag.name = {DbUtil.sanitize(single_and)}"
             parts.append(part)
+            print(part)
+
+    if 'untagged' in kwargs:
+        if kwargs['untagged']:
+            # print("Req No Tag")
+            part = query.Raw(select_query).Where(f"{TagTable.name_qualified} IS NULL").flush()
+            print(part)
+        else:
+            # print("Req Tag")
+            part = query.Raw(select_query).Where(f"{TagTable.name_qualified} IS NOT NULL").flush()
+            print(part)
+        parts.append(part)
 
     # Merge parts
-    query.Raw(parts[0])
-    for part in range(1, len(parts)):
-        query.Intersect(part)
-    q =  query.flush()
-    print(q)
-    return q
+    if len(parts) == 0:
+        return select_query
+    else:
+        query.Raw(parts[0])
+        for i in range(1, len(parts)):
+            query.Intersect(parts[i])
+        q = query.flush()
+        print(q)
+        return q

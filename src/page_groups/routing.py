@@ -75,9 +75,16 @@ class FilePage:
         return append_get_args(cls.view_file, id=id)
 
     @classmethod
-    def get_index_list(cls, page: int):
-        return append_get_args(cls.index_list, page=page)
+    def get_index_list(cls, page: int = None, size: int = None, search: str = None):
+        get_args = {}
+        if page is not None:
+            get_args['page'] = page
+        if size is not None:
+            get_args['size'] = size
+        if search is not None:
+            get_args['search'] = search
 
+        return append_get_args(cls.index_list, **get_args)
     @classmethod
     def get_serve_file_raw(cls, id: int):
         return append_get_args(cls.serve_file_raw, id=id)
