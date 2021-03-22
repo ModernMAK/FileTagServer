@@ -1,12 +1,14 @@
+import sqlite3
 from typing import Tuple, List, Dict, Any
 
 from src.database_api.clients.shared import AbstractTable
 from src.database_api.util import BaseClient, sql_select_from, sql_in, sql_in_like, sql_order_by, sql_limit, sql_offset, \
     sql_assemble_query, sql_create_table_value, sql_assemble_modifiers, sql_create_unique_value, sql_create_table, \
     sql_insert_into, sql_and_clauses
-
+from sqlite3 import Cursor
 
 class FileTable(AbstractTable):
+
     table = "file"
 
     id = 'id'
@@ -20,6 +22,54 @@ class FileTable(AbstractTable):
     description_qualified = AbstractTable.qualify_name(table, description)
     path_qualified = AbstractTable.qualify_name(table, path)
     mimetype_qualified = AbstractTable.qualify_name(table, mimetype)
+
+    @classmethod
+    def create_table(cls, cursor:Cursor):
+        columns = [
+            f"{cls.id} INTEGER PRIMARY KEY AUTOINCREMENT",
+            f"{cls.path} TEXT",
+            f"{cls.mimetype} TINYTEXT",
+            f"{cls.name} TINYTEXT",
+            f"{cls.description} TEXT",
+            f"CONSTRAINT {cls.path}_unique UNIQUE ({cls.path})"
+        ]
+        query = f"CREATE TABLE IF NOT EXISTS {cls.table} ({', '.join(columns)});"
+        cursor.execute(query)
+
+
+
+
+    # @classmethod
+    # def get_files_by_ids_query(cls, cursor, ids:List[int]):
+    #     query = f"SELECT {cls.id}, {cls.path}, {cls.mimetype}, {cls.name}, {cls.description} FROM {cls.table} WHERE {cls.id} IN (%s)"
+    #
+    #
+    #     query = sql_select_from(mapping, FileTable.table)
+    #     constraint_clauses = [
+    #         sql_in(f'{FileTable.id_qualified}', ids),
+    #         sql_in(f'{FileTable.path_qualified}', paths),
+    #         sql_in(f'{FileTable.mimetype_qualified}', mimes),
+    #         sql_in_like(f'{FileTable.mimetype_qualified}', mime_likes),
+    #         sql_in_like(f'{FileTable.name_qualified}', name_likes),
+    #         sql_in_like(f'{FileTable.description_qualified}', desc_likes)
+    #     ]
+    #
+    #     constraint_clause = sql_and_clauses(constraint_clauses)
+    #     structure_clauses = []
+    #     for (name, asc) in order_by:
+    #         structure_clauses.append(sql_order_by(name, asc))
+    #     structure_clauses.append(sql_limit(limit))
+    #     structure_clauses.append(sql_offset(offset))
+    #
+    #     return sql_assemble_query(query, constraint_clause, structure_clauses)
+
+
+    # def get_files_by_page_query(self, page:int, size:int):
+
+    # def get_files_by_range_query(self, start:int, stop:int):
+
+
+
 
 
 class FileClient(BaseClient):

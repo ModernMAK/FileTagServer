@@ -28,13 +28,12 @@ class FileTagMapClient(BaseClient):
         return 'id', 'file_id', 'tag_id'
 
     @staticmethod
-    def get_select_query(**kwargs):
+    def get_select_query(ids: List[int] = None, **kwargs):
         mapping = FileTagMapClient.get_mapping()
         limit = kwargs.get('limit', None)
         offset = kwargs.get('offset', None)
         order_by = kwargs.get('order_by', [('id', True)])
         group_by = kwargs.get('group_by', None)
-        ids = kwargs.get('ids', None)
         files = kwargs.get('files', None)
         tags = kwargs.get('tags', None)
 
@@ -94,6 +93,32 @@ class FileTagMapClient(BaseClient):
         query = self.get_select_query(**kwargs)
         mapping = self.get_mapping()
         return self._fetch_all_lookup_groups(query, mapping, key)
+
+    def __internal_get_simplified_lookup(self, primary_key:str, lookup_key:str, files:List[int]=None, tags:List[int]=None):
+        query = self.get_select_query(files=files,tags=tags)
+        mapping = self.get_mapping()
+        results = self._fetch_all_lookup_groups(query, mapping, primary_key)
+        lookup = {}
+        for key, value in results.items():
+            lookup[key] = [row[lookup_key] for row in value]
+        return lookup
+
+    def __internal_get_unique(self,  primary_key:str,files:List[int]=None,tags:List[int]=None) -> List[int]:
+        results = self.fetch_lookup_groups(key=primary_key, files=files,tags=tags)
+        unique = [result for result in results]
+        return unique
+
+    def get_file2tag_lookup(cls, file_ids: List[int] = None) -> Dict[int, List[int]]:
+        return cls.__internal_get_simplified_lookup(FileTagMapTable.file_id, FileTagMapTable.tag_id, files=file_ids)
+
+    def get_tag2file_lookup(cls, tag_ids: List[int] = None) -> Dict[int, List[int]]:
+        return cls.__internal_get_simplified_lookup( FileTagMapTable.tag_id, FileTagMapTable.file_id,tags=tag_ids)
+
+    def get_unique_tags_from_files(cls, file_ids: List[int] = None) -> List[int]:
+        return cls.__internal_get_unique(FileTagMapTable.file_id,files=file_ids)
+
+    def get_unique_files_from_tags(cls, tag_ids: List[int] = None) -> List[int]:
+        return cls.__internal_get_unique(FileTagMapTable.tag_id,tags=tag_ids)
 
     def count(self, **kwargs) -> int:
         query = self.get_select_query(**kwargs)

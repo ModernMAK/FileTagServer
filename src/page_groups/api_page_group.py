@@ -12,74 +12,36 @@ from src.util.db_util import sanitize
 from src.util.mytyping import LiteSpeedRequest
 
 FileData = Dict[str, Any]
+FileDataList = List[FileData]
 TagData = Dict[str, Any]
+TagDataList = List[TagData]
+ApiResponse = Dict[str,Any]
 
+class ApiError(Exception):
+    def __init__(self, message:str):
+        self.message = message
 
-class ApiPageGroup(PageGroup):
-    api: MasterClient = None
-
+class FileApi:
+    client: MasterClient = None
     @classmethod
     def initialize(cls):
-        cls.api = MasterClient(db_path=config.db_path)
+        cls.client = MasterClient(db_path=config.db_path)
 
-    @classmethod
-    def add_routes(cls):
-        cls._add_route(routing.ApiPage.get_file_list("([A-Za-z0-9]*)"), cls.get_file_list, methods=['GET'])
-
-    @classmethod
-    def serve_api_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        format = format.lower()
-        allowed_formats = ['json']  # we only support json right now (Litespeed does natively)
-        if format in allowed_formats:
-            return result
-
-    @classmethod
-    def serve_api_request(cls, request: LiteSpeedRequest, format: str,
-                          func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
-        results = func(**request['GET'])
-        results = {'result': results}
-        return cls.serve_api_result(results, format)
-
-    @classmethod
-    def reformat_tag_info(cls, tag_list: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
-        def reformat(tag: Dict[Any, Any]):
-            partial_url = routing.TagPage.get_view_tag(tag['id'])
-            tag['page'] = routing.full_path(partial_url)
-
-        if not isinstance(tag_list, dict):
-            for tag in tag_list:
-                reformat(tag)
-        else:
-            reformat(tag_list)
-
-    @classmethod
-    def reformat_file_info(cls, files: Union[Dict[Any, Any], List[Dict[Any, Any]]]):
+    @staticmethod
+    def reformat(files: Union[FileData, FileDataList]):
         display_local_path = True
         display_remote_path = True
 
-        def reformat(file: Dict[Any, Any]):
-            # Cleanup 'path' field if we are hiding it
-            # (this would reveal the file path of the user, among other things)
-            # This is okay for personal use, but would be bad in most other situations
+        def reformat(data: Dict[Any, Any]):
+            # Hide local path from remote users
             if not display_local_path:
-                del file[FileTable.path]
-
-            # this should be a url to the asset
+                del data[FileTable.path]
+            # Hide remote path?
             if display_remote_path:
-                partial_url = routing.FilePage.get_serve_file_raw(file['id'])
-                file['url'] = routing.full_path(partial_url)
+                partial_url = routing.FilePage.get_serve_file_raw(data['id'])
+                data['url'] = routing.full_path(partial_url)
 
-            # a link to the page for this post
-            file['page'] = routing.full_path(routing.FilePage.get_view_file(file['id']))
-
-            # TOO INNEFICIENT for a list
-            # dupe_ids = cls.get_file_duplicates_internal(file['id'])
-            # file['duplicates'] = []
-            # for id in dupe_ids:
-            #     file['duplicates'].append({
-            #         'id': id,
-            #         'page': routing.full_path(routing.FilePage.get_view_file(id))
-            #     })
+            data['page'] = routing.full_path(routing.FilePage.get_view_file(data['id']))
 
         if isinstance(files, list):
             for file in files:
@@ -88,20 +50,7 @@ class ApiPageGroup(PageGroup):
             reformat(files)
 
     @classmethod
-    def get_file_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        return cls.serve_api_request(request, format, cls.get_file_list_internal)
-
-    @classmethod
-    def get_file_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> \
-            List[Dict[str, Any]]:
-        # TODO ask falcon to maybe impliment a LiteSpeed StatusCodeError
-        # TODO (cont) which will automatically be caught by litespeed and be interpreted as the appropriate error code
-        # TODO (cont) it could still be caught by python and nested?
-
-        # this would have been really helpful to raise 404 for invalid pages
-        # but i decided the api should just return an empty list instead, as 404 implies that the url is invalid
-        # still, the above is a great idea
-
+    def get_list(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> FileDataList:
         page = int(page)
         size = int(size)
         if search is not None:
@@ -118,11 +67,11 @@ class ApiPageGroup(PageGroup):
                 .Offset(page * size) \
                 .flush()
 
-            ids = cls.api._fetch_all_mapped(search_query, [FileTable.id])
+            ids = cls.client._fetch_all_mapped(search_query, [FileTable.id])
             ids = [f['id'] for f in ids]
-            files = cls.api.file.fetch(ids=ids)
+            files = cls.client.file.fetch(ids=ids)
         else:
-            files = cls.api.file.fetch(limit=size, offset=page * size)
+            files = cls.client.file.fetch(limit=size, offset=page * size)
 
         # Files should now be a list of dictionaries
 
@@ -130,15 +79,15 @@ class ApiPageGroup(PageGroup):
         unique_ids = get_unique_values_on_key(files, FileTable.id)
         # Fetch all rows that match a file
         # This gets a lookup table; file_id -> many tag_ids
-        file_tag_lookup = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.file_id, files=unique_ids)
+        file_tag_lookup = cls.client.map.fetch_lookup_groups(key=FileTagMapTable.file_id, files=unique_ids)
         # This gets a list; which we know is a unique set; hacky but that's what this does
-        unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=unique_ids).keys()
+        unique_tags = cls.client.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=unique_ids).keys()
         unique_tags = [v for v in unique_tags]
         # Fetch tag lookup from unique_tags
-        tag_lookup = cls.api.tag.fetch_lookup(ids=unique_tags)
+        tag_lookup = cls.client.tag.fetch_lookup(ids=unique_tags)
 
         # Add Tag Info & Fix url
-        cls.reformat_tag_info(tag_lookup.values())
+        TagApi.reformat(tag_lookup.values())
 
         # Match Tags to files & Fix url
         for file in files:
@@ -149,77 +98,65 @@ class ApiPageGroup(PageGroup):
                 tag_id = map_info[FileTagMapTable.tag_id]
                 tags.append(tag_lookup[tag_id])
 
-        cls.reformat_file_info(files)
-
+        cls.reformat(files)
         return files
 
     @classmethod
-    def get_file(cls, request: Dict, format: str):
-        cls.serve_api_request(request, format, cls.get_file_internal)
-
-    @classmethod
-    def get_file_internal(cls, id: int, **kwargs):
-
-        results = cls.api.file.fetch(ids=[id])
-
-        if len(results) == 0:
+    def get_data(cls, ids: List[int], **kwargs) -> FileDataList:
+        files = cls.client.file.fetch(ids=ids)
+        if len(files) == 0:
             raise NotImplementedError
+        file_tag_lookup = cls.client.map.get_file2tag_lookup(file_ids=ids)
+        for file in files:
+            file_id = file['id']
+            tags = file_tag_lookup[file_id]
+            file['tags'] = tags
 
-        file = results[0]
-
-        # Files should now be a list of dictionaries
-        # This gets a list; which we know is a unique set; hacky but that's what this does
-        unique_tags = cls.api.map.fetch_lookup_groups(key=FileTagMapTable.tag_id, files=[id]).keys()
-        unique_tags = [tag for tag in unique_tags]
-        # Fetch tag lookup from unique_tags
-        tags = cls.api.tag.fetch(ids=unique_tags)
-        # Add Tag Info & Fix url
-        cls.reformat_tag_info(tags)
-
-        # Add Tag Info & Fix url
-        # Create new tags field
-        file['tags'] = tags
-
-        cls.reformat_file_info(file)
-
-        return file
+        cls.reformat(files)
+        return files
 
     @classmethod
-    def get_file_count(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        return cls.serve_api_request(request, format, cls.get_file_count_internal)
-
-    @classmethod
-    def get_file_count_internal(cls, search: str = None, **kwargs) -> int:
+    def get_search_count(cls, search: str = None, **kwargs) -> int:
         if search is not None:
             search_parts = search.split(" ")
             groups = database_search.create_simple_search_groups(search_parts)
             raw_query = database_search.create_query_from_search_groups(groups)
-            return cls.api._count(raw_query)
+            return cls.client._count(raw_query)
         else:
-            return cls.api.file.count()
+            return cls.client.file.count()
+
+class TagApi:
+    client: MasterClient = None
+    @classmethod
+    def initialize(cls):
+        cls.client = MasterClient(db_path=config.db_path)
+
+    @staticmethod
+    def reformat(tag_list: Union[TagData, List[TagData]]):
+        def reformat_tag(tag_data: TagData):
+            partial_url = routing.TagPage.get_view_tag(tag_data['id'])
+            tag_data['page'] = routing.full_path(partial_url)
+
+        if not isinstance(tag_list, dict):
+            for tag in tag_list:
+                reformat_tag(tag)
+        else:
+            reformat_tag(tag_list)
 
     @classmethod
-    def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
-        return cls.serve_api_request(request, format, cls.get_tag_list_internal)
-
-    @classmethod
-    def get_tag_list_internal(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> List[Dict[str, Any]]:
+    def get_list(cls, page: int = 0, size: int = 50, search: str = None, **kwargs) -> List[TagData]:
         page = int(page)
         size = int(size)
 
         # TODO support search
-        tags = cls.api.tag.fetch(limit=size, offset=page * size)
+        tags = cls.client.tag.fetch(limit=size, offset=page * size)
 
         # Add Tag Info & Fix url
-        cls.reformat_tag_info(tags)
+        cls.reformat(tags)
         return tags
 
     @classmethod
-    def get_tag_autocorrect(cls, request: LiteSpeedRequest):
-        return cls.serve_api_request(request, "json", cls.get_tag_autocorrect_internal)
-
-    @classmethod
-    def get_tag_autocorrect_internal(cls, tag: str, **kwargs):
+    def get_autocorrect(cls, tag: str, **kwargs):
         query = SqliteQueryBuidler()
         query \
             .Select(TagTable.name_qualified, TagTable.count_qualified) \
@@ -229,7 +166,7 @@ class ApiPageGroup(PageGroup):
 
     @classmethod
     def get_valid_tags(cls, tag_list, invert: bool = False):
-        valid_tags = cls.api.tag.fetch(names=tag_list)
+        valid_tags = cls.client.tag.fetch(names=tag_list)
         # print(valid_tags)
         if invert:
             missing_tags = {tag: {'name': tag} for tag in tag_list}
@@ -246,8 +183,12 @@ class ApiPageGroup(PageGroup):
         else:
             return valid_tags
 
+
+class Api:
+    client: MasterClient = MasterClient(db_path=config.db_path)
+
     @classmethod
-    def get_all_duplicates_internal(cls):
+    def obsolete_get_all_duplicate_list(cls):
         query = SqliteQueryBuidler()
         iq = query.Select(FileExtraInfoTable.file_id, "COUNT(*) as duplicates").From(FileExtraInfoTable.table).Raw(
             f"GROUP BY {FileExtraInfoTable.hash_qualified} {FileExtraInfoTable.size_qualified}").flush()
@@ -259,22 +200,22 @@ class ApiPageGroup(PageGroup):
             .Where("duplicates > 1") \
             .flush()
 
-        r = cls.api._fetch_all_mapped(q, ['file_id', 'count'])
+        r = cls.client._fetch_all_mapped(q, ['file_id', 'count'])
         touched = set()
         dupes = []
         for row in r:
             id = row['file_id']
             if id in touched:
                 continue
-            f_dupes = cls.get_file_duplicates_internal(id, ignore_self=False)
+            f_dupes = cls.get_duplicate_file_list(id, ignore_self=False)
             dupes.append(f_dupes)
             for f_id in f_dupes:
                 touched.update(f_id)
         return dupes
 
     @classmethod
-    def get_file_duplicates_internal(cls, file_id, ignore_self: bool = True, **kwargs):
-        results = cls.api.file_info.fetch(files=[file_id])
+    def get_duplicate_file_list(cls, file_id, ignore_self: bool = True, **kwargs):
+        results = cls.client.file_info.fetch(files=[file_id])
         if len(results) == 0:
             return []
         # print(results)
@@ -296,15 +237,15 @@ class ApiPageGroup(PageGroup):
             .flush()
         # print(q)
 
-        ids = cls.api.file_info._fetch_all_mapped(q, FileExtraInfoClient._get_mapping())
+        ids = cls.client.file_info._fetch_all_mapped(q, FileExtraInfoClient._get_mapping())
         # print(ids)
         ids = [row['file_id'] for row in ids]
 
         return ids
 
     @classmethod
-    def update_file_info_internal(cls, file_id, name: str = None, description: str = None, tags: List[int] = None,
-                                  **kwargs) -> None:
+    def update_file_info(cls, file_id, name: str = None, description: str = None, tags: List[int] = None,
+                         **kwargs) -> None:
         query = SqliteQueryBuidler()
         f_set: List[str] = []
 
@@ -320,7 +261,7 @@ class ApiPageGroup(PageGroup):
                 .Set(", ".join(f_set)) \
                 .Where(f"{FileTable.id} = {file_id}") \
                 .flush()
-            cls.api._execute(f_query)
+            cls.client._execute(f_query)
 
         if tags is not None:
             ftm_clear_query = query \
@@ -328,7 +269,7 @@ class ApiPageGroup(PageGroup):
                 .Where(f"{FileTagMapTable.file_id} = {file_id}") \
                 .flush()
 
-            cls.api._execute(ftm_clear_query)
+            cls.client._execute(ftm_clear_query)
 
             # insert missing
             ftm_values = []
@@ -341,4 +282,55 @@ class ApiPageGroup(PageGroup):
                 .Columns(FileTagMapTable.file_id, FileTagMapTable.tag_id) \
                 .Values(*ftm_values) \
                 .flush()
-            cls.api._execute(ftm_query)
+            cls.client._execute(ftm_query)
+
+class ApiPageGroup(PageGroup):
+    @classmethod
+    def initialize(cls, **kwargs):
+        FileApi.initialize()
+        TagApi.initialize()
+
+    @classmethod
+    def add_routes(cls):
+        wildcard = "([A-Za-z0-9]*)"
+        cls._add_route(routing.ApiPage.get_file_data(wildcard), cls.get_file_data, methods=['GET'])
+        cls._add_route(routing.ApiPage.get_file_list(wildcard), cls.get_file_list, methods=['GET'])
+        cls._add_route(routing.ApiPage.get_tag_list(wildcard), cls.get_tag_list, methods=['GET'])
+        cls._add_route(routing.ApiPage.get_tag_autocorrect(wildcard), cls.get_tag_autocorrect, methods=['GET'])
+
+    @classmethod
+    def serve_api_result(cls, result: Dict[Any, Any], format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+        format = format.lower()
+        allowed_formats = ['json']  # we only support json right now (Litespeed does natively)
+        if format in allowed_formats:
+            return result
+
+    @classmethod
+    def serve_api_request(cls, request: LiteSpeedRequest, format: str,
+                          func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
+        results = func(**request['GET'])
+        results = {'result': results}
+        return cls.serve_api_result(results, format)
+
+
+    @classmethod
+    def get_file_data(cls, request: Dict, format: str):
+        cls.serve_api_request(request, format, FileApi.get_data)
+
+    @classmethod
+    def get_file_list(cls, request: Dict, format: str):
+        cls.serve_api_request(request, format, FileApi.get_list)
+
+    # @classmethod
+    # def get_file_search_count(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+    #     return cls.serve_api_request(request, format, Api.get_search_count)
+
+    @classmethod
+    def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+        return cls.serve_api_request(request, format, TagApi.get_list)
+
+    @classmethod
+    def get_tag_autocorrect(cls, request: LiteSpeedRequest, format:str):
+        return cls.serve_api_request(request, "json", TagApi.get_autocorrect)
+
+

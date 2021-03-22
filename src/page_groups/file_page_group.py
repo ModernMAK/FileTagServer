@@ -95,7 +95,7 @@ class FilePageGroup(PageGroup):
         # if not PaginationUtil.is_page_valid(page, page_size, file_count) and page != FIRST_PAGE:
         #     return StatusPageGroup.serve_error(404)
 
-        file_list = ApiPageGroup.get_file_list_internal(page=page, size=PAGE_SIZE, search=search)
+        file_list = ApiPageGroup.get_file_list(page=page, size=PAGE_SIZE, search=search)
 
         # Get unique tags
         unique_tags = {}

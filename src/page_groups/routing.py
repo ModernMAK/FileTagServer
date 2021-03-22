@@ -100,8 +100,14 @@ class FilePage:
 
 class ApiPage:
     root = web_join(WebRoot.root, "api")
+
     file_root = web_join(root, "file")
     file_list = web_join(file_root, "list")
+    file_data = web_join(file_root, "data")
+
+    tag_root = web_join(root, "tag")
+    tag_list = web_join(file_root, "list")
+    tag_autocorrect = web_join(file_root, "autocorrect")
 
     @classmethod
     def get_file_list(cls, format: str = "json", page: int = None, size: int = None, search: str = None):
@@ -113,8 +119,22 @@ class ApiPage:
             get_args['size'] = size
         if search is not None:
             get_args['search'] = search
-
         return append_get_args(file_path, **get_args)
+
+    @classmethod
+    def get_file_data(cls, format: str = "json"):
+        file_path = f"{cls.file_data}.{format}"
+        return append_get_args(file_path)
+
+    @classmethod
+    def get_tag_list(cls, format: str = "json"):
+        file_path = f"{cls.tag_list}.{format}"
+        return append_get_args(file_path)
+
+    @classmethod
+    def get_tag_autocorrect(cls, format: str = "json"):
+        file_path = f"{cls.tag_autocorrect}.{format}"
+        return append_get_args(file_path)
 
 
 class TagPage:
