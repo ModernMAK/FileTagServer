@@ -78,19 +78,6 @@ class TagClient(BaseClient):
         print(final_query)
         return final_query
 
-    @staticmethod
-    def get_create_table_query():
-        values = [
-            sql_create_table_value('id', 'INTEGER', sql_assemble_modifiers(True, True)),
-            sql_create_table_value('name', 'TINYTEXT'),
-            sql_create_table_value('description', "TEXT"),
-            sql_create_unique_value('name_u', ['name'])
-        ]
-        return sql_create_table('tag', values)
-
-    def create(self):
-        query = self.get_create_table_query()
-        return self._execute(query)
 
     def fetch(self, **kwargs) -> List[Dict[str, Any]]:
         query = self.get_select_query(**kwargs)
@@ -106,10 +93,3 @@ class TagClient(BaseClient):
         query = self.get_select_query(**kwargs)
         return self._count(query)
 
-    @classmethod
-    def id_column_qualified(cls):
-        return f"{cls.table_name}.{cls.id_column}"
-
-    @classmethod
-    def name_column_qualified(cls):
-        pass

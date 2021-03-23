@@ -21,6 +21,8 @@ if __name__ == '__main__':
 
     print("\n".join(App._urls))
 
+    group.add_routes()
+    group.initialize()
     start_with_args()
 
     # WebPages

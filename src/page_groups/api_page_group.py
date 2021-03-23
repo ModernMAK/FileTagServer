@@ -9,7 +9,7 @@ from src.page_groups import routing
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.util.collection_util import get_unique_values_on_key
 from src.util.db_util import sanitize
-from src.util.mytyping import LiteSpeedRequest
+from src.util.litespeedx import Request
 
 FileData = Dict[str, Any]
 FileDataList = List[FileData]
@@ -306,7 +306,7 @@ class ApiPageGroup(PageGroup):
             return result
 
     @classmethod
-    def serve_api_request(cls, request: LiteSpeedRequest, format: str,
+    def serve_api_request(cls, request: Request, format: str,
                           func: Callable) -> Union[ServeResponse, Dict[Any, Any]]:
         results = func(**request['GET'])
         results = {'result': results}
@@ -326,11 +326,11 @@ class ApiPageGroup(PageGroup):
     #     return cls.serve_api_request(request, format, Api.get_search_count)
 
     @classmethod
-    def get_tag_list(cls, request: LiteSpeedRequest, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
+    def get_tag_list(cls, request: Request, format: str) -> Union[ServeResponse, Dict[Any, Any]]:
         return cls.serve_api_request(request, format, TagApi.get_list)
 
     @classmethod
-    def get_tag_autocorrect(cls, request: LiteSpeedRequest, format:str):
+    def get_tag_autocorrect(cls, request: Request, format:str):
         return cls.serve_api_request(request, "json", TagApi.get_autocorrect)
 
 

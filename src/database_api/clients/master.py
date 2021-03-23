@@ -15,7 +15,7 @@ class MasterClient(BaseClient):
         self.map = FileTagMapClient(db_path=db_path)
 
     def create_all(self):
-        self.file.create()
+        self.file.init_tables()
         self.tag.create()
         self.map.create()
         self.file_info.create()

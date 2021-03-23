@@ -1,5 +1,6 @@
 import sqlite3
-from typing import Tuple, List, Dict, Any
+from sqlite3 import Cursor, Row
+from typing import Tuple, List, Dict, Any, Iterable
 
 from src.database_api.clients.shared import AbstractTable
 from src.database_api.util import BaseClient, sql_select_from, sql_in, sql_in_like, sql_order_by, sql_limit, sql_offset, \
@@ -7,166 +8,71 @@ from src.database_api.util import BaseClient, sql_select_from, sql_in, sql_in_li
     sql_insert_into, sql_and_clauses
 from sqlite3 import Cursor
 
-class FileTable(AbstractTable):
 
-    table = "file"
-
-    id = 'id'
-    name = 'name'
-    description = 'description'
-    path = 'path'
-    mimetype = 'mime'
-
-    id_qualified = AbstractTable.qualify_name(table, id)
-    name_qualified = AbstractTable.qualify_name(table, name)
-    description_qualified = AbstractTable.qualify_name(table, description)
-    path_qualified = AbstractTable.qualify_name(table, path)
-    mimetype_qualified = AbstractTable.qualify_name(table, mimetype)
-
-    @classmethod
-    def create_table(cls, cursor:Cursor):
-        columns = [
-            f"{cls.id} INTEGER PRIMARY KEY AUTOINCREMENT",
-            f"{cls.path} TEXT",
-            f"{cls.mimetype} TINYTEXT",
-            f"{cls.name} TINYTEXT",
-            f"{cls.description} TEXT",
-            f"CONSTRAINT {cls.path}_unique UNIQUE ({cls.path})"
-        ]
-        query = f"CREATE TABLE IF NOT EXISTS {cls.table} ({', '.join(columns)});"
-        cursor.execute(query)
-
-
-
-
-    # @classmethod
-    # def get_files_by_ids_query(cls, cursor, ids:List[int]):
-    #     query = f"SELECT {cls.id}, {cls.path}, {cls.mimetype}, {cls.name}, {cls.description} FROM {cls.table} WHERE {cls.id} IN (%s)"
-    #
-    #
-    #     query = sql_select_from(mapping, FileTable.table)
-    #     constraint_clauses = [
-    #         sql_in(f'{FileTable.id_qualified}', ids),
-    #         sql_in(f'{FileTable.path_qualified}', paths),
-    #         sql_in(f'{FileTable.mimetype_qualified}', mimes),
-    #         sql_in_like(f'{FileTable.mimetype_qualified}', mime_likes),
-    #         sql_in_like(f'{FileTable.name_qualified}', name_likes),
-    #         sql_in_like(f'{FileTable.description_qualified}', desc_likes)
-    #     ]
-    #
-    #     constraint_clause = sql_and_clauses(constraint_clauses)
-    #     structure_clauses = []
-    #     for (name, asc) in order_by:
-    #         structure_clauses.append(sql_order_by(name, asc))
-    #     structure_clauses.append(sql_limit(limit))
-    #     structure_clauses.append(sql_offset(offset))
-    #
-    #     return sql_assemble_query(query, constraint_clause, structure_clauses)
-
-
-    # def get_files_by_page_query(self, page:int, size:int):
-
-    # def get_files_by_range_query(self, start:int, stop:int):
-
-
-
-
-
-class FileClient(BaseClient):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+class SqlHelper:
+    @staticmethod
+    def read_sql_file(file: str):
+        with open(file) as f:
+            return f.read()
 
     @staticmethod
-    def _get_mapping() -> Tuple:
-        return 'id', 'name', 'description', 'path', 'mime'
+    def file_execute(cursor: Cursor, file: str, params: Iterable = None):
+        with open(file) as f:
+            query = f.read()
+            cursor.execute(query, params)
 
-    @classmethod
-    def get_select_query(cls,
-                         limit: int = None, offset: int = None,
-                         ids: List[int] = None, paths: List[str] = None, mimes: List[str] = None,
-                         mime_likes: List[int] = None, name_likes: List[str] = None, desc_likes: List[str] = None,
-                         order_by: List[Tuple[str, bool]] = None,
-                         **kwargs):
+    @staticmethod
+    def file_execute_many(cursor: Cursor, file: str, params: Iterable = None):
+        with open(file) as f:
+            query = f.read()
+            cursor.executemany(query, params)
 
-        mapping = cls._get_mapping()
+    class File:
+        @staticmethod
+        def create(cursor: Cursor):
+            SqlHelper.file_execute(cursor, "/sql/file/create.sql")
 
-        if order_by is None:
-            order_by = [('id', True)]
+        @staticmethod
+        def insert(cursor: Cursor, params: Iterable):
+            SqlHelper.file_execute(cursor, "/sql/file/insert.sql", params)
 
-        query = sql_select_from(mapping, FileTable.table)
-        constraint_clauses = [
-            sql_in(f'{FileTable.id_qualified}', ids),
-            sql_in(f'{FileTable.path_qualified}', paths),
-            sql_in(f'{FileTable.mimetype_qualified}', mimes),
-            sql_in_like(f'{FileTable.mimetype_qualified}', mime_likes),
-            sql_in_like(f'{FileTable.name_qualified}', name_likes),
-            sql_in_like(f'{FileTable.description_qualified}', desc_likes)
-        ]
+        @staticmethod
+        def insert_many(cursor: Cursor, params: Iterable):
+            SqlHelper.file_execute_many(cursor, "/sql/file/insert.sql", params)
 
-        constraint_clause = sql_and_clauses(constraint_clauses)
-        structure_clauses = []
-        for (name, asc) in order_by:
-            structure_clauses.append(sql_order_by(name, asc))
-        structure_clauses.append(sql_limit(limit))
-        structure_clauses.append(sql_offset(offset))
 
-        return sql_assemble_query(query, constraint_clause, structure_clauses)
 
-    @classmethod
-    def get_create_table_query(cls):
-        values = [
-            sql_create_table_value(FileTable.id, 'INTEGER', sql_assemble_modifiers(True, True)),
 
-            sql_create_table_value(FileTable.path, 'TEXT'),
-            sql_create_table_value(FileTable.mimetype, "TINYTEXT"),
-
-            sql_create_table_value(FileTable.name, "TINYTEXT"),
-            sql_create_table_value(FileTable.description, 'TEXT'),
-
-            sql_create_unique_value(f'{FileTable.path}_unique', ['path'])
-        ]
-        return sql_create_table(FileTable.table, values)
-
-    def create(self):
-        query = self.get_create_table_query()
-        return self._execute(query)
-
-    def fetch(self, **kwargs) -> List[Dict[str, Any]]:
-        """
-            Returns a list, each element is formatted as such:
-                id          ~ the file's internal id
-                name        ~ the display name for the file
-                description ~ the description for the file
-                path        ~ the local path to the file
-                mime        ~ the mimetype of the file
-        """
-
-        query = self.get_select_query(**kwargs)
-        mapping = self._get_mapping()
-        return self._fetch_all_mapped(query, mapping)
-
-    def fetch_lookup(self, key: str = None, **kwargs) -> Dict[Any, Dict[str, Any]]:
-        """
-            Returns a lookup table, if two items have the same key, the last one processed is used.
-            Each element is formatted as such:
-                id      ~ the file's internal id
-                name    ~ the display name for the file
-                description    ~ the description for the file
-                path    ~ the local path to the file
-                mime    ~ the mimetype of the file
-        """
-        if key is None:
-            key = FileTable.id
-        query = self.get_select_query(**kwargs)
-        mapping = self._get_mapping()
-        return self._fetch_all_lookup(query, mapping, key)
-
-    def count(self, **kwargs) -> int:
-        query = self.get_select_query(**kwargs)
-        return self._count(query)
-
-    def insert(self, values: List[Tuple[str, str, str, str]]):
-        query = sql_insert_into(FileTable.table,
-                                [FileTable.path, FileTable.mimetype, FileTable.name, FileTable.description],
-                                values)
-        self._execute(query)
+# class FileClient(BaseClient):
+#     @classmethod
+#     def get_select_query(cls,
+#                          limit: int = None, offset: int = None,
+#                          ids: List[int] = None, paths: List[str] = None, mimes: List[str] = None,
+#                          mime_likes: List[int] = None, name_likes: List[str] = None, desc_likes: List[str] = None,
+#                          order_by: List[Tuple[str, bool]] = None,
+#                          **kwargs):
+#
+#         mapping = cls._get_mapping()
+#
+#         if order_by is None:
+#             order_by = [('id', True)]
+#
+#         query = sql_select_from(mapping, FileTable.table)
+#         constraint_clauses = [
+#             sql_in(f'{FileTable.id_qualified}', ids),
+#             sql_in(f'{FileTable.path_qualified}', paths),
+#             sql_in(f'{FileTable.mimetype_qualified}', mimes),
+#             sql_in_like(f'{FileTable.mimetype_qualified}', mime_likes),
+#             sql_in_like(f'{FileTable.name_qualified}', name_likes),
+#             sql_in_like(f'{FileTable.description_qualified}', desc_likes)
+#         ]
+#
+#         constraint_clause = sql_and_clauses(constraint_clauses)
+#         structure_clauses = []
+#         for (name, asc) in order_by:
+#             structure_clauses.append(sql_order_by(name, asc))
+#         structure_clauses.append(sql_limit(limit))
+#         structure_clauses.append(sql_offset(offset))
+#
+#         return sql_assemble_query(query, constraint_clause, structure_clauses)
+#
