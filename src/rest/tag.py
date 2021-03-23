@@ -5,7 +5,7 @@ from litespeed import App, start_with_args, route
 from litespeed.error import ResponseError
 
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
-from src.util.litespeedx import multiroute, Response, Request, JSend
+from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
 
@@ -53,6 +53,7 @@ __data_schema = {
 @route(url=__tags, no_end_slash=True, methods=["GET"])
 def get_tags(request: Request) -> Dict:
     with connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
         query = read_sql_file("static/sql/tag/select.sql")
@@ -78,6 +79,7 @@ def post_tags(request: Request) -> RestResponse:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         with connect(db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/insert.sql")
             cursor.execute(query, file_json)
@@ -89,7 +91,7 @@ def post_tags(request: Request) -> RestResponse:
             }
         return JSend.success(tag), ResponseCode.CREATED, {'Location': tag['url']}
     except DatabaseError as e:
-        return JSend.fail(e)
+        return JSend.fail(e.args[0])
 
 
 # File ================================================================================================================
@@ -107,6 +109,7 @@ def __get_single_tag_internal(cursor, id: str) -> Row:
 @route(__tag, no_end_slash=True, methods=["GET"])
 def get_tag(request: Request, id: str) -> RestResponse:
     with connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
         try:
@@ -121,13 +124,14 @@ def get_tag(request: Request, id: str) -> RestResponse:
 def delete_tag(request: Request, id: str) -> Dict:
     try:
         with connect(db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/delete_by_id.sql")
             cursor.execute(query, id)
             conn.commit()
         return JSend.success(f"Deleted tag '{id}'")
     except DatabaseError as e:
-        return JSend.fail(e)
+        return JSend.fail(e.args[0])
 
 
 @route(__tag, no_end_slash=True, methods=["PATCH"])
@@ -148,12 +152,13 @@ def patch_file(request: Request, id: str) -> RestResponse:
 
         payload['id'] = id
         with connect(db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(query, payload)
             conn.commit()
         return b'', ResponseCode.NO_CONTENT, {}
     except DatabaseError as e:
-        return JSend.fail(e)
+        return JSend.fail(e.args[0])
 
 
 @route(__tag, no_end_slash=True, methods=["PUT"])
@@ -170,6 +175,7 @@ def put_file(request: Request, id: str) -> RestResponse:
     try:
         payload['id'] = id
         with connect(db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/update.sql")
             cursor.execute(query, payload)
@@ -177,12 +183,4 @@ def put_file(request: Request, id: str) -> RestResponse:
 
         return b'', ResponseCode.NO_CONTENT, {}
     except DatabaseError as e:
-        return JSend.fail(e)
-#
-# if __name__ == "__main__":
-#     @route()
-#     def index(request: Request):
-#         return reference_redirect(request)
-#
-#
-#     start_with_args()
+        return JSend.fail(e.args[0])

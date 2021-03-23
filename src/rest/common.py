@@ -77,8 +77,82 @@ def init_tables():
         cursor.execute(read_sql_file("static/sql/file_tag/create.sql"))
         conn.commit()
 
+
+def parse_offset(get_args: Dict[str, str], errors: List[str], default_limit: int = 50) -> Union[
+    None, Tuple[int, Union[int, None]]]:
+    limit = get_args.get("limit")
+    offset = get_args.get("offset")
+    using_limit_offset = limit is not None or offset is not None
+
+    page = get_args.get("page")
+    size = get_args.get("size")
+    using_page_size = page is not None or size is not None
+
+    if using_limit_offset and using_page_size:
+        errors.append("Cannot use both Page-Size and Limit-Offset Modes")
+        return None
+    if not using_limit_offset or not using_page_size:
+        return default_limit, None
+
+    if using_page_size:
+        if page is not None:
+            page = int(page)
+            offset = (page - 1) * size
+        if size is None:
+            size = default_limit
+        else:
+            size = int(size)
+        limit = size
+    else:
+        if offset is not None:
+            offset = int(offset)
+
+        if limit is None:
+            limit = default_limit
+        else:
+            limit = int(size)
+    return limit, offset
+
+
+def parse_order(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
+    None, List[Tuple[str, bool]]]:
+    order_by = get_args.get("order_by")
+    if order_by is None:
+        return None
+    pairs = order_by.split(",")
+    formatted_pairs = []
+    for pair in pairs:
+        asc = True
+        name = pair
+        if pair[0] == "+":
+            asc = True
+            name = pair[1:].strip()
+        elif pair[0] == "-":
+            asc = False
+            name = pair[1:].strip()
+        if name not in allowed_fields:
+            errors.append("Unexpected field in order_by clause: 'name'")
+        formatted_pairs.append((name, asc))
+    return formatted_pairs
+
+
 if __name__ == "__main__":
     import src.rest.file
     import src.rest.tag
+
+
+    @route(methods=['GET'])
+    def index(request: Request):
+        urls = []
+        for url_info in App._urls:
+            url = url_info.url
+            if 'get' in url_info.methods:
+                urls.append(reformat_url(url))
+        return {'urls': urls}
+
+
+    for url_info in App._urls:
+        print(url_info.url)
+
     init_tables()
     start_with_args()
