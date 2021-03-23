@@ -5,7 +5,7 @@ from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
-from src.util.litespeedx import multiroute, Response, Request, JSend
+from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
 
@@ -356,6 +356,4 @@ if __name__ == "__main__":
     @route()
     def index(request: Request):
         return reference_redirect(request)
-
-
     start_with_args()
