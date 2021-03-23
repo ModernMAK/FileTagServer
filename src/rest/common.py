@@ -78,7 +78,21 @@ def init_tables():
         conn.commit()
 
 
-def parse_offset(get_args: Dict[str, str], errors: List[str], default_limit: int = 50) -> Union[
+def parse_field_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str], seperator=',') -> Union[
+    None, List[str]]:
+    if "fields" not in get_args:
+        return None
+    fields = get_args["fields"].split(seperator)
+    results = []
+    for field in fields:
+        if field not in allowed_fields:
+            errors.append(f"Cannot return field '{field}'; it is not allowed or does not exist.")
+        else:
+            results.append(field)
+    return results
+
+
+def parse_offset_request(get_args: Dict[str, str], errors: List[str], default_limit: int = 50) -> Union[
     None, Tuple[int, Union[int, None]]]:
     limit = get_args.get("limit")
     offset = get_args.get("offset")
@@ -114,9 +128,9 @@ def parse_offset(get_args: Dict[str, str], errors: List[str], default_limit: int
     return limit, offset
 
 
-def parse_order(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
+def parse_order_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
     None, List[Tuple[str, bool]]]:
-    order_by = get_args.get("order_by")
+    order_by = get_args.get("sort")
     if order_by is None:
         return None
     pairs = order_by.split(",")

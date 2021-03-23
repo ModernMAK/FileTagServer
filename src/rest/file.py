@@ -4,7 +4,8 @@ from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
-from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
+from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_order_request, \
+    parse_offset_request
 from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
@@ -48,6 +49,7 @@ def __reformat_tag_row(row: Row) -> Dict:
 
 # shared urls
 __files = r"api/files"
+__files_search = r"api/files/search"
 __file = r"api/files/(\d*)"
 # __file_alt = "api/files/:id:"
 __file_tags = r"api/files/(\d*)/tags"
@@ -80,14 +82,30 @@ __func_schema = {
 
 # Files ===============================================================================================================
 @route(url=__files, no_end_slash=True, methods=["GET"])
-def get_files(request: Request) -> Dict:
+def get_files(request: Request) -> RestResponse:
     arguments: Dict[str, str] = request['GET']
-    order_by = arguments.get("order")
+    allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
+    errors = []
+    sort_arg = parse_order_request(arguments, allowed_sorts, errors)
+
+    if len(errors) > 0:
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+
     with connect(db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
-        query = read_sql_file("static/sql/file/select.sql")
+        internal_query = read_sql_file("static/sql/file/select.sql", True)
+        query = f"SELECT * FROM ({internal_query})"
+
+        args = []
+        if sort_arg is not None:
+            sub = ", ".join(["? ?"] * len(sort_arg))
+            for field, asc in sort_arg:
+                args.append(field)
+                args.append("ASC" if asc else "DESC")
+            query += " SORT BY " + sub
+
         cursor.execute(query)
         rows = cursor.fetchall()
         formatted = []
@@ -123,6 +141,12 @@ def post_files(request: Request) -> RestResponse:
         return JSend.success(file), ResponseCode.CREATED, {'Location': file['url']}
     except DatabaseError as e:
         return JSend.fail(e.args[0])
+
+
+# Files Search ========================================================================================================
+@route(url=__files_search, no_end_slash=True, methods=["GET"])
+def get_files_search(request: Request) -> RestResponse:
+    return b'', 308, {'Location': __files}
 
 
 # File ================================================================================================================
