@@ -27,18 +27,21 @@ def reformat_url(url: str, base: str = None):
 
 def validate_required_fields(d: Dict, fields: List[Dict], errors: List[str]):
     for field in fields:
+        allowed_types = field['types']
         typename = field['type_description']
-        if field['name'] not in d:
+        name = field['name']
+        if name not in d:
             errors.append(f"Missing required field: '{field}'")
-        elif not isinstance(d[field], type):
-            errors.append(f"Field '{field}' did not receive expected type '{typename}', received '{d[field]}'")
+        elif not isinstance(d[name], allowed_types):
+            errors.append(f"Field '{name}' did not receive expected type '{typename}', received '{d[name]}'")
 
 
 def validate_expected_fields(d: Dict, fields: List[Dict], errors: List[str]):
     for field in fields:
         allowed_types = field['types']
         typename = field['type_description']
-        if field['name'] in d and not isinstance(d[field], allowed_types):
+        name = field['name']
+        if name in d and not isinstance(d[name], allowed_types):
             errors.append(f"Field '{field}' did not receive expected type '{typename}', received '{d[field]}'")
 
 
@@ -49,7 +52,8 @@ def validate_unexpected_fields(d: Dict, fields: List[str], errors: List[str]):
 
 
 def populate_optional(d: Dict, fields: List[Dict]):
-    for name in fields:
+    for field in fields:
+        name = field['name']
         if name not in d:
             d[name] = None
 

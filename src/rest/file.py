@@ -58,12 +58,12 @@ def __data_schema_helper(name: str, description: str, types: Iterable[type], wor
 
 
 __data_schema = {
-    'id': __data_schema_helper('id', "Id of the file", [int], "integer", True),
-    'name': __data_schema_helper('name', "Name of the file", [str], "string", False),
-    'path': __data_schema_helper('path', "Path/URI to the file", [str], "string", False),
-    'mime': __data_schema_helper('mime', "Mime-type of the file", [str], "string", False),
-    'description': __data_schema_helper('description', "Description of the file", [str], "string", False),
-    'tags': __data_schema_helper('tags', "List of tags for the file", [List[int]], "list of integers", True)
+    'id': __data_schema_helper('id', "Id of the file", (int,), "integer", True),
+    'name': __data_schema_helper('name', "Name of the file", (str,), "string", False),
+    'path': __data_schema_helper('path', "Path/URI to the file", (str,), "string", False),
+    'mime': __data_schema_helper('mime', "Mime-type of the file", (str,), "string", False),
+    'description': __data_schema_helper('description', "Description of the file", (str,), "string", False),
+    'tags': __data_schema_helper('tags', "List of tags for the file", (list,), "list of integers", True)
 }
 
 __func_schema = {
@@ -207,6 +207,7 @@ def put_file(request: Request, id: str) -> RestResponse:
 
 
 # File Tags ===========================================================================================================
+# READ
 @route(__file_tags, no_end_slash=True, methods=["GET"])
 def get_file_tags(request: Request, id: str) -> RestResponse:
     with connect(db_path) as conn:
@@ -226,12 +227,6 @@ def get_file_tags(request: Request, id: str) -> RestResponse:
         for tag in tags:
             formatted.append(__reformat_tag_row(tag))
         return JSend.success(formatted)
-
-
-# READ
-@route(__file_tags, no_end_slash=True, methods=["GET"])
-def patch_file_tags(request: Request, id: str):
-    pass
 
 
 # SET
@@ -256,7 +251,7 @@ def delete_file_tags(request: Request, id: str):
         with connect(db_path) as conn:
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file_tag/delete_pair.sql")
-            cursor.executemany(query, file_json)
+            cursor.executemany(query, file_tag_pairs)
             conn.commit()
         return b'', ResponseCode.NO_CONTENT, {}
     except DatabaseError as e:
@@ -266,7 +261,24 @@ def delete_file_tags(request: Request, id: str):
 # ADD
 @route(__file_tags, no_end_slash=True, methods=["POST"])
 def post_file_tags(request: Request, id: str):
-    pass
+    body = request['BODY']
+    file_json = json.loads(body)
+
+    required_fields = [__data_schema['tags']]
+    opt_fields = []
+    errors = []
+    if validate_fields(file_json, required_fields, opt_fields, errors):
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    try:
+        file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            query = read_sql_file("static/sql/file_tag/insert.sql")
+            cursor.executemany(query, file_tag_pairs)
+            conn.commit()
+        return b'', ResponseCode.NO_CONTENT, {}
+    except DatabaseError as e:
+        return JSend.fail(e)
 
 
 # UPDATE
@@ -294,6 +306,9 @@ def reference_redirect(request: Request):
 
 
 if __name__ == "__main__":
+    import src.rest.tag
+
+
     @route()
     def index(request: Request):
         return reference_redirect(request)
