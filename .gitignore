@@ -31,3 +31,5 @@ static/html/image/icon/bs/*
 /file/*
 config.ini
 settings.ini
+# Ignore old watch directory
+/Watch
