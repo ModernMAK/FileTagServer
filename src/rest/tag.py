@@ -25,7 +25,7 @@ def __reformat_tag_row(row: Row) -> Dict:
 
 # shared urls
 __tags = r"api/tags"
-__tag = r"api/tag/(\d*)"
+__tag = r"api/tags/(\d*)"
 
 
 # fields (name, type, type as word, default)

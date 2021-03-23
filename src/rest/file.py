@@ -1,7 +1,7 @@
 import json
 from os.path import join
 from typing import List, Dict, Union, Tuple, Type, Iterable
-from litespeed import App, start_with_args, route
+from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
@@ -23,7 +23,11 @@ def __reformat_file_row(row: Row) -> Dict:
         })
     return {
         'id': row['id'],
-        'url': reformat_url(f"api/files/{row['id']}"),
+        'urls': {
+            "self": reformat_url(f"{__files}/{row['id']}"),
+            "tags": reformat_url(f"{__files}/{row['id']}/tags"),
+            "data": reformat_url(f"{__files}/{row['id']}/data"),
+        },
         'internal_path': row['path'],
         'mime': row['mime'],
         'name': row['name'],
@@ -47,6 +51,7 @@ __files = r"api/files"
 __file = r"api/files/(\d*)"
 # __file_alt = "api/files/:id:"
 __file_tags = r"api/files/(\d*)/tags"
+__file_data = r"api/files/(\d*)/data"
 # __file_tags_alt = "api/files/:id:/tags"
 __reference = r"api-ref/files"
 
@@ -220,7 +225,8 @@ def get_file_tags(request: Request, id: str) -> RestResponse:
         tag_id_list: List[str] = [] if result['tags'] is None else result['tags'].split()
 
         internal_tag_query = read_sql_file("static/sql/tag/select.sql", True)
-        tag_query = f"SELECT * FROM ({internal_tag_query}) WHERE tag.id IN ({'?' * len(tag_id_list)}) "
+        sub = ', '.join('?' * len(tag_id_list))
+        tag_query = f"SELECT * FROM ({internal_tag_query}) WHERE id IN ({sub}) "
         cursor.execute(tag_query, tag_id_list)
         tags = cursor.fetchall()
         formatted = []
@@ -232,7 +238,29 @@ def get_file_tags(request: Request, id: str) -> RestResponse:
 # SET
 @route(__file_tags, no_end_slash=True, methods=["PUT"])
 def put_file_tags(request: Request, id: str):
-    pass
+    body = request['BODY']
+    file_json = json.loads(body)
+
+    required_fields = [__data_schema['tags']]
+    opt_fields = []
+    errors = []
+    if validate_fields(file_json, required_fields, opt_fields, errors):
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    try:
+        insert_args = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
+        delete_sub = ', '.join('?' * len(file_json['tags']))
+        delete_query = f"DELETE FROM file_tag WHERE file_tag.file_id = ? AND file_tag.tag_id NOT IN ({delete_sub});"
+        insert_query = f"INSERT OR IGNORE INTO file_tag (file_id, tag_id) VALUES (:file_id,:tag_ID)"
+        delete_args = [id] + file_json['tags']
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(delete_query, )
+            cursor.executemany(delete_query, delete_args)
+            cursor.executemany(insert_query, insert_args)
+            conn.commit()
+            return JSend.success(""), ResponseCode.NO_CONTENT
+    except DatabaseError as e:
+        return JSend.fail(e), ResponseCode.INTERNAL_SERVER_ERROR
 
 
 # REMOVE
@@ -287,6 +315,22 @@ def patch_file_tags(request: Request, id: str):
     pass
 
 
+# FILE DATA ================================================================================================= FILE DATA
+@route(__file_data, no_end_slash=True, methods=["GET"])
+def get_file_data(request: Request, id: str):
+    with connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.row_factory = Row
+        try:
+            result = __get_single_file_internal(cursor, id)
+        except ResponseError as e:
+            return JSend.fail(e.message), e.code
+
+        local_path = result['path']
+        range = request['HEADERS'].get('Range')
+        return serve(local_path, range, {"Accept-Ranges": "bytes"})
+
+
 # API REFERENCE ========================================================================================= API REFERENCE
 
 @route(__reference, no_end_slash=True, methods=["GET"])
@@ -294,9 +338,9 @@ def reference_files(request: Request):
     urls = []
     for url_info in App._urls:
         url = url_info.url
-        methods = ', '.join(url_info.methods)
-        urls.append({'url': reformat_url(url), 'methods': methods})
-    return {'urls': urls, 'data': __data_schema, 'func': __func_schema}
+        if 'get' in url_info.methods:
+            urls.append(reformat_url(url))
+    return {'urls': urls}
 
 
 @route(__reference + "/(.+)", methods=["GET"])
