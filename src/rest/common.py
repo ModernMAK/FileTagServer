@@ -257,9 +257,9 @@ def init_tables():
 #     pass
 #
 #
-# if __name__ == "__main__":
-#     print("\n".join(App._urls))
-#
-#     init_tables()
-#     add_routes()
-#     start_with_args()
+if __name__ == "__main__":
+    import src.rest.file
+    import src.rest.tag
+    # print("\n".join(App._urls))
+    init_tables()
+    start_with_args()

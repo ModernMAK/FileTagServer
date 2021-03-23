@@ -2,6 +2,7 @@ import json
 from os.path import join
 from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route
+from litespeed.error import ResponseError
 
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
 from src.util.litespeedx import multiroute, Response, Request, JSend
@@ -42,12 +43,12 @@ def __reformat_tag_row(row: Row) -> Dict:
 
 
 # shared urls
-__files = "api/files"
-__file = "api/files/(\d*)"
-__file_alt = "api/files/:id:"
-__file_tags = "api/files/(\d*)/tags"
-__file_tags_alt = "api/files/:id:/tags"
-__reference = "api-ref/files"
+__files = r"api/files"
+__file = r"api/files/(\d*)"
+# __file_alt = "api/files/:id:"
+__file_tags = r"api/files/(\d*)/tags"
+# __file_tags_alt = "api/files/:id:/tags"
+__reference = r"api-ref/files"
 
 
 # fields (name, type, type as word, default)
@@ -72,7 +73,8 @@ __func_schema = {
 }
 
 
-@route(__files, no_end_slash=True, methods="GET")
+# Files ===============================================================================================================
+@route(url=__files, no_end_slash=True, methods=["GET"])
 def get_files(request: Request) -> Dict:
     with connect(db_path) as conn:
         cursor = conn.cursor()
@@ -86,88 +88,8 @@ def get_files(request: Request) -> Dict:
         return JSend.success(formatted)
 
 
-@route(__file, no_end_slash=True, methods="GET")
-def get_file(request: Request, id: str) -> RestResponse:
-    with connect(db_path) as conn:
-        cursor = conn.cursor()
-        cursor.row_factory = Row
-        query = read_sql_file("static/sql/file/select_by_id.sql")
-        cursor.execute(query, id)
-        rows = cursor.fetchall()
-        if len(rows) < 1:
-            return JSend.fail(f"No file found with the given id: '{id}'"), ResponseCode.NOT_FOUND
-        elif len(rows) > 1:
-            return JSend.fail(f"Too many files found with the given id: '{id}'"), ResponseCode.CONFLICT
-        return JSend.success(__reformat_file_row(rows[0]))
-
-
-@route(__file, no_end_slash=True, methods="DELETE")
-def delete_file(request: Request, id: str) -> Dict:
-    try:
-        with connect(db_path) as conn:
-            cursor = conn.cursor()
-            query = read_sql_file("static/sql/file/delete_by_id.sql")
-            cursor.execute(query, id)
-            conn.commit()
-        return JSend.success(f"Deleted file '{id}'")
-    except DatabaseError as e:
-        return JSend.fail(e)
-
-
-@route(__file, no_end_slash=True, methods="PATCH")
-def patch_file(request: Request, id: str) -> RestResponse:
-    body = request['BODY']
-    file_json = json.loads(body)
-
-    required_fields = []
-    optional_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description'],
-                       __data_schema['path']]
-
-    errors = []
-
-    if validate_fields(file_json, required_fields, optional_fields, errors):
-        return JSend.fail(errors), ResponseCode.BAD_REQUEST
-    try:
-        parts: List[str] = [f"{key} = :{key}" for key in file_json]
-        query = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
-
-        file_json['id'] = id
-        with connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, file_json)
-            conn.commit()
-        return b'', ResponseCode.NO_CONTENT, {}
-    except DatabaseError as e:
-        return JSend.fail(e)
-
-
-@route(__file, no_end_slash=True, methods="PUT")
-def put_file(request: Request, id: str) -> RestResponse:
-    body = request['BODY']
-    file_json = json.loads(body)
-
-    required_fields = [__data_schema['name'], __data_schema['path'], __data_schema['mime'],
-                       __data_schema['description']]
-    opt_fields = []
-    errors = []
-
-    if validate_fields(file_json, required_fields, opt_fields, errors):
-        return JSend.fail(errors), ResponseCode.BAD_REQUEST
-    try:
-        file_json['id'] = id
-        with connect(db_path) as conn:
-            cursor = conn.cursor()
-            query = read_sql_file("static/sql/file/update.sql")
-            cursor.execute(query, file_json)
-            conn.commit()
-
-        return b'', ResponseCode.NO_CONTENT, {}
-    except DatabaseError as e:
-        return JSend.fail(e)
-
-
-@route(__file, no_end_slash=True, methods="POST")
-def post_file(request: Request) -> RestResponse:
+@route(url=__files, no_end_slash=True, methods=["POST"])
+def post_files(request: Request) -> RestResponse:
     body = request['BODY']
     file_json = json.loads(body)
     errors = []
@@ -194,21 +116,107 @@ def post_file(request: Request) -> RestResponse:
         return JSend.fail(e)
 
 
-@route(__file_tags, no_end_slash=True, methods="GET")
+# File ================================================================================================================
+def __get_single_file_internal(cursor, id: str) -> Row:
+    query = read_sql_file("static/sql/file/select_by_id.sql")
+    cursor.execute(query, id)
+    rows = cursor.fetchall()
+    if len(rows) < 1:
+        raise ResponseError(ResponseCode.NOT_FOUND, f"No file found with the given id: '{id}'")
+    elif len(rows) > 1:
+        raise ResponseError(ResponseCode.MULTIPLE_CHOICES, f"Too many files found with the given id: '{id}'")
+    return rows[0]
+
+
+@route(__file, no_end_slash=True, methods=["GET"])
+def get_file(request: Request, id: str) -> RestResponse:
+    with connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.row_factory = Row
+        try:
+            result = __get_single_file_internal(cursor, id)
+            result = __reformat_file_row(result)
+            return JSend.success(result)
+        except ResponseError as e:
+            return JSend.fail(e.message), e.code
+
+
+@route(__file, no_end_slash=True, methods=["DELETE"])
+def delete_file(request: Request, id: str) -> Dict:
+    try:
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            query = read_sql_file("static/sql/file/delete_by_id.sql")
+            cursor.execute(query, id)
+            conn.commit()
+        return JSend.success(f"Deleted file '{id}'")
+    except DatabaseError as e:
+        return JSend.fail(e)
+
+
+@route(__file, no_end_slash=True, methods=["PATCH"])
+def patch_file(request: Request, id: str) -> RestResponse:
+    body = request['BODY']
+    file_json = json.loads(body)
+
+    required_fields = []
+    optional_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description'],
+                       __data_schema['path']]
+
+    errors = []
+
+    if validate_fields(file_json, required_fields, optional_fields, errors):
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    try:
+        parts: List[str] = [f"{key} = :{key}" for key in file_json]
+        query = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
+
+        file_json['id'] = id
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, file_json)
+            conn.commit()
+        return b'', ResponseCode.NO_CONTENT, {}
+    except DatabaseError as e:
+        return JSend.fail(e)
+
+
+@route(__file, no_end_slash=True, methods=["PUT"])
+def put_file(request: Request, id: str) -> RestResponse:
+    body = request['BODY']
+    file_json = json.loads(body)
+
+    required_fields = [__data_schema['name'], __data_schema['path'], __data_schema['mime'],
+                       __data_schema['description']]
+    opt_fields = []
+    errors = []
+
+    if validate_fields(file_json, required_fields, opt_fields, errors):
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    try:
+        file_json['id'] = id
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            query = read_sql_file("static/sql/file/update.sql")
+            cursor.execute(query, file_json)
+            conn.commit()
+
+        return b'', ResponseCode.NO_CONTENT, {}
+    except DatabaseError as e:
+        return JSend.fail(e)
+
+
+# File Tags ===========================================================================================================
+@route(__file_tags, no_end_slash=True, methods=["GET"])
 def get_file_tags(request: Request, id: str) -> RestResponse:
     with connect(db_path) as conn:
         cursor = conn.cursor()
         cursor.row_factory = Row
-
-        file_query = read_sql_file("static/sql/file/select_by_id.sql")
-        cursor.execute(file_query, id)
-        files = cursor.fetchall()
-        if len(files) < 1:
-            return JSend.fail(f"No file found with the given id: '{id}'"), ResponseCode.NOT_FOUND
-        elif len(files) > 1:
-            return JSend.fail(f"Too many files found with the given id: '{id}'"), ResponseCode.CONFLICT
-
-        tag_id_list: List[str] = [] if files[0]['tags'] is None else files[0]['tags'].split()
+        try:
+            result = __get_single_file_internal(cursor, id)
+        except ResponseError as e:
+            return JSend.fail(e.message), e.code
+        tag_id_list: List[str] = [] if result['tags'] is None else result['tags'].split()
 
         internal_tag_query = read_sql_file("static/sql/tag/select.sql", True)
         tag_query = f"SELECT * FROM ({internal_tag_query}) WHERE tag.id IN ({'?' * len(tag_id_list)}) "
@@ -221,43 +229,65 @@ def get_file_tags(request: Request, id: str) -> RestResponse:
 
 
 # READ
-@route(__file_tags, no_end_slash=True, methods="GET")
-def patch_file_tags(request: Request):
+@route(__file_tags, no_end_slash=True, methods=["GET"])
+def patch_file_tags(request: Request, id: str):
     pass
 
 
 # SET
-@route(__file_tags, no_end_slash=True, methods="PUT")
-def put_file_tags(request: Request):
+@route(__file_tags, no_end_slash=True, methods=["PUT"])
+def put_file_tags(request: Request, id: str):
     pass
 
 
 # REMOVE
-@route(__file_tags, no_end_slash=True, methods="DELETE")
-def delete_file_tags(request: Request):
-    pass
+@route(__file_tags, no_end_slash=True, methods=["DELETE"])
+def delete_file_tags(request: Request, id: str):
+    body = request['BODY']
+    file_json = json.loads(body)
+
+    required_fields = [__data_schema['tags']]
+    opt_fields = []
+    errors = []
+    if validate_fields(file_json, required_fields, opt_fields, errors):
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    try:
+        file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
+        with connect(db_path) as conn:
+            cursor = conn.cursor()
+            query = read_sql_file("static/sql/file_tag/delete_pair.sql")
+            cursor.executemany(query, file_json)
+            conn.commit()
+        return b'', ResponseCode.NO_CONTENT, {}
+    except DatabaseError as e:
+        return JSend.fail(e)
 
 
 # ADD
-@route(__file_tags, no_end_slash=True, methods="POST")
-def post_file_tags(request: Request):
+@route(__file_tags, no_end_slash=True, methods=["POST"])
+def post_file_tags(request: Request, id: str):
     pass
 
 
 # UPDATE
-@route(__file_tags, no_end_slash=True, methods="PATCH")
-def patch_file_tags(request: Request):
+@route(__file_tags, no_end_slash=True, methods=["PATCH"])
+def patch_file_tags(request: Request, id: str):
     pass
 
 
 # API REFERENCE ========================================================================================= API REFERENCE
 
-@route(__reference, no_end_slash=True, methods="GET")
+@route(__reference, no_end_slash=True, methods=["GET"])
 def reference_files(request: Request):
-    return {'data': __data_schema, 'func': __func_schema}
+    urls = []
+    for url_info in App._urls:
+        url = url_info.url
+        methods = ', '.join(url_info.methods)
+        urls.append({'url': reformat_url(url), 'methods': methods})
+    return {'urls': urls, 'data': __data_schema, 'func': __func_schema}
 
 
-@route(__reference + "/(.+)", methods="GET")
+@route(__reference + "/(.+)", methods=["GET"])
 def reference_redirect(request: Request):
     url = reformat_url(__reference)
     return url, ResponseCode.SEE_OTHER, {'Location': url}
