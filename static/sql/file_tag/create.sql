@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS file_tag (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_id INTEGER,
     tag_id INTEGER,
     CONSTRAINT pair_unique UNIQUE (file_id, tag_id),

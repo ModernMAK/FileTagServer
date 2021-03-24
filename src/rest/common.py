@@ -128,7 +128,7 @@ def parse_offset_request(get_args: Dict[str, str], errors: List[str], default_li
     return limit, offset
 
 
-def parse_order_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
+def parse_sort_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
     None, List[Tuple[str, bool]]]:
     order_by = get_args.get("sort")
     if order_by is None:

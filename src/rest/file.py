@@ -4,7 +4,7 @@ from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
-from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_order_request, \
+from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_sort_request, \
     parse_offset_request
 import src.rest.common as rest
 from src.util.litespeedx import Response, Request, JSend
@@ -50,6 +50,7 @@ def __reformat_tag_row(row: Row) -> Dict:
 # shared urls
 __files = r"api/files"
 __files_search = r"api/files/search"
+__files_tags = r"api/files/tags"
 __file = r"api/files/(\d*)"
 __file_tags = r"api/files/(\d*)/tags"
 __file_data = r"api/files/(\d*)/data"
@@ -90,13 +91,15 @@ __func_schema = {
 }
 
 
+# SQL
+
 # Files ===============================================================================================================
 @route(url=__files, no_end_slash=True, methods=["GET"])
 def get_files(request: Request) -> RestResponse:
     arguments: Dict[str, str] = request['GET']
     allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
     errors = []
-    sort_arg = parse_order_request(arguments, allowed_sorts, errors)
+    sort_arg = parse_sort_request(arguments, allowed_sorts, errors)
 
     if len(errors) > 0:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
@@ -105,22 +108,23 @@ def get_files(request: Request) -> RestResponse:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
-        internal_query = read_sql_file("static/sql/file/select.sql", True)
-        query = f"SELECT * FROM ({internal_query})"
+        base_query = read_sql_file("static/sql/file/select.sql", True)
+        sub_queries = []
 
         args = []
         if sort_arg is not None:
             sort_str = []
             for field, asc in sort_arg:
                 sort_str.append(f"{field} {'ASC' if asc else 'DESC'}")
-            query += " ORDER BY " + ", ".join(sort_str)
+            sub_queries.append("ORDER BY " + ", ".join(sort_str))
 
+        query = base_query if len(sub_queries) == 0 else f"SELECT * FROM ({base_query}) {' '.join(sub_queries)}"
         cursor.execute(query, args)
         rows = cursor.fetchall()
         formatted = []
         for row in rows:
             formatted.append(__reformat_file_row(row))
-        return JSend.success(formatted)
+        return JSend.success(formatted), ResponseCode.OK
 
 
 @route(url=__files, no_end_slash=True, methods=["POST"])
@@ -150,6 +154,44 @@ def post_files(request: Request) -> RestResponse:
         return JSend.success(file), ResponseCode.CREATED, {'Location': file['url']}
     except DatabaseError as e:
         return JSend.fail(e.args[0])
+
+
+# Files Tags ==========================================================================================================
+@route(url=__files_tags, no_end_slash=True, methods=["GET"])
+def get_files_tags(request: Request) -> RestResponse:
+    arguments: Dict[str, str] = request['GET']
+    allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
+    errors = []
+    sort_arg = parse_sort_request(arguments, allowed_sorts, errors)
+
+    if len(errors) > 0:
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+
+    with connect(rest.db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = 1")
+        cursor = conn.cursor()
+        cursor.row_factory = Row
+        base_file_query = read_sql_file("static/sql/file/select.sql", True)
+        sub_queries = []
+
+        args = []
+        if sort_arg is not None:
+            sort_str = []
+            for field, asc in sort_arg:
+                sort_str.append(f"{field} {'ASC' if asc else 'DESC'}")
+            sub_queries.append("ORDER BY " + ", ".join(sort_str))
+
+        file_query = base_file_query if len(
+            sub_queries) == 0 else f"SELECT * FROM ({base_file_query}) {' '.join(sub_queries)}"
+        file_query = f"SELECT id FROM ({file_query})"
+
+        query = read_sql_file("static/sql/tag/select_by_file_query.sql").replace("<file_query>", file_query)
+        cursor.execute(query, args)
+        rows = cursor.fetchall()
+        formatted = []
+        for row in rows:
+            formatted.append(__reformat_tag_row(row))
+        return JSend.success(formatted), ResponseCode.OK
 
 
 # Files Search ========================================================================================================
@@ -360,11 +402,11 @@ def post_file_tags(request: Request, id: str):
         return JSend.fail(e.args[0])
 
 
-# UPDATE
-@route(__file_tags, no_end_slash=True, methods=["PATCH"])
-def patch_file_tags(request: Request, id: str):
-    pass
-
+# This is just a merged post/delete
+# # UPDATE
+# @route(__file_tags, no_end_slash=True, methods=["PATCH"])
+# def patch_file_tags(request: Request, id: str):
+#     pass
 
 # FILE DATA ================================================================================================= FILE DATA
 @route(__file_data, no_end_slash=True, methods=["GET"])
