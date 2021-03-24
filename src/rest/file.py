@@ -146,7 +146,14 @@ def post_files(request: Request) -> RestResponse:
 # Files Search ========================================================================================================
 @route(url=__files_search, no_end_slash=True, methods=["GET"])
 def get_files_search(request: Request) -> RestResponse:
-    return b'', 308, {'Location': __files}
+    def apply_get(path: str):
+        args: Dict = request['GET']
+        parts = [f"{k}={v}" for k, v in args.items()]
+        if len(parts) > 0:
+            return path + "?" + "&".join(parts)
+        return path
+
+    return b'', 308, {'Location': apply_get(__files)}
 
 
 # File ================================================================================================================
