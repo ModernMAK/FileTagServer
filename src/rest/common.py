@@ -78,11 +78,11 @@ def init_tables():
         conn.commit()
 
 
-def parse_field_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str], seperator=',') -> Union[
+def parse_field_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str], separator=',') -> Union[
     None, List[str]]:
     if "fields" not in get_args:
         return None
-    fields = get_args["fields"].split(seperator)
+    fields = get_args["fields"].split(separator)
     results = []
     for field in fields:
         if field not in allowed_fields:
@@ -137,7 +137,7 @@ def parse_order_request(get_args: Dict[str, str], allowed_fields: List[str], err
     formatted_pairs = []
     for pair in pairs:
         asc = True
-        name = pair
+        name = pair.strip()
         if pair[0] == "+":
             asc = True
             name = pair[1:].strip()
@@ -145,7 +145,7 @@ def parse_order_request(get_args: Dict[str, str], allowed_fields: List[str], err
             asc = False
             name = pair[1:].strip()
         if name not in allowed_fields:
-            errors.append("Unexpected field in order_by clause: 'name'")
+            errors.append(f"Unexpected field in order_by clause: '{name}'")
         formatted_pairs.append((name, asc))
     return formatted_pairs
 
@@ -161,6 +161,8 @@ if __name__ == "__main__":
         for url_info in App._urls:
             url = url_info.url
             if 'get' in url_info.methods:
+                if url == "/":
+                    url = ""
                 urls.append(reformat_url(url))
         return {'urls': urls}
 
@@ -168,5 +170,6 @@ if __name__ == "__main__":
     for url_info in App._urls:
         print(url_info.url)
 
+    src.rest.common.db_path = "examples/example.db"
     init_tables()
     start_with_args()

@@ -6,11 +6,11 @@ from litespeed.error import ResponseError
 
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_order_request, \
     parse_offset_request
+import src.rest.common as rest
 from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
 
-db_path = "local.db"
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
 
@@ -51,11 +51,21 @@ def __reformat_tag_row(row: Row) -> Dict:
 __files = r"api/files"
 __files_search = r"api/files/search"
 __file = r"api/files/(\d*)"
-# __file_alt = "api/files/:id:"
 __file_tags = r"api/files/(\d*)/tags"
 __file_data = r"api/files/(\d*)/data"
-# __file_tags_alt = "api/files/:id:/tags"
 __reference = r"api-ref/files"
+
+
+def __file_alt(id: int):
+    return fr"api/files/{id}"
+
+
+def __file_tags_alt(id: int):
+    return fr"api/files/{id}/tags"
+
+
+def __file_data_alt(id: int):
+    return fr"api/files/{id}/data"
 
 
 # fields (name, type, type as word, default)
@@ -91,7 +101,7 @@ def get_files(request: Request) -> RestResponse:
     if len(errors) > 0:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
 
-    with connect(db_path) as conn:
+    with connect(rest.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -100,13 +110,12 @@ def get_files(request: Request) -> RestResponse:
 
         args = []
         if sort_arg is not None:
-            sub = ", ".join(["? ?"] * len(sort_arg))
+            sort_str = []
             for field, asc in sort_arg:
-                args.append(field)
-                args.append("ASC" if asc else "DESC")
-            query += " SORT BY " + sub
+                sort_str.append(f"{field} {'ASC' if asc else 'DESC'}")
+            query += " ORDER BY " + ", ".join(sort_str)
 
-        cursor.execute(query)
+        cursor.execute(query, args)
         rows = cursor.fetchall()
         formatted = []
         for row in rows:
@@ -127,7 +136,7 @@ def post_files(request: Request) -> RestResponse:
     if len(errors) > 0:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/insert.sql")
@@ -153,7 +162,7 @@ def get_files_search(request: Request) -> RestResponse:
             return path + "?" + "&".join(parts)
         return path
 
-    return b'', 308, {'Location': apply_get(__files)}
+    return b'', 301, {'Location': apply_get(reformat_url(__files))}
 
 
 # File ================================================================================================================
@@ -170,7 +179,7 @@ def __get_single_file_internal(cursor, id: str) -> Row:
 
 @route(__file, no_end_slash=True, methods=["GET"])
 def get_file(request: Request, id: str) -> RestResponse:
-    with connect(db_path) as conn:
+    with connect(rest.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -185,7 +194,7 @@ def get_file(request: Request, id: str) -> RestResponse:
 @route(__file, no_end_slash=True, methods=["DELETE"])
 def delete_file(request: Request, id: str) -> Dict:
     try:
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/delete_by_id.sql")
@@ -214,7 +223,7 @@ def patch_file(request: Request, id: str) -> RestResponse:
         query = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
 
         file_json['id'] = id
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(query, file_json)
@@ -238,7 +247,7 @@ def put_file(request: Request, id: str) -> RestResponse:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_json['id'] = id
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/update.sql")
@@ -254,7 +263,7 @@ def put_file(request: Request, id: str) -> RestResponse:
 # READ
 @route(__file_tags, no_end_slash=True, methods=["GET"])
 def get_file_tags(request: Request, id: str) -> RestResponse:
-    with connect(db_path) as conn:
+    with connect(rest.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -292,7 +301,7 @@ def put_file_tags(request: Request, id: str):
         delete_query = f"DELETE FROM file_tag WHERE file_tag.file_id = ? AND file_tag.tag_id NOT IN ({delete_sub});"
         insert_query = f"INSERT OR IGNORE INTO file_tag (file_id, tag_id) VALUES (:file_id,:tag_id);"
         delete_args = [id] + file_json['tags']
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(delete_query, delete_args)
@@ -316,7 +325,7 @@ def delete_file_tags(request: Request, id: str):
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file_tag/delete_pair.sql")
@@ -340,7 +349,7 @@ def post_file_tags(request: Request, id: str):
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
-        with connect(db_path) as conn:
+        with connect(rest.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file_tag/insert.sql")
@@ -360,7 +369,7 @@ def patch_file_tags(request: Request, id: str):
 # FILE DATA ================================================================================================= FILE DATA
 @route(__file_data, no_end_slash=True, methods=["GET"])
 def get_file_data(request: Request, id: str):
-    with connect(db_path) as conn:
+    with connect(rest.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row

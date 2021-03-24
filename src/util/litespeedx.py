@@ -16,6 +16,7 @@ def render(renderer: renderer, file: str, cache_age: int = 0, headers: Optional[
     fixed_content = renderer.render(content, context)
     return fixed_content, status, header
 
+
 class JSend:
     @staticmethod
     def raw(status: str, data: Any = None, code: int = None, message: str = None):
