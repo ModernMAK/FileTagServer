@@ -4,12 +4,15 @@ from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
+from src.api.common import parse_sort_query
+from src.api.file import ValidationError
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_sort_request, \
     parse_offset_request
 import src.rest.common as rest
 from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
+import src.api as api
 
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
@@ -97,34 +100,16 @@ __func_schema = {
 @route(url=__files, no_end_slash=True, methods=["GET"])
 def get_files(request: Request) -> RestResponse:
     arguments: Dict[str, str] = request['GET']
-    allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
-    errors = []
-    sort_arg = parse_sort_request(arguments, allowed_sorts, errors)
+    sort_args = parse_sort_query(arguments.get("sort"))
+    try:
+        rows = api.file.get_files(sort_args)
+    except ValidationError as e:
+        return JSend.fail(e.errors), ResponseCode.BAD_REQUEST
 
-    if len(errors) > 0:
-        return JSend.fail(errors), ResponseCode.BAD_REQUEST
-
-    with connect(rest.db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = 1")
-        cursor = conn.cursor()
-        cursor.row_factory = Row
-        base_query = read_sql_file("static/sql/file/select.sql", True)
-        sub_queries = []
-
-        args = []
-        if sort_arg is not None:
-            sort_str = []
-            for field, asc in sort_arg:
-                sort_str.append(f"{field} {'ASC' if asc else 'DESC'}")
-            sub_queries.append("ORDER BY " + ", ".join(sort_str))
-
-        query = base_query if len(sub_queries) == 0 else f"SELECT * FROM ({base_query}) {' '.join(sub_queries)}"
-        cursor.execute(query, args)
-        rows = cursor.fetchall()
-        formatted = []
-        for row in rows:
-            formatted.append(__reformat_file_row(row))
-        return JSend.success(formatted), ResponseCode.OK
+    formatted = []
+    for row in rows:
+        formatted.append(__reformat_file_row(row))
+    return JSend.success(formatted), ResponseCode.OK
 
 
 @route(url=__files, no_end_slash=True, methods=["POST"])
@@ -160,38 +145,16 @@ def post_files(request: Request) -> RestResponse:
 @route(url=__files_tags, no_end_slash=True, methods=["GET"])
 def get_files_tags(request: Request) -> RestResponse:
     arguments: Dict[str, str] = request['GET']
-    allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
-    errors = []
-    sort_arg = parse_sort_request(arguments, allowed_sorts, errors)
+    sort_args = parse_sort_query(arguments.get("sort"))
+    try:
+        rows = api.file.get_files_tags(sort_args)
+    except ValidationError as e:
+        return JSend.fail(e.errors), ResponseCode.BAD_REQUEST
 
-    if len(errors) > 0:
-        return JSend.fail(errors), ResponseCode.BAD_REQUEST
-
-    with connect(rest.db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = 1")
-        cursor = conn.cursor()
-        cursor.row_factory = Row
-        base_file_query = read_sql_file("static/sql/file/select.sql", True)
-        sub_queries = []
-
-        args = []
-        if sort_arg is not None:
-            sort_str = []
-            for field, asc in sort_arg:
-                sort_str.append(f"{field} {'ASC' if asc else 'DESC'}")
-            sub_queries.append("ORDER BY " + ", ".join(sort_str))
-
-        file_query = base_file_query if len(
-            sub_queries) == 0 else f"SELECT * FROM ({base_file_query}) {' '.join(sub_queries)}"
-        file_query = f"SELECT id FROM ({file_query})"
-
-        query = read_sql_file("static/sql/tag/select_by_file_query.sql").replace("<file_query>", file_query)
-        cursor.execute(query, args)
-        rows = cursor.fetchall()
-        formatted = []
-        for row in rows:
-            formatted.append(__reformat_tag_row(row))
-        return JSend.success(formatted), ResponseCode.OK
+    formatted = []
+    for row in rows:
+        formatted.append(__reformat_tag_row(row))
+    return JSend.success(formatted), ResponseCode.OK
 
 
 # Files Search ========================================================================================================

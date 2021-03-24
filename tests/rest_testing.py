@@ -10,6 +10,7 @@ from shutil import copyfile
 
 from src.rest.file import App, __reformat_file_row
 from src.rest.tag import App
+import src.api.common as api
 import src.rest.common as rest
 
 source_db = "examples/example.db"
@@ -18,7 +19,7 @@ test_db = "examples/test.db"
 
 @pytest.fixture(scope="session", autouse=True)
 def create_db():
-    rest.db_path = source_db
+    api.db_path = source_db
     rest.init_tables()
     yield
 
@@ -68,7 +69,7 @@ def test_get_files():
         ),
         (
             {'sort': '+blanchin'},
-            dict_to_body(JSend.fail(["Unexpected field in order_by clause: \'blanchin\'"])),
+            dict_to_body(JSend.fail(json.loads('{"sort": ["Unexpected field \'blanchin\'; expected: id, name, mime, description, path"]}'))),
             HTTPStatus.BAD_REQUEST,
             {}
         ),
