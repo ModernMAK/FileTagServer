@@ -31,5 +31,12 @@ static/html/image/icon/bs/*
 /file/*
 config.ini
 settings.ini
+
 # Ignore old watch directory
 /Watch
+
+# Always write examples
+!examples/*
+
+# Except test.db which should be copied from our example.db
+examples/test.db
