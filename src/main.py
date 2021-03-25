@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     import src.page_groups.file
     import src.page_groups.static
+    import src.page_groups.rest
 
     # group.add_routes()
     # group.initialize()

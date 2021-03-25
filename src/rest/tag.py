@@ -4,6 +4,7 @@ from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route
 from litespeed.error import ResponseError
 
+from src import config
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
 import src.rest.common as rest
 from src.util.litespeedx import Response, Request, JSend
@@ -52,7 +53,7 @@ __data_schema = {
 # Tags ===============================================================================================================
 @route(url=__tags, no_end_slash=True, methods=["GET"])
 def get_tags(request: Request) -> Dict:
-    with connect(rest.db_path) as conn:
+    with connect(config.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -78,7 +79,7 @@ def post_tags(request: Request) -> RestResponse:
     if len(errors) > 0:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/insert.sql")
@@ -108,7 +109,7 @@ def __get_single_tag_internal(cursor, id: str) -> Row:
 
 @route(__tag, no_end_slash=True, methods=["GET"])
 def get_tag(request: Request, id: str) -> RestResponse:
-    with connect(rest.db_path) as conn:
+    with connect(config.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -123,7 +124,7 @@ def get_tag(request: Request, id: str) -> RestResponse:
 @route(__tag, no_end_slash=True, methods=["DELETE"])
 def delete_tag(request: Request, id: str) -> Dict:
     try:
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/delete_by_id.sql")
@@ -151,7 +152,7 @@ def patch_file(request: Request, id: str) -> RestResponse:
         query = f"UPDATE tag SET {', '.join(parts)} WHERE id = :id"
 
         payload['id'] = id
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(query, payload)
@@ -174,7 +175,7 @@ def put_file(request: Request, id: str) -> RestResponse:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         payload['id'] = id
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/tag/update.sql")

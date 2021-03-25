@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{page_title}}</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <link href="/css/api.css" rel="stylesheet">
+</head>
+<body>
+{{> navbar}}
+{{> file_subnavbar}}
+<div id="content">
+    <div class="row">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky pt-3">
+                <h4 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>API</span>
+                </h4>
+                <ul class="nav flex-column">
+                    {{#schema}}
+                    <li class="nav-item">
+                        <h5 class="nav-item">{{group}}</h5>
+                        <ul>
+                            {{#endpoints}}
+                            <li>
+                                <a class="nav-link active h6" href="{{url}}">{{{text}}}</a>
+                                <ul>
+                                    {{#methods}}
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="{{url}}"><span
+                                                class="badge {{badge}}">{{method}}</span> {{text}}</a>
+                                    </li>
+                                    {{/methods}}
+                                </ul>
+                            </li>
+                            {{/endpoints}}
+                        </ul>
+                    </li>
+                    {{/schema}}
+                </ul>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        {{#result}}
+                        {{#edit_page}}
+                        <a class="nav-link active" href="{{edit_page}}">Edit</a>
+                        {{/edit_page}}
+                        {{^edit_page}}
+                        Editing Disabled
+                        {{/edit_page}}
+                        {{/result}}
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <!--        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">-->
+        <main role="main" class="container-fluid">
+
+        </main>
+        <!--        </div>-->
+    </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
+</body>
+</html>
