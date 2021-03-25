@@ -4,10 +4,10 @@ from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
 
+from src import config
 from src.api.common import parse_sort_query
 from src.api.file import ValidationError
-from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional, parse_sort_request, \
-    parse_offset_request
+from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
 import src.rest.common as rest
 from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
@@ -99,17 +99,18 @@ __func_schema = {
 # Files ===============================================================================================================
 @route(url=__files, no_end_slash=True, methods=["GET"])
 def get_files(request: Request) -> RestResponse:
+    # Parse individual api arguments; data is validated at the api level
     arguments: Dict[str, str] = request['GET']
     sort_args = parse_sort_query(arguments.get("sort"))
+    # Try api call; if invalid, fetch errors from validation error and return Bad Request
     try:
         rows = api.file.get_files(sort_args)
+        formatted = []
+        for row in rows:
+            formatted.append(__reformat_file_row(row))
+        return JSend.success(formatted), ResponseCode.OK
     except ValidationError as e:
         return JSend.fail(e.errors), ResponseCode.BAD_REQUEST
-
-    formatted = []
-    for row in rows:
-        formatted.append(__reformat_file_row(row))
-    return JSend.success(formatted), ResponseCode.OK
 
 
 @route(url=__files, no_end_slash=True, methods=["POST"])
@@ -125,7 +126,7 @@ def post_files(request: Request) -> RestResponse:
     if len(errors) > 0:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/insert.sql")
@@ -144,17 +145,18 @@ def post_files(request: Request) -> RestResponse:
 # Files Tags ==========================================================================================================
 @route(url=__files_tags, no_end_slash=True, methods=["GET"])
 def get_files_tags(request: Request) -> RestResponse:
+    # Parse individual api arguments; data is validated at the api level
     arguments: Dict[str, str] = request['GET']
     sort_args = parse_sort_query(arguments.get("sort"))
+    # Try api call; if invalid, fetch errors from validation error and return Bad Request
     try:
         rows = api.file.get_files_tags(sort_args)
+        formatted = []
+        for row in rows:
+            formatted.append(__reformat_tag_row(row))
+        return JSend.success(formatted), ResponseCode.OK
     except ValidationError as e:
         return JSend.fail(e.errors), ResponseCode.BAD_REQUEST
-
-    formatted = []
-    for row in rows:
-        formatted.append(__reformat_tag_row(row))
-    return JSend.success(formatted), ResponseCode.OK
 
 
 # Files Search ========================================================================================================
@@ -184,7 +186,7 @@ def __get_single_file_internal(cursor, id: str) -> Row:
 
 @route(__file, no_end_slash=True, methods=["GET"])
 def get_file(request: Request, id: str) -> RestResponse:
-    with connect(rest.db_path) as conn:
+    with connect(config.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -199,7 +201,7 @@ def get_file(request: Request, id: str) -> RestResponse:
 @route(__file, no_end_slash=True, methods=["DELETE"])
 def delete_file(request: Request, id: str) -> Dict:
     try:
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/delete_by_id.sql")
@@ -228,7 +230,7 @@ def patch_file(request: Request, id: str) -> RestResponse:
         query = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
 
         file_json['id'] = id
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(query, file_json)
@@ -252,7 +254,7 @@ def put_file(request: Request, id: str) -> RestResponse:
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_json['id'] = id
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file/update.sql")
@@ -268,7 +270,7 @@ def put_file(request: Request, id: str) -> RestResponse:
 # READ
 @route(__file_tags, no_end_slash=True, methods=["GET"])
 def get_file_tags(request: Request, id: str) -> RestResponse:
-    with connect(rest.db_path) as conn:
+    with connect(config.db_path) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()
         cursor.row_factory = Row
@@ -306,7 +308,7 @@ def put_file_tags(request: Request, id: str):
         delete_query = f"DELETE FROM file_tag WHERE file_tag.file_id = ? AND file_tag.tag_id NOT IN ({delete_sub});"
         insert_query = f"INSERT OR IGNORE INTO file_tag (file_id, tag_id) VALUES (:file_id,:tag_id);"
         delete_args = [id] + file_json['tags']
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             cursor.execute(delete_query, delete_args)
@@ -330,7 +332,7 @@ def delete_file_tags(request: Request, id: str):
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file_tag/delete_pair.sql")
@@ -354,7 +356,7 @@ def post_file_tags(request: Request, id: str):
         return JSend.fail(errors), ResponseCode.BAD_REQUEST
     try:
         file_tag_pairs = [{'file_id': id, 'tag_id': tag} for tag in file_json['tags']]
-        with connect(rest.db_path) as conn:
+        with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
             cursor = conn.cursor()
             query = read_sql_file("static/sql/file_tag/insert.sql")
@@ -374,22 +376,15 @@ def post_file_tags(request: Request, id: str):
 # FILE DATA ================================================================================================= FILE DATA
 @route(__file_data, no_end_slash=True, methods=["GET"])
 def get_file_data(request: Request, id: str):
-    with connect(rest.db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = 1")
-        cursor = conn.cursor()
-        cursor.row_factory = Row
-        try:
-            result = __get_single_file_internal(cursor, id)
-        except ResponseError as e:
-            return JSend.fail(e.message), e.code
-
-        local_path = result['path']
+    try:
+        id = int(id)
         range = request['HEADERS'].get('Range')
-        return serve(local_path, range, {"Accept-Ranges": "bytes"})
+        return api.file.get_file_data(id, range)
+    except ResponseError as e:
+        return JSend.fail(e.message), e.code
 
 
-# API REFERENCE ========================================================================================= API REFERENCE
-
+# api REFERENCE ========================================================================================= api REFERENCE
 @route(__reference, no_end_slash=True, methods=["GET"])
 def reference_files(request: Request):
     pass

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from sqlite3 import Connection, Cursor, connect, Row
 from typing import List, Tuple, Optional
 
-db_path = None
+from src import config
 
 
 def __unexpected_field_error(name: str, expected: List[str]):
@@ -21,7 +21,7 @@ def __unallowed_field_error(name: str, allowed: List[str]):
 
 @contextmanager
 def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
-    path = path or db_path
+    path = path or config.db_path
     with connect(path, **kwargs) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
         cursor = conn.cursor()

@@ -32,7 +32,7 @@ def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts: List[s
     mc = MasterClient(db_path=db_dir)
 
     def exists_in_db(path: str):
-        result = mc.file.fetch(paths=[path])
+        result = mc.file_page.fetch(paths=[path])
         if result is None or len(result) == 0:
             return False
         return True
@@ -45,17 +45,17 @@ def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts: List[s
         name = os.path.basename(path)
         desc = ""  # for now no desc
         value = (path, mime, name, desc)
-        mc.file.insert([value])
+        mc.file_page.insert([value])
 
     def update_into_db(path: str):
-        current = mc.file.fetch(paths=[path])[0]
+        current = mc.file_page.fetch(paths=[path])[0]
         mime = mimetypes.guess_type(path)[0]
         if mime is None:
             mime = ""
-        mc.file._execute(f"UPDATE file SET mime = '{mime}' where id = '{current['id']}'")
+        mc.file_page._execute(f"UPDATE file SET mime = '{mime}' where id = '{current['id']}'")
 
     def update_extra_info(path:str):
-        current = mc.file.fetch(paths=[path])[0]
+        current = mc.file_page.fetch(paths=[path])[0]
         id = current['id']
         size = os.stat(path).st_size
 

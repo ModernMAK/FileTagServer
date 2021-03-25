@@ -6,7 +6,6 @@ from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
 
-db_path = "local.db"
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
 
@@ -69,7 +68,7 @@ def validate_fields(d: Dict, req_fields: List[Dict], opt_fields: List[Dict],
     return len(errors) > 0
 
 
-def init_tables():
+def init_tables(db_path):
     with connect(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute(read_sql_file("static/sql/file/create.sql"))
@@ -127,49 +126,24 @@ def parse_offset_request(get_args: Dict[str, str], errors: List[str], default_li
             limit = int(size)
     return limit, offset
 
-
-def parse_sort_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
-    None, List[Tuple[str, bool]]]:
-    order_by = get_args.get("sort")
-    if order_by is None:
-        return None
-    pairs = order_by.split(",")
-    formatted_pairs = []
-    for pair in pairs:
-        asc = True
-        name = pair.strip()
-        if pair[0] == "+":
-            asc = True
-            name = pair[1:].strip()
-        elif pair[0] == "-":
-            asc = False
-            name = pair[1:].strip()
-        if name not in allowed_fields:
-            errors.append(f"Unexpected field in order_by clause: '{name}'")
-        formatted_pairs.append((name, asc))
-    return formatted_pairs
-
-
-if __name__ == "__main__":
-    import src.rest.file
-    import src.rest.tag
-
-
-    @route(methods=['GET'])
-    def index(request: Request):
-        urls = []
-        for url_info in App._urls:
-            url = url_info.url
-            if 'get' in url_info.methods:
-                if url == "/":
-                    url = ""
-                urls.append(reformat_url(url))
-        return {'urls': urls}
-
-
-    for url_info in App._urls:
-        print(url_info.url)
-
-    src.rest.common.db_path = "examples/example.db"
-    init_tables()
-    start_with_args()
+#
+# def parse_sort_request(get_args: Dict[str, str], allowed_fields: List[str], errors: List[str]) -> Union[
+#     None, List[Tuple[str, bool]]]:
+#     order_by = get_args.get("sort")
+#     if order_by is None:
+#         return None
+#     pairs = order_by.split(",")
+#     formatted_pairs = []
+#     for pair in pairs:
+#         asc = True
+#         name = pair.strip()
+#         if pair[0] == "+":
+#             asc = True
+#             name = pair[1:].strip()
+#         elif pair[0] == "-":
+#             asc = False
+#             name = pair[1:].strip()
+#         if name not in allowed_fields:
+#             errors.append(f"Unexpected field in order_by clause: '{name}'")
+#         formatted_pairs.append((name, asc))
+#     return formatted_pairs

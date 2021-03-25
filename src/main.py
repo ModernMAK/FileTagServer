@@ -1,28 +1,35 @@
 from litespeed import start_with_args, App
-from src.database_api.clients import MasterClient
+# from src.database_api.clients import MasterClient
 import src.config as config
-from src.page_groups import FilePageGroup, StatusPageGroup, StaticGroup, TagPageGroup, UploadGroup
-from src.page_groups.api_page_group import ApiPageGroup
+# from src.page_groups import FilePageGroup, StatusPageGroup, StaticGroup, TagPageGroup, UploadGroup
+# from src.page_groups.api_page_group import ApiPageGroup
 
 if __name__ == '__main__':
-    client = MasterClient(db_path=config.db_path).create_all()
-    groups = [
-        StatusPageGroup,
-        FilePageGroup,
-        TagPageGroup,
-        StaticGroup,
-        UploadGroup,
-        ApiPageGroup
-    ]
+    # client = MasterClient(db_path=config.db_path).create_all()
+    # groups = [
+    #     StatusPageGroup,
+    #     FilePageGroup,
+    #     TagPageGroup,
+    #     StaticGroup,
+    #     UploadGroup,
+    #     ApiPageGroup
+    # ]
+    #
+    # for group in groups:
+    #     group.add_routes()
+    #     group.initialize()
 
-    for group in groups:
-        group.add_routes()
-        group.initialize()
+    # print("\n".join(App._urls))
 
-    print("\n".join(App._urls))
+    import src.rest.file
+    import src.rest.tag
 
-    group.add_routes()
-    group.initialize()
+    import src.page_groups.file
+    import src.page_groups.static
+
+    # group.add_routes()
+    # group.initialize()
+
     start_with_args()
 
     # WebPages
