@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from src import config
 from src.util.litespeedx import JSend
 from tests.litespeed_test import internal_fetch, assert_response, dict_to_body
 from src.rest.file import __files
@@ -19,8 +20,8 @@ test_db = "examples/test.db"
 
 @pytest.fixture(scope="session", autouse=True)
 def create_db():
-    api.db_path = source_db
-    rest.init_tables()
+    config.db_path = source_db
+    rest.init_tables(config.db_path)
     yield
 
 

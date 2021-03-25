@@ -14,22 +14,6 @@ a.badge-method-get:focus, a.badge-method-get.focus {
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
 }
 
-/*
-.badge-method-secondary {
-  color: #fff;
-  background-color: #6c757d;
-}
-a.badge-method-secondary:hover, a.badge-method-secondary:focus {
-  color: #fff;
-  background-color: #545b62;
-}
-
-a.badge-method-secondary:focus, a.badge-method-secondary.focus {
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.5);
-}
-*/
-
 .badge-method-post {
   color: #fff;
   background-color: #28a745;
@@ -65,12 +49,12 @@ a.badge-method-patch:focus, a.badge-method-patch.focus {
   background-color: #E69900; /* #ffc107; */
 }
 
-a.badge-method-warning:hover, a.badge-method-warning:focus {
+a.badge-method-put:hover, a.badge-method-put:focus {
   color:  #fff; /* #212529; */
   background-color: #B37700;/* #d39e00;*/
 }
 
-a.badge-method-warning:focus, a.badge-method-warning.focus {
+a.badge-method-put:focus, a.badge-method-put.focus {
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(230, 153, 7, 0.5);
 }
@@ -118,4 +102,21 @@ a.badge-method-not-allowed-l:hover, a.badge-method-not-allowed-l:focus {
 a.badge-method-not-allowed-l:focus, a.badge-method-not-allowed-l.focus {
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
+}
+
+
+
+.badge-method-not-allowed {
+  color: #999999;
+  background-color: transparent;
+}
+
+a.badge-method-not-allowed:hover, a.badge-method-not-allowed:focus {
+  color: #999999;
+  background-color: transparent;
+}
+
+a.badge-method-not-allowed:focus, a.badge-method-not-allowed.focus {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(150, 154, 157, 0.5);
 }

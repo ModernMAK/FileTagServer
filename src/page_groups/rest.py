@@ -35,7 +35,7 @@ def build_api_doc_method(purpose, page_url, method):
     return {'url': page_url, 'text': purpose, 'badge': f"badge-method-{method.lower()}", 'method': method}
 
 
-__endpoints = [
+__schema = [
     {
         'group': "Files",
         'endpoints': [
@@ -114,12 +114,53 @@ def index(request: Request) -> Response:
     serve_file = static.html.resolve_path("api/page_badge_all.html")
     result = serve(serve_file)
     context = {
-        'schema': __endpoints,
+        'schema': __schema,
         'navbar': get_navbar_context(),
         'subnavbar': {}
     }
     return reformat_serve(renderer, result, context)
 
+
+@route(url=__file, no_end_slash=True, methods=["GET"])
+def file(request: Request):
+    __file_schema_schema = {'get': '#GET', 'put': '#PUT', 'delete': '#DELETE', 'patch': '#PATCH'}
+    __file_schema = [
+        {
+            'method_lower': 'get',
+            'method_upper': 'GET',
+            'description': "Retrieves the specified file",
+            'schema': __file_schema_schema,
+            'arguments': {'required': [{'text': 'ID', 'description': "The ID of the file."}]}
+        },
+        {
+            'method_lower': 'put',
+            'method_upper': 'PUT',
+            'description': "Sets file information for the specified file",
+            'schema': __file_schema_schema
+        },
+        {
+            'method_lower': 'patch',
+            'method_upper': 'PATCH',
+            'description': "Updates file information for the specified file",
+            'schema': __file_schema_schema
+        },
+        {
+            'method_lower': 'delete',
+            'method_upper': 'DELETE',
+            'description': "Deletes the given file",
+            'schema': __file_schema_schema
+        }
+    ]
+
+    serve_file = static.html.resolve_path("api/page_badge_all.html")
+    result = serve(serve_file)
+    context = {
+        'schema': __schema,
+        'methods': __file_schema,
+        'navbar': get_navbar_context(),
+        'subnavbar': {}
+    }
+    return reformat_serve(renderer, result, context)
 #
 # class FilePageGroup(PageGroup):
 #     renderer = None

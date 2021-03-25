@@ -27,35 +27,35 @@
                             <li>
                                 <a class="nav-link active h6" href="{{url}}">{{{text}}}</a>
                                 {{#get}}
-                                <a class="badge badge-method-get" href="{{url}}">GET</a>
+                                <a class="badge badge-method-get" href="{{get}}">GET</a>
                                 {{/get}}
                                 {{^get}}
                                 <div class="badge badge-method-not-allowed-l">GET</div>
                                 {{/get}}
 
                                 {{#post}}
-                                <a class="badge badge-method-post" href="{{url}}">POST</a>
+                                <a class="badge badge-method-post" href="{{post}}">POST</a>
                                 {{/post}}
                                 {{^post}}
                                 <div class="badge badge-method-not-allowed-l">POST</div>
                                 {{/post}}
 
                                 {{#put}}
-                                <a class="badge badge-method-put" href="{{url}}">PUT</a>
+                                <a class="badge badge-method-put" href="{{put}}">PUT</a>
                                 {{/put}}
                                 {{^put}}
                                 <div class="badge badge-method-not-allowed-l">PUT</div>
                                 {{/put}}
 
                                 {{#patch}}
-                                <a class="badge badge-method-patch" href="{{url}}">PATCH</a>
+                                <a class="badge badge-method-patch" href="{{patch}}">PATCH</a>
                                 {{/patch}}
                                 {{^patch}}
                                 <div class="badge badge-method-not-allowed-l">PATCH</div>
                                 {{/patch}}
 
                                 {{#delete}}
-                                <a class="badge badge-method-delete" href="{{url}}">DELETE</a>
+                                <a class="badge badge-method-delete" href="{{delete}}">DELETE</a>
                                 {{/delete}}
                                 {{^delete}}
                                 <div class="badge badge-method-not-allowed-l">DELETE</div>
@@ -66,25 +66,72 @@
                     </li>
                     {{/schema}}
                 </ul>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        {{#result}}
-                        {{#edit_page}}
-                        <a class="nav-link active" href="{{edit_page}}">Edit</a>
-                        {{/edit_page}}
-                        {{^edit_page}}
-                        Editing Disabled
-                        {{/edit_page}}
-                        {{/result}}
-                    </li>
-                </ul>
             </div>
         </nav>
-        <!--        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">-->
-        <main role="main" class="container-fluid">
+        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+            <main role="main" class="container-fluid">
+                {{#methods}}
+                <div class="card" id="{{method_upper}}">
+                    <h5 class="card-header badge-method-{{method_lower}}">{{method_upper}}</h5>
+                    <div class="card-body">
+                        <p class="card-text">{{description}}</p>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {{#arguments}}
+                        <li class="list-group-item">
+                            <h6>Arguments</h6>
+                            <dl class="card_body" style="list-style-type: none;">
+                                {{#required}}
+                                <dt class="h6">{{text}}</dt>
+                                <dd>{{description}}</dd>
+                                {{/required}}
+                            </dl>
+                        </li>
+                        {{/arguments}}
+                    </ul>
+                    <div class="card-footer">
+                        {{#schema}}
+                        {{#get}}
+                        <a class="badge badge-method-get" href="{{get}}">GET</a>
+                        {{/get}}
+                        {{^get}}
+                        <div class="badge badge-method-not-allowed-l">GET</div>
+                        {{/get}}
 
-        </main>
-        <!--        </div>-->
+                        {{#post}}
+                        <a class="badge badge-method-post" href="{{post}}">POST</a>
+                        {{/post}}
+                        {{^post}}
+                        <div class="badge badge-method-not-allowed-l">POST</div>
+                        {{/post}}
+
+                        {{#put}}
+                        <a class="badge badge-method-put" href="{{put}}">PUT</a>
+                        {{/put}}
+                        {{^put}}
+                        <div class="badge badge-method-not-allowed-l">PUT</div>
+                        {{/put}}
+
+                        {{#patch}}
+                        <a class="badge badge-method-patch" href="{{patch}}">PATCH</a>
+                        {{/patch}}
+                        {{^patch}}
+                        <div class="badge badge-method-not-allowed-l">PATCH</div>
+                        {{/patch}}
+
+                        {{#delete}}
+                        <a class="badge badge-method-delete" href="{{delete}}">DELETE</a>
+                        {{/delete}}
+                        {{^delete}}
+                        <div class="badge badge-method-not-allowed-l">DELETE</div>
+                        {{/delete}}
+                        {{/schema}}
+                    </div>
+                </div>
+                <br>
+                {{/methods}}
+            </main>
+        </div>
     </div>
 </div>
 
