@@ -1,0 +1,160 @@
+:root {
+  --method-not-allowed: #f8f9fa;
+}
+
+.table-method-not-allowed,
+.table-method-not-allowed > th,
+.table-method-not-allowed > td {
+  background-color: #fdfdfe;
+}
+
+.table-method-not-allowed th,
+.table-method-not-allowed td,
+.table-method-not-allowed thead th,
+.table-method-not-allowed tbody + tbody {
+  border-color: #fbfcfc;
+}
+
+.table-hover .table-method-not-allowed:hover {
+  background-color: #ececf6;
+}
+
+.table-hover .table-method-not-allowed:hover > td,
+.table-hover .table-method-not-allowed:hover > th {
+  background-color: #ececf6;
+}
+.table .thead-method-not-allowed th {
+  color: #495057;
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+}
+.btn-method-not-allowed {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-method-not-allowed:hover {
+  color: #212529;
+  background-color: #e2e6ea;
+  border-color: #dae0e5;
+}
+
+.btn-method-not-allowed:focus, .btn-method-not-allowed.focus {
+  color: #212529;
+  background-color: #e2e6ea;
+  border-color: #dae0e5;
+  box-shadow: 0 0 0 0.2rem rgba(216, 217, 219, 0.5);
+}
+
+.btn-method-not-allowed.disabled, .btn-method-not-allowed:disabled {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-method-not-allowed:not(:disabled):not(.disabled):active, .btn-method-not-allowed:not(:disabled):not(.disabled).active,
+.show > .btn-method-not-allowed.dropdown-toggle {
+  color: #212529;
+  background-color: #dae0e5;
+  border-color: #d3d9df;
+}
+
+.btn-method-not-allowed:not(:disabled):not(.disabled):active:focus, .btn-method-not-allowed:not(:disabled):not(.disabled).active:focus,
+.show > .btn-method-not-allowed.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(216, 217, 219, 0.5);
+}
+
+.btn-outline-method-not-allowed {
+  color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-outline-method-not-allowed:hover {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-outline-method-not-allowed:focus, .btn-outline-method-not-allowed.focus {
+  box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
+}
+
+.btn-outline-method-not-allowed.disabled, .btn-outline-method-not-allowed:disabled {
+  color: #f8f9fa;
+  background-color: transparent;
+}
+
+.btn-outline-method-not-allowed:not(:disabled):not(.disabled):active, .btn-outline-method-not-allowed:not(:disabled):not(.disabled).active,
+.show > .btn-outline-method-not-allowed.dropdown-toggle {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-outline-method-not-allowed:not(:disabled):not(.disabled):active:focus, .btn-outline-method-not-allowed:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-method-not-allowed.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
+}
+
+.badge-method-not-allowed {
+  color: #212529;
+  background-color: #f8f9fa;
+}
+
+a.badge-method-not-allowed:hover, a.badge-method-not-allowed:focus {
+  color: #212529;
+  background-color: #dae0e5;
+}
+
+a.badge-method-not-allowed:focus, a.badge-method-not-allowed.focus {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
+}
+.alert-method-not-allowed {
+  color: #818182;
+  background-color: #fefefe;
+  border-color: #fdfdfe;
+}
+
+.alert-method-not-allowed hr {
+  border-top-color: #ececf6;
+}
+
+.alert-method-not-allowed .alert-link {
+  color: #686868;
+}
+.list-group-item-method-not-allowed {
+  color: #818182;
+  background-color: #fdfdfe;
+}
+
+.list-group-item-method-not-allowed.list-group-item-action:hover, .list-group-item-method-not-allowed.list-group-item-action:focus {
+  color: #818182;
+  background-color: #ececf6;
+}
+
+.list-group-item-method-not-allowed.list-group-item-action.active {
+  color: #fff;
+  background-color: #818182;
+  border-color: #818182;
+}
+.bg-method-not-allowed {
+  background-color: #f8f9fa !important;
+}
+
+a.bg-method-not-allowed:hover, a.bg-method-not-allowed:focus,
+button.bg-method-not-allowed:hover,
+button.bg-method-not-allowed:focus {
+  background-color: #dae0e5 !important;
+}
+.border-method-not-allowed {
+  border-color: #f8f9fa !important;
+}
+.text-method-not-allowed {
+  color: #f8f9fa !important;
+}
+
+a.text-method-not-allowed:hover, a.text-method-not-allowed:focus {
+  color: #cbd3da !important;
+}
