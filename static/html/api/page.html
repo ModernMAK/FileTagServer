@@ -38,11 +38,52 @@
         </nav>
         <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
             <main role="main" class="container-fluid">
-                {{#methods}}
                 <br>
+                {{#route}}
+                <div class="card">
+                    <h1 class="card-header">{{{url}}}</h1>
+                    <div class="btn-group">
+                        {{#method_links}}
+                        {{>api/method_button}}
+                        {{/method_links}}
+                    </div>
+                    <div class="card-body">{{description}}</div>
+                    <ul class="list-group list-group-flush">
+                        {{#has_arguments}}
+                        <li class="list-group-item">
+                            <table class="table">
+                                <caption class="h3" style="caption-side: top">Path Arguments</caption>
+                                <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#arguments}}
+                                <tr>
+                                    <td>{{name}}</td>
+                                    <td>{{type}}</td>
+                                    <td>{{description}}</td>
+                                </tr>
+                                {{/arguments}}
+                                </tbody>
+                            </table>
+                            {{/has_arguments}}
+                        </li>
+                    </ul>
+                </div>
+
+                {{/route}}
+                <br>
+                {{#methods}}
                 {{> api/method_card}}
+
                 <br>
                 {{/methods}}
+                <a class="btn btn-block btn-secondary text-center small" href="#">Back To Top</a>
+                <br>
             </main>
         </div>
     </div>

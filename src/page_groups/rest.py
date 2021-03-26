@@ -121,19 +121,42 @@ def index(request: Request) -> Response:
     return reformat_serve(renderer, result, context)
 
 
-def __build_footer_context(current: str, allowed: List[str]):
+def __build_method_cards_context(get=None, post=None, put=None, patch=None, delete=None):
+    __allowed_methods_lookup = {'GET': get, 'POST': post, 'PUT': put, 'PATCH': patch, 'DELETE': delete}
+    __allowed_methods: List[str] = [key for key, value in __allowed_methods_lookup.items() if value is not None]
+
+    r = []
+    for m in __allowed_methods:
+        d = {
+            'id': m,
+            'method_lower': m.lower(),
+            'method_upper': m,
+            'method_links': __build_method_card_footer_context(m, __allowed_methods)
+        }
+        d.update(__allowed_methods_lookup[m])
+        r.append(d)
+    return r, __allowed_methods
+
+
+def __build_method_card_footer_context(current: str, allowed: List[str], force_outline=False, force_filled=False):
     methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
     r = []
-    current = current.upper()
+    if current is not None:
+        current = current.upper()
     allowed = [t.upper() for t in allowed]
-    allowed.append(current)  # In case im dumb
+    if current is not None:
+        allowed.append(current)  # In case im dumb
+
     for m in methods:
+        is_current = current is not None and m == current
+        is_allowed = m in allowed
         d = {
             'method': m.lower(),
             'text': m.upper(),
             'href': "#" + m.upper(),
-            'current': m == current,
-            'allowed': m in allowed
+            'allowed': is_allowed,
+            'disabled': is_current or not is_allowed,
+            'outline': (not is_allowed or not force_filled) and (force_outline or not is_allowed or not is_current)
         }
         r.append(d)
     return r
@@ -141,47 +164,44 @@ def __build_footer_context(current: str, allowed: List[str]):
 
 @route(url=__file, no_end_slash=True, methods=["GET"])
 def file(request: Request):
-    __file_schema_schema = {'get': '#GET', 'put': '#PUT', 'delete': '#DELETE', 'patch': '#PATCH'}
-    __allowed_methods = ['GET', 'PUT', 'DELETE', 'PATCH']
-    __file_schema = [
-        {
-            'id': 'GET',
-            'method_links': __build_footer_context('GET', __allowed_methods),
-            'method_lower': 'get',
-            'method_upper': 'GET',
-            'description': "Retrieves the specified file",
-            'schema': __file_schema_schema,
-            'arguments': {'required': [{'text': 'ID', 'description': "The ID of the file."}]}
+    __file_schema, __allowed_methods = __build_method_cards_context(
+        get={'description': "Retrieves the specified file.",
+             'arguments': [{'name': 'fields', 'type': 'List[string]', 'optional': True,
+                            'description': 'List of fields to return from the resource.',
+                            'values': 'See File Model for valid values. See Requests for formatting a string list.'}],
+             'has_arguments': True,
+             },
+        put={
+            'description': "Sets file information for the specified file. All arguments must be provided. To perform a partial update, see #PATCH.",
+            'arguments': [
+                {'name': 'name', 'type': 'str', 'optional': False, 'description': 'Name of the file.', },
+                {'name': 'path', 'type': 'str', 'optional': False, 'description': 'Path/URL of the file.', },
+                {'name': 'mime', 'type': 'str', 'optional': False, 'description': 'Mimetype of the file.', },
+                {'name': 'description', 'type': 'str', 'optional': False, 'description': 'The file\'s description.', }
+            ],
+            'has_arguments': True, },
+        patch={
+            'description': "Updates file information for the specified file. Omitted arguments are not updated. To perform a full update, see #PUT.",
+            'arguments': [
+                {'name': 'name', 'type': 'str', 'optional': True, 'description': 'Name of the file.'},
+                {'name': 'path', 'type': 'str', 'optional': True, 'description': 'Path/URL of the file.', },
+                {'name': 'mime', 'type': 'str', 'optional': True, 'description': 'Mimetype of the file.', },
+                {'name': 'description', 'type': 'str', 'optional': True, 'description': 'The file\'s description.', }],
+            'has_arguments': True,
         },
-        {
-            'id': 'PUT',
-            'method_links': __build_footer_context('PUT', __allowed_methods),
-            'method_lower': 'put',
-            'method_upper': 'PUT',
-            'description': "Sets file information for the specified file",
-            'schema': __file_schema_schema
-        },
-        {
-            'id': 'PATCH',
-            'method_links': __build_footer_context('PATCH', __allowed_methods),
-            'method_lower': 'patch',
-            'method_upper': 'PATCH',
-            'description': "Updates file information for the specified file",
-            'schema': __file_schema_schema
-        },
-        {
-            'id': 'DELETE',
-            'method_links': __build_footer_context('DELETE', __allowed_methods),
-            'method_lower': 'delete',
-            'method_upper': 'DELETE',
-            'description': "Deletes the given file",
-            'schema': __file_schema_schema
-        }
-    ]
+        delete={'description': "Deletes the given file"},
+    )
 
     serve_file = static.html.resolve_path("api/page.html")
     result = serve(serve_file)
     context = {
+        'route': {
+            'url': '/api/files/<b>{id}</b>',
+            'description': 'Exposes operations on a File Resource.',
+            'arguments': [{'name': 'id', 'type': 'integer', 'description': 'The ID of the file.'}],
+            'method_links': __build_method_card_footer_context(None, __allowed_methods, force_filled=True),
+            'has_arguments': True,
+        },
         'schema': __schema,
         'methods': __file_schema,
         'navbar': get_navbar_context(),

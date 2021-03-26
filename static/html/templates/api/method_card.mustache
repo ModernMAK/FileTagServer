@@ -1,20 +1,34 @@
 <div class="card" id="{{id}}">
-    <h5 class="card-header badge-method-{{method_lower}}">{{method_upper}}</h5>
+    <h2 class="card-header badge-method-{{method_lower}}">{{method_upper}}</h2>
     <div class="card-body">
         <p class="card-text">{{description}}</p>
     </div>
     <ul class="list-group list-group-flush">
-        {{#arguments}}
+        {{#has_arguments}}
             <li class="list-group-item">
-                <h6>Arguments</h6>
-                <dl class="card_body" style="list-style-type: none;">
-                    {{#required}}
-                        <dt class="h6">{{text}}</dt>
-                        <dd>{{description}}</dd>
-                    {{/required}}
-                </dl>
+                <table class="table">
+                    <caption class="h3" style="caption-side: top">Query Arguments</caption>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Optional</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#arguments}}
+                        <tr>
+                            <td>{{name}}</td>
+                            <td>{{type}}</td>
+                            <td>{{optional}}</td>
+                            <td>{{description}}</td>
+                        </tr>
+                    {{/arguments}}
+                    </tbody>
+                </table>
             </li>
-        {{/arguments}}
+        {{/has_arguments}}
     </ul>
     <div class="btn-group btn-block">
         {{#method_links}}
