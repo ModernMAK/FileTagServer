@@ -49,7 +49,7 @@
                     </div>
                     <div class="card-body">{{description}}</div>
                     <ul class="list-group list-group-flush">
-                        {{#has_arguments}}
+                        {{#has_path_arguments}}
                         <li class="list-group-item">
                             <table class="table">
                                 <caption class="h3" style="caption-side: top">Path Arguments</caption>
@@ -61,17 +61,69 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {{#arguments}}
+                                {{#path_arguments}}
                                 <tr>
                                     <td>{{name}}</td>
                                     <td>{{type}}</td>
                                     <td>{{description}}</td>
                                 </tr>
-                                {{/arguments}}
+                                {{/path_arguments}}
                                 </tbody>
                             </table>
-                            {{/has_arguments}}
                         </li>
+                        {{/has_path_arguments}}
+
+                        {{#has_header_arguments}}
+                        <li class="list-group-item">
+                            <table class="table">
+                                <caption class="h3" style="caption-side: top">Header Arguments</caption>
+                                <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Optional</th>
+                                    <th>Description</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#header_arguments}}
+                                <tr>
+                                    <td>{{name}}</td>
+                                    <td>{{type}}</td>
+                                    <td>{{optional}}</td>
+                                    <td>{{description}}</td>
+                                </tr>
+                                {{/header_arguments}}
+                                </tbody>
+                            </table>
+                        </li>
+                        {{/has_header_arguments}}
+                        {{#has_responses}}
+                        <li class="list-group-item">
+                            <table class="table">
+                                <caption class="h3" style="caption-side: top">Responses</caption>
+                                <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Code</th>
+                                    <th>Data</th>
+                                    <th>Description</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#responses}}
+                                <tr {{#row-type}}class="table-{{row-type}}" {{
+                                /row-type}}>
+                                <td>{{type}}</td>
+                                <td>{{code}}</td>
+                                <td>{{data}}</td>
+                                <td>{{description}}</td>
+                                </tr>
+                                {{/responses}}
+                                </tbody>
+                            </table>
+                        </li>
+                        {{/has_responses}}
                     </ul>
                 </div>
 

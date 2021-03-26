@@ -199,7 +199,7 @@ def get_file(request: Request, id: str) -> RestResponse:
 
 
 @route(__file, no_end_slash=True, methods=["DELETE"])
-def delete_file(request: Request, id: str) -> Dict:
+def delete_file(request: Request, id: str) -> RestResponse:
     try:
         with connect(config.db_path) as conn:
             conn.execute("PRAGMA foreign_keys = 1")
@@ -207,7 +207,7 @@ def delete_file(request: Request, id: str) -> Dict:
             query = read_sql_file("static/sql/file/delete_by_id.sql")
             cursor.execute(query, id)
             conn.commit()
-        return JSend.success(f"Deleted file '{id}'")
+        return b'', ResponseCode.NO_CONTENT, {}  # , JSend.success(f"Deleted file '{id}'")
     except DatabaseError as e:
         return JSend.fail(e.args[0])
 
@@ -263,7 +263,7 @@ def put_file(request: Request, id: str) -> RestResponse:
 
         return b'', ResponseCode.NO_CONTENT, {}
     except DatabaseError as e:
-        return JSend.fail(e.args[0])
+        return JSend.error(e.args[0]), ResponseCode.INTERNAL_SERVER_ERROR
 
 
 # File Tags ===========================================================================================================
