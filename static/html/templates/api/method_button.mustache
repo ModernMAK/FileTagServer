@@ -1,0 +1,7 @@
+{{#allowed}}
+    <a class="btn {{#current}}disabled btn-method-{{method}} {{/current}}{{^current}} btn-outline-method-{{method}}{{/current}}"
+       href="{{href}}">{{text}}</a>
+{{/allowed}}
+{{^allowed}}
+    <div class="btn disabled btn-outline-method-not-allowed">{{text}}</div>
+{{/allowed}}

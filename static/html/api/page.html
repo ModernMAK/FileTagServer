@@ -26,39 +26,25 @@
                             {{#endpoints}}
                             <li>
                                 <a class="nav-link active h6" href="{{url}}">{{{text}}}</a>
-                                <ul>
-                                    {{#methods}}
-                                    <li class="nav-item">
-                                        <a class="nav-link active" href="{{url}}"><span
-                                                class="badge {{badge}}">{{method}}</span> {{text}}</a>
-                                    </li>
-                                    {{/methods}}
-                                </ul>
+                                {{#methods}}
+                                {{/methods}}
                             </li>
                             {{/endpoints}}
                         </ul>
                     </li>
                     {{/schema}}
                 </ul>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        {{#result}}
-                        {{#edit_page}}
-                        <a class="nav-link active" href="{{edit_page}}">Edit</a>
-                        {{/edit_page}}
-                        {{^edit_page}}
-                        Editing Disabled
-                        {{/edit_page}}
-                        {{/result}}
-                    </li>
-                </ul>
             </div>
         </nav>
-        <!--        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">-->
-        <main role="main" class="container-fluid">
-
-        </main>
-        <!--        </div>-->
+        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+            <main role="main" class="container-fluid">
+                {{#methods}}
+                <br>
+                {{> api/method_card}}
+                <br>
+                {{/methods}}
+            </main>
+        </div>
     </div>
 </div>
 

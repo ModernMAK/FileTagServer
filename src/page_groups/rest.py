@@ -121,11 +121,32 @@ def index(request: Request) -> Response:
     return reformat_serve(renderer, result, context)
 
 
+def __build_footer_context(current: str, allowed: List[str]):
+    methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+    r = []
+    current = current.upper()
+    allowed = [t.upper() for t in allowed]
+    allowed.append(current)  # In case im dumb
+    for m in methods:
+        d = {
+            'method': m.lower(),
+            'text': m.upper(),
+            'href': "#" + m.upper(),
+            'current': m == current,
+            'allowed': m in allowed
+        }
+        r.append(d)
+    return r
+
+
 @route(url=__file, no_end_slash=True, methods=["GET"])
 def file(request: Request):
     __file_schema_schema = {'get': '#GET', 'put': '#PUT', 'delete': '#DELETE', 'patch': '#PATCH'}
+    __allowed_methods = ['GET', 'PUT', 'DELETE', 'PATCH']
     __file_schema = [
         {
+            'id': 'GET',
+            'method_links': __build_footer_context('GET', __allowed_methods),
             'method_lower': 'get',
             'method_upper': 'GET',
             'description': "Retrieves the specified file",
@@ -133,18 +154,24 @@ def file(request: Request):
             'arguments': {'required': [{'text': 'ID', 'description': "The ID of the file."}]}
         },
         {
+            'id': 'PUT',
+            'method_links': __build_footer_context('PUT', __allowed_methods),
             'method_lower': 'put',
             'method_upper': 'PUT',
             'description': "Sets file information for the specified file",
             'schema': __file_schema_schema
         },
         {
+            'id': 'PATCH',
+            'method_links': __build_footer_context('PATCH', __allowed_methods),
             'method_lower': 'patch',
             'method_upper': 'PATCH',
             'description': "Updates file information for the specified file",
             'schema': __file_schema_schema
         },
         {
+            'id': 'DELETE',
+            'method_links': __build_footer_context('DELETE', __allowed_methods),
             'method_lower': 'delete',
             'method_upper': 'DELETE',
             'description': "Deletes the given file",
@@ -152,7 +179,7 @@ def file(request: Request):
         }
     ]
 
-    serve_file = static.html.resolve_path("api/page_badge_all.html")
+    serve_file = static.html.resolve_path("api/page.html")
     result = serve(serve_file)
     context = {
         'schema': __schema,
@@ -161,6 +188,7 @@ def file(request: Request):
         'subnavbar': {}
     }
     return reformat_serve(renderer, result, context)
+
 #
 # class FilePageGroup(PageGroup):
 #     renderer = None

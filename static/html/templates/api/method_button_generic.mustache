@@ -1,0 +1,6 @@
+{{#allowed}}
+    <a class="btn {{#active}}active {{/active}}{{#disabled}}disabled {{/disabled}}btn-{{#outline}}outline-{{/outline}}method-{{method}}" href="{{href}}">{{text}}</a>
+{{/allowed}}
+{{^allowed}}
+    <div class="btn {{#active}}active {{/active}}{{#disabled}}disabled {{/disabled}}btn-{{#outline}}outline-{{/outline}}method-not-allowed">{{text}}</div>
+{{/allowed}}
