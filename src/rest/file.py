@@ -14,7 +14,7 @@ from sqlite3 import connect, Row, DatabaseError
 from http import HTTPStatus as ResponseCode
 import src.api as api
 
-RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
+RestResponse = Union[Response, Tuple[Dict, int, Dict[str, str]]]
 
 
 def __reformat_file_row(row: Row) -> Dict:
@@ -108,38 +108,60 @@ def get_files(request: Request) -> RestResponse:
         formatted = []
         for row in rows:
             formatted.append(__reformat_file_row(row))
-        return JSend.success(formatted), ResponseCode.OK
+        return JSend.success(formatted), ResponseCode.OK, {}
     except ValidationError as e:
-        return JSend.fail(e.errors), ResponseCode.BAD_REQUEST
+        return JSend.fail(e.errors), ResponseCode.BAD_REQUEST, {}
 
-
+@property
 @route(url=__files, no_end_slash=True, methods=["POST"])
 def post_files(request: Request) -> RestResponse:
-    body = request['BODY']
-    file_json = json.loads(body)
-    errors = []
-    req_fields = [__data_schema['path']]
-    opt_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description']]
-    validate_fields(file_json, req_fields, opt_fields, errors)
-    populate_optional(file_json, opt_fields)
-
-    if len(errors) > 0:
-        return JSend.fail(errors), ResponseCode.BAD_REQUEST
+    header: Dict[str, str] = request['HEADERS']
+    body: str = request['BODY']
+    body_as_json = json.loads(body)
+    use_batch = header.get(rest.Batch_Request_Header, False)
     try:
-        with connect(config.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = 1")
-            cursor = conn.cursor()
-            query = read_sql_file("static/sql/file/insert.sql")
-            cursor.execute(query, file_json)
-            conn.commit()
-            id = cursor.lastrowid
-            file = {
-                'id': id,
-                'url': reformat_url(f"api/files/{id}"),
-            }
-        return JSend.success(file), ResponseCode.CREATED, {'Location': file['url']}
-    except DatabaseError as e:
-        return JSend.fail(e.args[0])
+        use_batch = bool(use_batch)
+    except TypeError:
+        errors = [f'Batch Request Header was present, but invalid: \'{use_batch}\', expected \'true\' or \'false\'.']
+        return JSend.fail(errors), ResponseCode.BAD_REQUEST, {}
+
+    def handle_batch(body_json: dict):
+        data = []
+        for single_body in body_json:
+            result, code, headers = handle_single(single_body)
+            data.append({'result': result, 'code': code, 'headers': headers})
+        return JSend.success(data), ResponseCode.OK,
+
+    def handle_single(body_json: dict):
+        body_json = json.loads(body)
+        errors = []
+        req_fields = [__data_schema['path']]
+        opt_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description']]
+        validate_fields(body_json, req_fields, opt_fields, errors)
+        populate_optional(body_json, opt_fields)
+
+        if len(errors) > 0:
+            return JSend.fail(errors), ResponseCode.BAD_REQUEST
+        try:
+            with connect(config.db_path) as conn:
+                conn.execute("PRAGMA foreign_keys = 1")
+                cursor = conn.cursor()
+                query = read_sql_file("static/sql/file/insert.sql")
+                cursor.execute(query, body_json)
+                conn.commit()
+                id = cursor.lastrowid
+                file = {
+                    'id': id,
+                    'url': reformat_url(f"api/files/{id}"),
+                }
+            return JSend.success(file), ResponseCode.CREATED, {'Location': file['url']}
+        except DatabaseError as e:
+            return JSend.fail(e.args[0])
+
+    if use_batch:
+        return handle_batch(body_as_json)
+    else:
+        return handle_single(body_as_json)
 
 
 # Files Tags ==========================================================================================================

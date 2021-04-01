@@ -8,6 +8,8 @@ from http import HTTPStatus as ResponseCode
 
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
+Batch_Request_Header = 'REST-Batch-Request'
+
 
 def read_sql_file(file: str, strip_terminal=False):
     with open(file, "r") as f:
