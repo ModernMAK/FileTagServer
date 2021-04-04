@@ -1,5 +1,4 @@
 import json
-from os.path import join
 from typing import List, Dict, Union, Tuple, Type, Iterable
 from litespeed import App, start_with_args, route, serve
 from litespeed.error import ResponseError
