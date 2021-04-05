@@ -1,91 +1,193 @@
 from http import HTTPStatus
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union, Any, Set
 from sqlite3 import Row
-
 from litespeed import serve
 from litespeed.error import ResponseError
-
-from src.api.common import __connect, create_sort_sql, validate_sort_fields
+from pydantic import BaseModel, validator, Field, ValidationError
+from src.api.common import __connect, SortQuery, Util
+from src.api.models import File, Tag
 from src.rest.common import read_sql_file
+# from src.rest.ttt import Util
 
 
-def __query_helper(query_list: List[str], arg_list: List, query: str, args: List = None):
-    if query is not None:
-        query_list.append(query)
-    if args is not None:
-        arg_list.extend(args)
+def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
+    if value not in fields:
+        quoted_fields = [f'\'{f}\'' for f in fields]
+        raise ValueError(f"Field '{value}' not allowed! Allowed fields: {', '.join(quoted_fields)}")
+    return value
 
 
-def __err_helper(key: str, errors: Dict, key_errors: Optional[List[str]]):
-    if key_errors is not None:
-        errors[key] = key_errors
+def row_to_file(r: Row, *, tags: List[Tag] = None, tag_lookup: Dict[int, Tag] = None, ) -> File:
+    r: Dict = dict(r)
+    if tags:
+        r['tags'] = tags
+    elif r['tags'] is not None:
+        if tag_lookup:
+            f_tags = r['tags']
+            f_tags = [int(id) for id in f_tags.split(",")]
+            r['tags'] = [tag_lookup[id] for id in f_tags]
+    else:
+        r['tags'] = []
+    return File(**r)
 
 
-class ValidationError(Exception):
-    def __init__(self, errors):
-        self.errors = errors
+class FilesQuery(BaseModel):
+    sort: Optional[List[SortQuery]] = None
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+
+    # Validators
+    @validator('sort', each_item=True)
+    def validate_sort(cls, value: SortQuery) -> SortQuery:
+        # will raise error if failed
+        validate_fields(value.field, File.__fields__)
+        return value
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, File.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
 
 
-def get_files(sort: List[Tuple[str, bool]] = None) -> List[Row]:
+def get_files(query: FilesQuery) -> List[File]:
     with __connect() as (conn, cursor):
-        select_files = read_sql_file("static/sql/file/select.sql", True)
-        args = []
-        errors = {}
-        queries: List[str] = []
+        get_files_sql = read_sql_file("static/sql/file/select.sql", True)
         # SORT
-        allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
-        __err_helper("sort", errors, validate_sort_fields(sort, allowed_sorts, allowed_sorts))
-        __query_helper(queries, args, create_sort_sql(sort))
+        if query.sort is not None:
+            sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
+        else:
+            sort_query = ''
 
-        if len(errors) > 0:
-            raise ValidationError(errors)
+        sql = f"{get_files_sql} {sort_query}"
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        tags = {tag.id: tag for tag in get_files_tags(query)}
+        results = [row_to_file(row, tag_lookup=tags) for row in rows]
+        if query.fields is not None:
+            results = Util.copy(results, include=set(query.fields))
+        return results
 
-        query = select_files if len(queries) == 0 else f"SELECT * FROM ({select_files}) {' '.join(queries)}"
-        cursor.execute(query, args)
-        return cursor.fetchall()
 
-
-def get_files_tags(sort: List[Tuple[str, bool]] = None) -> List[Row]:
+def get_files_tags(query: FilesQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        select_files = read_sql_file("static/sql/file/select.sql", True)
-        args = []
-        errors = {}
-        queries: List[str] = []
+        get_files_sql = read_sql_file("static/sql/file/select.sql", True)
         # SORT
-        allowed_sorts = ['id', 'name', 'mime', 'description', 'path']
-        __err_helper("sort", errors, validate_sort_fields(sort, allowed_sorts, allowed_sorts))
-        __query_helper(queries, args, create_sort_sql(sort))
+        if query.sort is not None:
+            sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
+        else:
+            sort_query = ''
 
-        if len(errors) > 0:
-            raise ValidationError(errors)
+        sql = f"SELECT id from ({get_files_sql} {sort_query})"
+        sql = read_sql_file("static/sql/tag/select_by_file_query.sql").replace("<file_query>", sql)
+        cursor.execute(sql)
+        rows = cursor.fetchall()
 
-        file_query = select_files if len(queries) == 0 else f"SELECT * FROM ({select_files}) {' '.join(queries)}"
-        file_query = f"SELECT id FROM ({file_query})"
-        query = read_sql_file("static/sql/tag/select_by_file_query.sql").replace("<file_query>", file_query)
-        cursor.execute(query, args)
-        return cursor.fetchall()
+        def row_to_tag(r: Row) -> Tag:
+            r: Dict = dict(r)
+            return Tag(**r)
+
+        results = [row_to_tag(row) for row in rows]
+        if query.tag_fields is not None:
+            results = Util.copy(results, include=set(query.tag_fields))
+        return results
 
 
-def get_file(id: int) -> Row:
+class FileQuery(BaseModel):
+    id: int
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, File.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+    def field_dict(self) -> Union[Set, Dict]:
+        # If no subfields, return fields as set
+        if self.tag_fields is None:
+            return set(self.fields)
+        # Use dictionary update to fix fields
+        fields = {field: ... for field in self.fields}
+        # Try update tags
+        if 'tags' in fields:
+            tag_fields = {'tags': {'__all__': {set(self.tag_fields)}}}
+            fields.update(tag_fields)
+        return fields
+
+
+def get_file(query: FileQuery) -> File:
     with __connect() as (conn, cursor):
-        query = read_sql_file("static/sql/file/select_by_id.sql")
-        cursor.execute(query, str(id))
+        sql = read_sql_file("static/sql/file/select_by_id.sql")
+        cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
         if len(rows) < 1:
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{id}'")
+            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{query.id}'")
         elif len(rows) > 1:
-            raise ResponseError(HTTPStatus.MULTIPLE_CHOICES, f"Too many files found with the given id: '{id}'")
-        return rows[0]
+            raise ResponseError(HTTPStatus.MULTIPLE_CHOICES, f"Too many files found with the given id: '{query.id}'")
+        tags = get_file_tags(query)
+        result = row_to_file(rows[0], tags=tags)
+        if query.fields is not None:
+            result = result.copy(include=set(query.fields))
+        return result
 
 
-def get_file_tags(id: int) -> List[Row]:
+def get_file_tags(query: FileQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        query = read_sql_file("static/sql/tag/select_by_file_id.sql")
-        cursor.execute(query, str(id))
-        return cursor.fetchall()
+        sql = read_sql_file("static/sql/tag/select_by_file_id.sql")
+        cursor.execute(sql, str(query.id))
+        results = [Tag(**dict(row)) for row in cursor.fetchall()]
+        if query.tag_fields is not None:
+            results = Util.copy(results, include=set(query.tag_fields))
+        return results
 
 
-def get_file_data(id: int, range: str = None):
-    result = get_file(id)
-    local_path = result['path']
-    return serve(local_path, range=range, headers={"Accept-Ranges": "bytes"})
+class FileDataQuery(BaseModel):
+    id: int
+    range: Optional[str] = None
+
+
+def get_file_bytes(query: FileDataQuery):
+    result = get_file(FileQuery(id=query.id))
+    local_path = result.path
+    return serve(local_path, range=query.range, headers={"Accept-Ranges": "bytes"})
+#
+#
+# sqa = SortQuery(field='id')
+# sqa2 = SortQuery(field='id', ascending=False)
+# sqb = SortQuery(field='name', ascending=False)
+# sqb2 = SortQuery(field='name', ascending=True)
+#
+# print(sqa)
+# print(sqb)
+#
+# print("\nQ1A")
+# fq = FilesQuery(sort=[sqa, sqb])
+# print(fq)
+# files = get_files(fq)
+# print(files)
+# print("\nQ1B")
+# fq = FilesQuery(sort=[sqa2, sqb2])
+# print(fq)
+# files = get_files(fq)
+# print(files)
+# print("\nQ2")
+# fq = FilesQuery(sort=[sqa, sqb], fields=["id", "name", "tags"], tag_fields=['id'])
+# print(fq)
+# files = get_files(fq)
+# print(files)
+# print("\nQ3")
+# fq = FilesQuery(sort=[sqa, sqb], tag_fields=['id'])
+# print(fq)
+# files = get_files(fq)
+# print(files)
+# print("\nQ4")
+# fq = FilesQuery(sort=[sqa, sqb], fields=["id", "name", "tags"])
+# print(fq)
+# files = get_files(fq)
+# print(files)

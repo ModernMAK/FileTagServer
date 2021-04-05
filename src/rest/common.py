@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 from os.path import join
 from typing import List, Dict, Union, Tuple, Type, Any
 from litespeed import App, start_with_args, route
@@ -8,7 +9,40 @@ from http import HTTPStatus as ResponseCode
 
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
-Batch_Request_Header = 'REST-Batch-Request'
+
+def url_protocol(protocol: str, url: str) -> str:
+    if protocol is None:
+        return url
+    stripped_url = url.lstrip("/\\")
+    delimiter = "//"
+    if protocol.lower() == "file":  # Special case uses 3 '/'
+        delimiter = "///"
+    return protocol + ":" + delimiter + stripped_url
+
+
+def url_join(*paths: str) -> str:
+    URL_SLASH = "/"
+    SLASHES = ['\\', '/']
+    path = ""
+    prev_empty = True
+    for part in paths:
+        part = str(part)
+        if part is None:
+            if prev_empty:
+                continue
+            else:
+                path += URL_SLASH
+                prev_empty = True
+                continue
+        else:
+            prev_empty = False
+            if part[0] in SLASHES:
+                path = part
+            else:
+                if len(path) > 0 and path[-1] not in SLASHES:
+                    path += URL_SLASH
+                path += part
+    return path
 
 
 def read_sql_file(file: str, strip_terminal=False):

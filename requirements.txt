@@ -1,7 +1,10 @@
-dicttoxml>=1.7.4
-EasyConnect>=1.0.5
+
+# dicttoxml>=1.7.4 # xml helper when i supported it
+# EasyConnect>=1.0.5 # Companion to LiteSpeed; may not be required?
 LiteSpeed>=1.0.6
 pathtools>=0.1.2
-Pillow>=7.1.2
+# Pillow>=7.1.2 # No longer used
 pystache>=0.5.4
-watchdog>=0.10.3
+# watchdog>=0.10.3 # No longer used; may be revisited
+pydantic~=1.8.1
+pytest~=6.2.2 # Only required for tests

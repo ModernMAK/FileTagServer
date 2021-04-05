@@ -1,25 +1,68 @@
-from typing import List, Dict
+from typing import Optional, List, Union
+
+from pydantic import Field, BaseModel
+
+from src.api.models import File, Tag
+from src.rest import routes
 
 
-class Model:
-    @classmethod
-    def validate(cls, data: dict) -> bool:
-        raise NotImplementedError()
+class RestTagUrls(BaseModel):
+    self: str
 
 
-class Tag(Model):
-    id: int
-    urls: Dict[str, str]
-    name: str
-    description: str
-    count: str
+class RestTag(Tag):
+    urls: Optional[RestTagUrls] = None
+
+    @staticmethod
+    def from_tag(tags: Union[List[Tag], Tag]) -> Union[List['RestTag'], 'RestTag']:
+        def reformat(t: Tag) -> 'RestTag':
+            urls = RestTagUrls(
+                self=routes.file.path(file_id=t.id)
+            )
+            return RestTag(
+                id=t.id,
+                name=t.name,
+                description=t.description,
+                urls=urls
+            )
+
+        if isinstance(tags, Tag):  # single
+            return reformat(tags)
+        else:
+            return [reformat(tag) for tag in tags]
 
 
-class File(Model):
-    id: int
-    urls: Dict[str, str]
-    path: str
-    mime: str
-    name: str
-    description: str
-    tags: List[Tag]
+class RestFileUrls(BaseModel):
+    self: str
+    tags: str
+    bytes: str
+
+
+class RestFile(File):
+    tags: Optional[List[RestTag]] = Field(default_factory=lambda: [])
+    urls: Optional[RestFileUrls] = None
+
+    @staticmethod
+    def from_file(files: Union[List[File], File]) -> Union[List['RestFile'], 'RestFile']:
+        def reformat(f:File) -> 'RestFile':
+            tags = RestTag.from_tag(f.tags)
+            urls = RestFileUrls(
+                self=routes.file.path(file_id=f.id),
+                tags=routes.file_tags.path(file_id=f.id),
+                bytes=routes.file_bytes.path(file_id=f.id),
+            )
+            return RestFile(
+                id=f.id,
+                path=f.path,
+                name=f.name,
+                description=f.description,
+                tags=tags,
+                urls=urls
+            )
+
+        if isinstance(files,File): #single
+            return reformat(files)
+        else:
+            return [reformat(file) for file in files]
+
+

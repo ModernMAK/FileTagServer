@@ -124,7 +124,7 @@ def file_page(request: Request, id: int) -> Response:
 @route(url=__file_data, no_end_slash=True, methods=["GET"])
 def file_data(request: Request, id: int) -> Response:
     range = request['HEADERS'].get('Range')
-    return file_api.get_file_data(id, range)
+    return file_api.get_file_bytes(id, range)
 #
 #
 # class FilePageGroup(PageGroup):
