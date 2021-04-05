@@ -7,6 +7,8 @@ from pydantic import BaseModel, validator, Field, ValidationError
 from src.api.common import __connect, SortQuery, Util
 from src.api.models import File, Tag
 from src.rest.common import read_sql_file
+
+
 # from src.rest.ttt import Util
 
 
@@ -108,17 +110,12 @@ class FileQuery(BaseModel):
     def validate_tag_fields(cls, value: str) -> str:
         return validate_fields(value, Tag.__fields__)
 
-    def field_dict(self) -> Union[Set, Dict]:
-        # If no subfields, return fields as set
-        if self.tag_fields is None:
-            return set(self.fields)
-        # Use dictionary update to fix fields
-        fields = {field: ... for field in self.fields}
-        # Try update tags
-        if 'tags' in fields:
-            tag_fields = {'tags': {'__all__': {set(self.tag_fields)}}}
-            fields.update(tag_fields)
-        return fields
+
+class CreateFileQuery(BaseModel):
+    path: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[int]] = Field(default_factory=lambda: [])
 
 
 def get_file(query: FileQuery) -> File:
@@ -135,6 +132,15 @@ def get_file(query: FileQuery) -> File:
         if query.fields is not None:
             result = result.copy(include=set(query.fields))
         return result
+
+
+def create_file(query: CreateFileQuery) -> File:
+    with __connect() as (conn, cursor):
+        sql = read_sql_file("static/sql/file/insert.sql")
+        cursor.execute(sql, query.json())
+        conn.commit()
+        id = cursor.lastrowid
+        return File(id=id, **query.dict())
 
 
 def get_file_tags(query: FileQuery) -> List[Tag]:

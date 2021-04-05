@@ -17,7 +17,7 @@ class RestTag(Tag):
     def from_tag(tags: Union[List[Tag], Tag]) -> Union[List['RestTag'], 'RestTag']:
         def reformat(t: Tag) -> 'RestTag':
             urls = RestTagUrls(
-                self=routes.file.path(file_id=t.id)
+                self=routes.file.path(root="http://localhost:8000",file_id=t.id)
             )
             return RestTag(
                 id=t.id,
@@ -47,9 +47,9 @@ class RestFile(File):
         def reformat(f:File) -> 'RestFile':
             tags = RestTag.from_tag(f.tags)
             urls = RestFileUrls(
-                self=routes.file.path(file_id=f.id),
-                tags=routes.file_tags.path(file_id=f.id),
-                bytes=routes.file_bytes.path(file_id=f.id),
+                self=routes.file.path(root="http://localhost:8000", file_id=f.id),
+                tags=routes.file_tags.path(root="http://localhost:8000",file_id=f.id),
+                bytes=routes.file_bytes.path(root="http://localhost:8000",file_id=f.id),
             )
             return RestFile(
                 id=f.id,

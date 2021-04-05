@@ -1,14 +1,16 @@
 import json
 from typing import List, Dict, Union, Tuple, Type, Iterable
+
+from src.api.models import File
 from src.rest.routes import file, files, file_tags, files_tags, file_bytes
 from src import config
 from src.api.common import SortQuery, parse_fields, Util
-from src.api.file import ValidationError, FilesQuery
+from src.api.file import ValidationError, FilesQuery, FileQuery, CreateFileQuery
 from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
 from src.rest.models import RestFile, RestTag
 from src.util.litespeedx import Response, Request, JSend
 from sqlite3 import connect, Row, DatabaseError
-from http import HTTPStatus as ResponseCode
+from http import HTTPStatus as ResponseCode, HTTPStatus
 import src.api as api
 
 RestResponse = Union[Response, Tuple[Dict, int, Dict[str, str]]]
@@ -34,15 +36,21 @@ def get_files(request: Request) -> JsonResponse:
     tag_fields = parse_fields(arguments.get("tag_fields"))
     query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
-    results = api.file.get_files(query)
-    rest_results = RestFile.from_file(results)
-    return serve_json(Util.json(rest_results, indent=2))
+    api_results = api.file.get_files(query)
+    rest_results = RestFile.from_file(api_results)
+    return serve_json(Util.json(rest_results))
+
 
 
 # @routes.files.methods.post
-def post_files(request: Request) -> RestResponse:
+@files.methods.post
+def post_files(request: Request) -> JsonResponse:
     body: str = request['BODY']
     body_json = json.loads(body)
+    query = CreateFileQuery.parse_raw(body_json)
+    api_result = api.file.create_file(query)
+    rest_result = RestFile.from_file(api_result)
+    return serve_json(rest_result.json(), HTTPStatus.Created, {'location': rest_result.urls.self})
 
     # errors = []
     # req_fields = [__data_schema['path']]
@@ -53,18 +61,7 @@ def post_files(request: Request) -> RestResponse:
     # if len(errors) > 0:
     #     return JSend.fail(errors), ResponseCode.BAD_REQUEST
     # try:
-    with connect(config.db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = 1")
-        cursor = conn.cursor()
-        query = read_sql_file("static/sql/file/insert.sql")
-        cursor.execute(query, body_json)
-        conn.commit()
-        id = cursor.lastrowid
-        file = {
-            'id': id,
-            'url': reformat_url(f"api/files/{id}"),
-        }
-    return JSend.success(file), ResponseCode.CREATED, {'Location': file['url']}
+
     # except DatabaseError as e:
     #     return JSend.fail(e.args[0])
 
@@ -79,8 +76,10 @@ def get_files_tags(request: Request):
     tag_fields = parse_fields(arguments.get("tag_fields"))
     query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
-    tags = api.file.get_files_tags(query)
-    return RestTag.from_tag(tags)
+    api_results = api.file.get_files_tags(query)
+    rest_results = RestTag.from_tag(api_results)
+    return serve_json(Util.json(rest_results))
+
 
 # # Files Search ========================================================================================================
 # @route(url=__files_search, no_end_slash=True, methods=["GET"])
@@ -95,7 +94,7 @@ def get_files_tags(request: Request):
 #     return b'', 301, {'Location': apply_get(reformat_url(__files))}
 
 
-# # File ================================================================================================================
+# File ================================================================================================================
 # def __get_single_file_internal(cursor, id: str) -> Row:
 #     query = read_sql_file("static/sql/file/select_by_id.sql")
 #     cursor.execute(query, id)
@@ -107,19 +106,14 @@ def get_files_tags(request: Request):
 #     return rows[0]
 #
 #
-# @route(__file, no_end_slash=True, methods=["GET"])
-# def get_file(request: Request, id: str) -> RestResponse:
-#     with connect(config.db_path) as conn:
-#         conn.execute("PRAGMA foreign_keys = 1")
-#         cursor = conn.cursor()
-#         cursor.row_factory = Row
-#         try:
-#             result = __get_single_file_internal(cursor, id)
-#             result = __reformat_file_row(result)
-#             return JSend.success(result)
-#         except ResponseError as e:
-#             return JSend.fail(e.message), e.code
-#
+@file.methods.get
+def get_file(request: Request, id: int) -> JsonResponse:
+    query = FileQuery(id=id)
+    api_result = api.file.get_file(query)
+    rest_result = RestFile.from_file(api_result)
+    return serve_json(rest_result.json())
+
+
 #
 # @route(__file, no_end_slash=True, methods=["DELETE"])
 # def delete_file(request: Request, id: str) -> RestResponse:
@@ -190,29 +184,13 @@ def get_files_tags(request: Request):
 #
 #
 # # File Tags ===========================================================================================================
-# # READ
-# @route(__file_tags, no_end_slash=True, methods=["GET"])
-# def get_file_tags(request: Request, id: str) -> RestResponse:
-#     with connect(config.db_path) as conn:
-#         conn.execute("PRAGMA foreign_keys = 1")
-#         cursor = conn.cursor()
-#         cursor.row_factory = Row
-#         try:
-#             result = __get_single_file_internal(cursor, id)
-#         except ResponseError as e:
-#             return JSend.fail(e.message), e.code
-#         tag_id_list: List[str] = [] if result['tags'] is None else result['tags'].split()
-#
-#         internal_tag_query = read_sql_file("static/sql/tag/select.sql", True)
-#         sub = ', '.join('?' * len(tag_id_list))
-#         tag_query = f"SELECT * FROM ({internal_tag_query}) WHERE id IN ({sub}) "
-#         cursor.execute(tag_query, tag_id_list)
-#         tags = cursor.fetchall()
-#         formatted = []
-#         for tag in tags:
-#             formatted.append(__reformat_tag_row(tag))
-#         return JSend.success(formatted)
-#
+@file_tags.methods.get
+def get_file_tags(request: Request, id: int) -> JsonResponse:
+    q = FileQuery(id=id)
+    api_result = api.file.get_file_tags(q)
+    rest_result = RestTag.from_tag(api_result)
+    return serve_json(Util.json(rest_result))
+
 #
 # # SET
 # @route(__file_tags, no_end_slash=True, methods=["PUT"])
