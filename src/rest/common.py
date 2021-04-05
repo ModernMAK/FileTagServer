@@ -1,11 +1,10 @@
 import json
-import urllib.parse
-from os.path import join
-from typing import List, Dict, Union, Tuple, Type, Any
-from litespeed import App, start_with_args, route
-from src.util.litespeedx import Response, Request, JSend
-from sqlite3 import connect, Row, DatabaseError
-from http import HTTPStatus as ResponseCode
+from sqlite3 import connect
+from typing import List, Dict, Union, Tuple
+
+from src.util.litespeedx import Response
+
+JsonResponse = Tuple[str, int, Dict[str, str]]
 
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
@@ -37,11 +36,10 @@ def url_join(*paths: str) -> str:
         else:
             prev_empty = False
             if part[0] in SLASHES:
-                path = part
-            else:
-                if len(path) > 0 and path[-1] not in SLASHES:
-                    path += URL_SLASH
-                path += part
+                part = part[1:]
+            if len(path) > 0 and path[-1] not in SLASHES:
+                path += URL_SLASH
+            path += part
     return path
 
 
@@ -54,10 +52,13 @@ def read_sql_file(file: str, strip_terminal=False):
             return r
 
 
-def reformat_url(url: str, base: str = None):
-    if base is None:
-        base = "http://localhost:8000"
-    return join(base, url)
+def serve_json(obj, status: int = 200, headers: Dict[str, str] = None, **dumps_kwargs) -> JsonResponse:
+    content = obj if isinstance(obj, str) else json.dumps(obj, **dumps_kwargs)
+    headers = headers or {}
+    if 'content-type' not in headers:
+        headers['content-type'] = 'application/json'
+    return content, status, headers
+
 
 
 def validate_required_fields(d: Dict, fields: List[Dict], errors: List[str]):

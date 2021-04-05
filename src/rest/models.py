@@ -2,6 +2,7 @@ from typing import Optional, List, Union
 
 from pydantic import Field, BaseModel
 
+from src import config
 from src.api.models import File, Tag
 from src.rest import routes
 
@@ -17,7 +18,7 @@ class RestTag(Tag):
     def from_tag(tags: Union[List[Tag], Tag]) -> Union[List['RestTag'], 'RestTag']:
         def reformat(t: Tag) -> 'RestTag':
             urls = RestTagUrls(
-                self=routes.file.path(root="http://localhost:8000",file_id=t.id)
+                self=config.resolve_url(routes.tag.path(tag_id=t.id))
             )
             return RestTag(
                 id=t.id,
@@ -44,12 +45,12 @@ class RestFile(File):
 
     @staticmethod
     def from_file(files: Union[List[File], File]) -> Union[List['RestFile'], 'RestFile']:
-        def reformat(f:File) -> 'RestFile':
+        def reformat(f: File) -> 'RestFile':
             tags = RestTag.from_tag(f.tags)
             urls = RestFileUrls(
-                self=routes.file.path(root="http://localhost:8000", file_id=f.id),
-                tags=routes.file_tags.path(root="http://localhost:8000",file_id=f.id),
-                bytes=routes.file_bytes.path(root="http://localhost:8000",file_id=f.id),
+                self=config.resolve_url(routes.file.path(file_id=f.id)),
+                tags=config.resolve_url(routes.file_tags.path(file_id=f.id)),
+                bytes=config.resolve_url(routes.file_bytes.path(file_id=f.id)),
             )
             return RestFile(
                 id=f.id,
@@ -60,9 +61,7 @@ class RestFile(File):
                 urls=urls
             )
 
-        if isinstance(files,File): #single
+        if isinstance(files, File):  # single
             return reformat(files)
         else:
             return [reformat(file) for file in files]
-
-

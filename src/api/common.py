@@ -1,11 +1,38 @@
 import json
 from contextlib import contextmanager
 from sqlite3 import Connection, Cursor, connect, Row
-from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict, Callable
+from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict, Callable, Set
 
 from pydantic import BaseModel
 
 from src import config
+from src.api.models import Tag, File
+
+
+def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
+    if value not in fields:
+        quoted_fields = [f'\'{f}\'' for f in fields]
+        raise ValueError(f"Field '{value}' not allowed! Allowed fields: {', '.join(quoted_fields)}")
+    return value
+
+
+def row_to_file(r: Row, *, tags: List[Tag] = None, tag_lookup: Dict[int, Tag] = None, ) -> File:
+    r: Dict = dict(r)
+    if tags:
+        r['tags'] = tags
+    elif r['tags'] is not None:
+        if tag_lookup:
+            f_tags = r['tags']
+            f_tags = [int(tag_id) for tag_id in f_tags.split(",")]
+            r['tags'] = [tag_lookup[id] for id in f_tags]
+    else:
+        r['tags'] = []
+    return File(**r)
+
+
+def row_to_tag(r: Row) -> Tag:
+    r: Dict = dict(r)
+    return Tag(**r)
 
 
 @contextmanager
@@ -16,7 +43,6 @@ def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
         cursor = conn.cursor()
         cursor.row_factory = Row
         yield conn, cursor
-
 
 
 IntStr = Union[int, str]
@@ -85,7 +111,7 @@ class Util:
             as_dict = Util.dict(self, **args)
             return json.dumps(as_dict, default=encoder, **dumps_kwargs)
         else:
-            return self.json(encoder=encoder, **args, dumps_kwargs=dumps_kwargs)
+            return self.json(encoder=encoder, **args, **dumps_kwargs)
 
 
 def parse_fields(fields: str) -> Optional[List[str]]:

@@ -1,29 +1,19 @@
 import json
-from typing import List, Dict, Union, Tuple, Type, Iterable
+from http import HTTPStatus
+from typing import Dict, Union, Tuple
 
-from src.api.models import File
-from src.rest.routes import file, files, file_tags, files_tags, file_bytes
+from litespeed.error import ResponseError
+
+import src.api as api
 from src import config
 from src.api.common import SortQuery, parse_fields, Util
-from src.api.file import ValidationError, FilesQuery, FileQuery, CreateFileQuery
-from src.rest.common import reformat_url, read_sql_file, validate_fields, populate_optional
+from src.api.file import FilesQuery, FileQuery, CreateFileQuery, FileDataQuery, FileTagQuery
+from src.rest.common import JsonResponse, serve_json
 from src.rest.models import RestFile, RestTag
-from src.util.litespeedx import Response, Request, JSend
-from sqlite3 import connect, Row, DatabaseError
-from http import HTTPStatus as ResponseCode, HTTPStatus
-import src.api as api
+from src.rest.routes import file, files, file_tags, files_tags, file_bytes, files_search
+from src.util.litespeedx import Response, Request
 
 RestResponse = Union[Response, Tuple[Dict, int, Dict[str, str]]]
-
-JsonResponse = Tuple[str, int, Dict[str, str]]
-
-
-def serve_json(obj, status: int = 200, headers: Dict[str, str] = None, **dumps_kwargs) -> JsonResponse:
-    content = obj if isinstance(obj, str) else json.dumps(obj, **dumps_kwargs)
-    headers = headers or {}
-    if 'content-type' not in headers:
-        headers['content-type'] = 'application/json'
-    return content, status, headers
 
 
 # Files ===============================================================================================================
@@ -41,29 +31,14 @@ def get_files(request: Request) -> JsonResponse:
     return serve_json(Util.json(rest_results))
 
 
-
 # @routes.files.methods.post
 @files.methods.post
 def post_files(request: Request) -> JsonResponse:
     body: str = request['BODY']
-    body_json = json.loads(body)
-    query = CreateFileQuery.parse_raw(body_json)
+    query = CreateFileQuery.parse_raw(body)
     api_result = api.file.create_file(query)
     rest_result = RestFile.from_file(api_result)
     return serve_json(rest_result.json(), HTTPStatus.Created, {'location': rest_result.urls.self})
-
-    # errors = []
-    # req_fields = [__data_schema['path']]
-    # opt_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description']]
-    # validate_fields(body_json, req_fields, opt_fields, errors)
-    # populate_optional(body_json, opt_fields)
-
-    # if len(errors) > 0:
-    #     return JSend.fail(errors), ResponseCode.BAD_REQUEST
-    # try:
-
-    # except DatabaseError as e:
-    #     return JSend.fail(e.args[0])
 
 
 # Files Tags ==========================================================================================================
@@ -80,41 +55,34 @@ def get_files_tags(request: Request):
     rest_results = RestTag.from_tag(api_results)
     return serve_json(Util.json(rest_results))
 
-
 # # Files Search ========================================================================================================
-# @route(url=__files_search, no_end_slash=True, methods=["GET"])
-# def get_files_search(request: Request) -> RestResponse:
-#     def apply_get(path: str):
-#         args: Dict = request['GET']
-#         parts = [f"{k}={v}" for k, v in args.items()]
-#         if len(parts) > 0:
-#             return path + "?" + "&".join(parts)
-#         return path
-#
-#     return b'', 301, {'Location': apply_get(reformat_url(__files))}
+@files_search.methods.get
+def get_files_search(request: Request) -> RestResponse:
+    def apply_get(path: str):
+        args: Dict = request['GET']
+        parts = [f"{k}={v}" for k, v in args.items()]
+        if len(parts) > 0:
+            return path + "?" + "&".join(parts)
+        return path
+
+    return b'', 301, {'Location': config.resolve_url(apply_get(files.path()))}
 
 
 # File ================================================================================================================
-# def __get_single_file_internal(cursor, id: str) -> Row:
-#     query = read_sql_file("static/sql/file/select_by_id.sql")
-#     cursor.execute(query, id)
-#     rows = cursor.fetchall()
-#     if len(rows) < 1:
-#         raise ResponseError(ResponseCode.NOT_FOUND, f"No file found with the given id: '{id}'")
-#     elif len(rows) > 1:
-#         raise ResponseError(ResponseCode.MULTIPLE_CHOICES, f"Too many files found with the given id: '{id}'")
-#     return rows[0]
-#
-#
 @file.methods.get
 def get_file(request: Request, id: int) -> JsonResponse:
     query = FileQuery(id=id)
-    api_result = api.file.get_file(query)
-    rest_result = RestFile.from_file(api_result)
-    return serve_json(rest_result.json())
+    try:
+        api_result = api.file.get_file(query)
+        rest_result = RestFile.from_file(api_result)
+        return serve_json(rest_result.json())
+    except ResponseError as e:
+        if e.code == HTTPStatus.NOT_FOUND: # SEE get_file_bytes for why we do this
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise
 
 
-#
 # @route(__file, no_end_slash=True, methods=["DELETE"])
 # def delete_file(request: Request, id: str) -> RestResponse:
 #     try:
@@ -186,10 +154,17 @@ def get_file(request: Request, id: int) -> JsonResponse:
 # # File Tags ===========================================================================================================
 @file_tags.methods.get
 def get_file_tags(request: Request, id: int) -> JsonResponse:
-    q = FileQuery(id=id)
-    api_result = api.file.get_file_tags(q)
-    rest_result = RestTag.from_tag(api_result)
-    return serve_json(Util.json(rest_result))
+    q = FileTagQuery(id=id)
+    try:
+        api_result = api.file.get_file_tags(q)
+        rest_result = RestTag.from_tag(api_result)
+        return serve_json(Util.json(rest_result))
+    except ResponseError as e:
+        if e.code == HTTPStatus.NOT_FOUND: # SEE get_file_bytes for why we do this
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise
+
 
 #
 # # SET
@@ -274,18 +249,30 @@ def get_file_tags(request: Request, id: int) -> JsonResponse:
 # # def patch_file_tags(request: Request, id: str):
 # #     pass
 #
-# # FILE DATA ================================================================================================= FILE DATA
-# @route(__file_data, no_end_slash=True, methods=["GET"])
-# def get_file_data(request: Request, id: str):
-#     try:
-#         id = int(id)
-#         range = request['HEADERS'].get('Range')
-#         return api.file.get_file_bytes(id, range)
-#     except ResponseError as e:
-#         return JSend.fail(e.message), e.code
-#
-#
-# # api REFERENCE ========================================================================================= api REFERENCE
+# FILE DATA ================================================================================================= FILE DATA
+@file_bytes.methods.get
+def get_file_data(request: Request, id: int):
+    range = request['HEADERS'].get('Range')
+    query = FileDataQuery(id=id, range=range)
+    try:
+        return api.file.get_file_bytes(query)
+    except ResponseError as e:
+        if e.code == 404:
+            # The 'least smelly' IMO response
+            # I'd prefer 404 ONLY be used when the endpoint itself does not exist
+            #   Therefore if a function in the rest api is called, it cannot return 404 without breaking that rule
+            #   410 signifies that the file is missing, without using the 404
+            # I considered using 502 since this does act as a proxy to the file system
+            #   And the error isn't client-side but server side (since the server lost track of the file)
+            #   But 'Bad Gateway' doesn't explain anything about how the file is missing.
+            # My final thoughts on the issue:
+            #   Chrome displays 'It may have been moved or deleted.' on a 410 Which I feel represents the issue exactly
+            #   because the file should exists; but it doesnt; so it must have been moved/delete
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise  # pass along uncaught exceptions
+
+# api REFERENCE ========================================================================================= api REFERENCE
 # @route(__reference, no_end_slash=True, methods=["GET"])
 # def reference_files(request: Request):
 #     pass
