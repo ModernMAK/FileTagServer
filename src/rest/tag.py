@@ -4,7 +4,6 @@ import src.api as api
 from src.api.common import SortQuery, parse_fields, Util
 from src.api.tag import TagsQuery, TagQuery
 from src.rest.common import serve_json, JsonResponse
-from src.rest.models import RestTag
 from src.rest.routes import tags, tag
 from src.util.litespeedx import Response, Request
 
@@ -19,8 +18,7 @@ def get_tags(request: Request) -> JsonResponse:
     fields = parse_fields(args.get('fields'))
     query = TagsQuery(sort=sort_args, fields=fields)
     api_results = api.tag.get_tags(query)
-    rest_results = RestTag.from_tag(api_results)
-    return serve_json(Util.json(rest_results))
+    return serve_json(Util.json(api_results))
 
 # @route(url=__tags, no_end_slash=True, methods=["POST"])
 # def post_tags(request: Request) -> RestResponse:
@@ -57,8 +55,7 @@ def get_tag(request: Request, id: int) -> JsonResponse:
     args = request['GET']
     query = TagQuery (id=id,fields=args.get('fields'))
     api_result = api.tag.get_tag(query)
-    rest_result = RestTag.from_tag(api_result)
-    return serve_json(Util.json(rest_result))
+    return serve_json(Util.json(api_result))
 #
 
 # @route(__tag, no_end_slash=True, methods=["DELETE"])

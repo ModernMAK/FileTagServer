@@ -3,13 +3,14 @@ from http import HTTPStatus
 from typing import Dict, Union, Tuple
 
 from litespeed.error import ResponseError
+from pydantic import ValidationError
 
 import src.api as api
 from src import config
 from src.api.common import SortQuery, parse_fields, Util
-from src.api.file import FilesQuery, FileQuery, CreateFileQuery, FileDataQuery, FileTagQuery
+from src.api.file import FilesQuery, FileQuery, CreateFileQuery, FileDataQuery, FileTagQuery, DeleteFileQuery, \
+    ModifyFileQuery, SetFileQuery
 from src.rest.common import JsonResponse, serve_json
-from src.rest.models import RestFile, RestTag
 from src.rest.routes import file, files, file_tags, files_tags, file_bytes, files_search
 from src.util.litespeedx import Response, Request
 
@@ -24,21 +25,23 @@ def get_files(request: Request) -> JsonResponse:
     sort = SortQuery.parse_str(arguments.get("sort"))
     fields = parse_fields(arguments.get("fields"))
     tag_fields = parse_fields(arguments.get("tag_fields"))
-    query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
+    try:
+        query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
+    except ValidationError as e:
+        return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
+
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
     api_results = api.file.get_files(query)
-    rest_results = RestFile.from_file(api_results)
-    return serve_json(Util.json(rest_results))
+    return serve_json(Util.json(api_results))
 
 
 # @routes.files.methods.post
 @files.methods.post
 def post_files(request: Request) -> JsonResponse:
     body: str = request['BODY']
-    query = CreateFileQuery.parse_raw(body)
+    query = CreateFileQuery.parse_obj(json.loads(body))
     api_result = api.file.create_file(query)
-    rest_result = RestFile.from_file(api_result)
-    return serve_json(rest_result.json(), HTTPStatus.Created, {'location': rest_result.urls.self})
+    return serve_json(api_result.json(), HTTPStatus.Created, {'location': config.resolve_url(file.path(api_result.id))})
 
 
 # Files Tags ==========================================================================================================
@@ -52,8 +55,8 @@ def get_files_tags(request: Request):
     query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
     api_results = api.file.get_files_tags(query)
-    rest_results = RestTag.from_tag(api_results)
-    return serve_json(Util.json(rest_results))
+    return serve_json(Util.json(api_results))
+
 
 # # Files Search ========================================================================================================
 @files_search.methods.get
@@ -71,96 +74,89 @@ def get_files_search(request: Request) -> RestResponse:
 # File ================================================================================================================
 @file.methods.get
 def get_file(request: Request, id: int) -> JsonResponse:
-    query = FileQuery(id=id)
+    try:
+        query = FileQuery(id=id)
+    except ValidationError as e:
+        return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
     try:
         api_result = api.file.get_file(query)
-        rest_result = RestFile.from_file(api_result)
-        return serve_json(rest_result.json())
+        return serve_json(api_result.json())
     except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND: # SEE get_file_bytes for why we do this
+        if e.code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
             raise ResponseError(HTTPStatus.GONE)
         else:
             raise
 
 
-# @route(__file, no_end_slash=True, methods=["DELETE"])
-# def delete_file(request: Request, id: str) -> RestResponse:
-#     try:
-#         with connect(config.db_path) as conn:
-#             conn.execute("PRAGMA foreign_keys = 1")
-#             cursor = conn.cursor()
-#             query = read_sql_file("static/sql/file/delete_by_id.sql")
-#             cursor.execute(query, id)
-#             conn.commit()
-#         return b'', ResponseCode.NO_CONTENT, {}  # , JSend.success(f"Deleted file '{id}'")
-#     except DatabaseError as e:
-#         return JSend.fail(e.args[0])
+@file.methods.delete
+def delete_file(request: Request, id: int) -> Union[RestResponse,JsonResponse]:
+    try:
+        query = DeleteFileQuery(id=id)
+    except ValidationError as e:
+        return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
+    try:
+        success = api.file.delete_file(query)
+        if success:
+            return b'', HTTPStatus.NO_CONTENT, {}
+        else:
+            return b'', HTTPStatus.INTERNAL_SERVER_ERROR, {}
+    except ResponseError as e:
+        if e.code == 404:
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise
+
+
 #
 #
-# @route(__file, no_end_slash=True, methods=["PATCH"])
-# def patch_file(request: Request, id: str) -> RestResponse:
-#     body = request['BODY']
-#     file_json = json.loads(body)
+@file.methods.patch
+def patch_file(request: Request, id: str) ->  Union[RestResponse,JsonResponse]:
+    body = request['BODY']
+    body_json = json.load(body)
+    body_json['id'] = id
+    try:
+        query = ModifyFileQuery.parse_obj(body_json)
+    except ValidationError as e:
+        return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
+    try:
+        api.file.modify_file(query)
+        return b'', HTTPStatus.NO_CONTENT, {}
+    except ResponseError as e:
+        if e.code == HTTPStatus.NOT_FOUND:
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise
+
+
 #
-#     required_fields = []
-#     optional_fields = [__data_schema['name'], __data_schema['mime'], __data_schema['description'],
-#                        __data_schema['path']]
-#
-#     errors = []
-#
-#     if validate_fields(file_json, required_fields, optional_fields, errors):
-#         return JSend.fail(errors), ResponseCode.BAD_REQUEST
-#     try:
-#         parts: List[str] = [f"{key} = :{key}" for key in file_json]
-#         query = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
-#
-#         file_json['id'] = id
-#         with connect(config.db_path) as conn:
-#             conn.execute("PRAGMA foreign_keys = 1")
-#             cursor = conn.cursor()
-#             cursor.execute(query, file_json)
-#             conn.commit()
-#         return b'', ResponseCode.NO_CONTENT, {}
-#     except DatabaseError as e:
-#         return JSend.fail(e.args[0])
-#
-#
-# @route(__file, no_end_slash=True, methods=["PUT"])
-# def put_file(request: Request, id: str) -> RestResponse:
-#     body = request['BODY']
-#     file_json = json.loads(body)
-#
-#     required_fields = [__data_schema['name'], __data_schema['path'], __data_schema['mime'],
-#                        __data_schema['description']]
-#     opt_fields = []
-#     errors = []
-#
-#     if validate_fields(file_json, required_fields, opt_fields, errors):
-#         return JSend.fail(errors), ResponseCode.BAD_REQUEST
-#     try:
-#         file_json['id'] = id
-#         with connect(config.db_path) as conn:
-#             conn.execute("PRAGMA foreign_keys = 1")
-#             cursor = conn.cursor()
-#             query = read_sql_file("static/sql/file/update.sql")
-#             cursor.execute(query, file_json)
-#             conn.commit()
-#
-#         return b'', ResponseCode.NO_CONTENT, {}
-#     except DatabaseError as e:
-#         return JSend.error(e.args[0]), ResponseCode.INTERNAL_SERVER_ERROR
-#
-#
-# # File Tags ===========================================================================================================
+@file.methods.put
+def put_file(request: Request, id: int) -> Union[RestResponse,JsonResponse]:
+    body = request['BODY']
+    body_json = json.loads(body)
+    body_json['id'] = id
+    try:
+        query = SetFileQuery.parse_obj(body_json)
+    except ValidationError as e:
+        return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
+    try:
+        success = api.file.set_file(query)
+        return b'', HTTPStatus.NO_CONTENT if success else HTTPStatus.INTERNAL_SERVER_ERROR, {}
+    except ResponseError as e:
+        if e.code == HTTPStatus.NOT_FOUND:
+            raise ResponseError(HTTPStatus.GONE)
+        else:
+            raise
+
+
+# File Tags ===========================================================================================================
 @file_tags.methods.get
 def get_file_tags(request: Request, id: int) -> JsonResponse:
     q = FileTagQuery(id=id)
     try:
         api_result = api.file.get_file_tags(q)
-        rest_result = RestTag.from_tag(api_result)
-        return serve_json(Util.json(rest_result))
+        return serve_json(Util.json(api_result))
     except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND: # SEE get_file_bytes for why we do this
+        if e.code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
             raise ResponseError(HTTPStatus.GONE)
         else:
             raise
@@ -268,6 +264,7 @@ def get_file_data(request: Request, id: int):
             # My final thoughts on the issue:
             #   Chrome displays 'It may have been moved or deleted.' on a 410 Which I feel represents the issue exactly
             #   because the file should exists; but it doesnt; so it must have been moved/delete
+            #       Alternatively; it may have never existed
             raise ResponseError(HTTPStatus.GONE)
         else:
             raise  # pass along uncaught exceptions

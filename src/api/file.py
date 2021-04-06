@@ -89,6 +89,26 @@ class FileTagQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
+class ModifyFileQuery(BaseModel):
+    id: int
+    path: Optional[str] = None
+    mime: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[int]] = None
+
+
+class SetFileQuery(BaseModel):
+    id: int
+    #Optional[...] without '= None' means the field is required BUT can be none
+    path: str
+    mime: Optional[str]
+    name: Optional[str]
+    description: Optional[str]
+    # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
+    tags: Optional[List[int]] = None
+
+
 class FileQuery(BaseModel):
     id: int
     fields: Optional[List[str]] = None
@@ -108,9 +128,10 @@ class FileQuery(BaseModel):
 
 class CreateFileQuery(BaseModel):
     path: str
+    mime: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[List[int]] = Field(default_factory=lambda: [])
+    tags: Optional[List[int]] = None
 
     def create_file(self, id: int, tags: List[Tag]) -> File:
         return File(id=id, path=self.path, name=self.name, description=self.description, tags=tags)
@@ -135,11 +156,68 @@ def get_file(query: FileQuery) -> File:
 def create_file(query: CreateFileQuery) -> File:
     with __connect() as (conn, cursor):
         sql = read_sql_file("static/sql/file/insert.sql")
-        cursor.execute(sql, query.json())
-        conn.commit()
+        sql_args = query.dict(include={'path', 'mime', 'description', 'name'})
+        cursor.execute(sql, sql_args)
         id = cursor.lastrowid
-        tags = get_file_tags(FileTagQuery(id=id)) if query.tags is not None else None
+        tags = []
+        if query.tags is not None:
+            raise ResponseError(500)
+            # TODO impliment tags
+            # set_file_tags(SetFileTagsQuery)
+            # tags = get_file_tags(FileTagQuery(id=id))
+
+        conn.commit()
         return query.create_file(id=id, tags=tags)
+
+
+class DeleteFileQuery(BaseModel):
+    id: int
+
+
+
+
+def delete_file(query: DeleteFileQuery) -> bool:
+    with __connect() as (conn, cursor):
+        if not __exists(cursor, query.id):
+            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{query.id}'")
+        sql = read_sql_file("static/sql/file/delete_by_id.sql")
+        cursor.execute(sql, str(query.id))
+        conn.commit()
+    return True
+
+
+def modify_file(query: ModifyFileQuery) -> bool:
+    json = query.dict(exclude={'id','tags'}, exclude_unset=True)
+    parts: List[str] = [f"{key} = :{key}" for key in json]
+    sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
+    json['id'] = query.id
+
+    #HACK while tags is not implimented
+    if query.tags is not None:
+        raise NotImplementedError
+
+    with __connect() as (conn, cursor):
+        if not __exists(cursor, query.id):
+            raise ResponseError(HTTPStatus.NOT_FOUND)
+        cursor.execute(query, sql)
+        conn.commit()
+        return True
+
+
+def set_file(query: SetFileQuery) -> bool:
+    sql = read_sql_file("static/sql/file/update.sql")
+    args = query.dict(exclude={'tags'})
+    #HACK while tags is not implimented
+    if query.tags is not None:
+        raise NotImplementedError
+
+    with __connect() as (conn, cursor):
+        if not __exists(cursor, query.id):
+            raise ResponseError(HTTPStatus.NOT_FOUND)
+        cursor.execute(sql, args)
+        conn.commit()
+        return True
+    # return b'', ResponseCode.NO_CONTENT, {}
 
 
 def get_file_tags(query: FileTagQuery) -> List[Tag]:

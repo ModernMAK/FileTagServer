@@ -126,21 +126,6 @@ class Endpoint:
         for func, methods in self.methods.reverse_lookup().items():
             route(url, methods, func, cors_methods=cors.get(func, None), **route_kwargs)
 
-    def get(self, func, allow_cors: bool = False):
-        return self.methods.get(func, allow_cors)
-
-    def put(self, func, allow_cors: bool = False):
-        return self.methods.put(func, allow_cors)
-
-    def post(self, func, allow_cors: bool = False):
-        return self.methods.post(func, allow_cors)
-
-    def patch(self, func, allow_cors: bool = False):
-        return self.methods.patch(func, allow_cors)
-
-    def delete(self, func, allow_cors: bool = False):
-        return self.methods.delete(func, allow_cors)
-
     @property
     def methods(self) -> Methods:
         return self.__methods

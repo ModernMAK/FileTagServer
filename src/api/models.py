@@ -12,6 +12,7 @@ class Tag(BaseModel):
 class File(BaseModel):
     id: int
     path: str
+    mime: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[Tag]] = Field(default_factory=lambda: [])

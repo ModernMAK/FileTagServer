@@ -1,11 +1,8 @@
 import json
 from sqlite3 import connect
 from typing import List, Dict, Union, Tuple
-
 from src.util.litespeedx import Response
-
 JsonResponse = Tuple[str, int, Dict[str, str]]
-
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
 
