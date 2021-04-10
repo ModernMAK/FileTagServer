@@ -16,3 +16,4 @@ def resolve_url(path:str) -> str:
     if len(stripped_url) > 0:
         resolved_url += "/" + stripped_url
     return resolved_url
+

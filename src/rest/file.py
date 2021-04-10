@@ -18,7 +18,7 @@ RestResponse = Union[Response, Tuple[Dict, int, Dict[str, str]]]
 
 
 # Files ===============================================================================================================
-@files.methods.get
+@files.methods.get(allow_cors=True)
 def get_files(request: Request) -> JsonResponse:
     # Parse individual api arguments; data is validated at the api level
     arguments: Dict[str, str] = request['GET']
@@ -35,7 +35,6 @@ def get_files(request: Request) -> JsonResponse:
     return serve_json(Util.json(api_results))
 
 
-# @routes.files.methods.post
 @files.methods.post
 def post_files(request: Request) -> JsonResponse:
     body: str = request['BODY']
@@ -58,7 +57,7 @@ def get_files_tags(request: Request):
     return serve_json(Util.json(api_results))
 
 
-# # Files Search ========================================================================================================
+# Files Search ========================================================================================================
 @files_search.methods.get
 def get_files_search(request: Request) -> RestResponse:
     def apply_get(path: str):

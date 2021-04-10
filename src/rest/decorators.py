@@ -78,20 +78,30 @@ class Methods(object):
                 pass
         return func
 
-    def get(self, func, allow_cors: bool = False):
-        return self.set_function(func, HTTPMethod.GET, allow_cors)
+    def get(self, _func=None, allow_cors: bool = False):
+        def inner(func):
+            return self.set_function(func, HTTPMethod.GET, allow_cors)
+        return inner(_func) if _func else inner
 
-    def put(self, func, allow_cors: bool = False):
-        return self.set_function(func, HTTPMethod.PUT, allow_cors)
+    def put(self, _func=None, allow_cors: bool = False):
+        def inner(func):
+            return self.set_function(func, HTTPMethod.PUT, allow_cors)
+        return inner(_func) if _func else inner
 
-    def post(self, func, allow_cors: bool = False):
-        return self.set_function(func, HTTPMethod.POST, allow_cors)
+    def post(self, _func=None, allow_cors: bool = False):
+        def inner(func):
+            return self.set_function(func, HTTPMethod.POST, allow_cors)
+        return inner(_func) if _func else inner
 
-    def patch(self, func, allow_cors: bool = False):
-        return self.set_function(func, HTTPMethod.PATCH, allow_cors)
+    def patch(self, _func=None, allow_cors: bool = False):
+        def inner(func):
+            return self.set_function(func, HTTPMethod.PATCH, allow_cors)
+        return inner(_func) if _func else inner
 
-    def delete(self, func, allow_cors: bool = False):
-        return self.set_function(func, HTTPMethod.DELETE, allow_cors)
+    def delete(self, _func=None, allow_cors: bool = False):
+        def inner(func):
+            return self.set_function(func, HTTPMethod.DELETE, allow_cors)
+        return inner(_func) if _func else inner
 
     @property
     def allowed(self) -> List[HTTPMethod]:
@@ -113,7 +123,7 @@ class Endpoint:
     def endpoint(self, nested_path) -> 'Endpoint':
         return Endpoint(self.path.subpath(nested_path))
 
-    def route(self, path_kwargs: Dict = None, route_kwargs: Dict = None):
+    def route(self, path_kwargs: Dict = None, route_kwargs: Dict = None) -> object:
         # merges shared functions
         path_kwargs = path_kwargs or {}
         route_kwargs = route_kwargs or {}

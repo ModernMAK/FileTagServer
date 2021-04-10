@@ -9,6 +9,8 @@ from src import config
 from src.api.models import Tag, File
 
 
+
+
 def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
     if value not in fields:
         quoted_fields = [f'\'{f}\'' for f in fields]
@@ -156,3 +158,8 @@ class SortQuery(BaseModel):
                 name = pair[1:].strip()
             results.append(SortQuery(field=name, ascending=asc))
         return results
+
+
+class AutoComplete(BaseModel):
+    label: str
+    value: str

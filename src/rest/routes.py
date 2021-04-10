@@ -42,20 +42,6 @@ def tags(*args, **kwargs):
 def tag(*args,tag_id:int=None, **kwargs):
     return tag_id or "{tag_id}"
 
-
-# Endpoints can't be registered until after
-def finalize_routes(root=None, *, no_end_slash: bool = True, **route_kwargs):
-    route_kwargs['no_end_slash'] = no_end_slash  # I do this because I personally prefer not having the trailing /
-    INTEGER_REGEX = r"(\d+)"
-    path_args = {
-        'file_id': INTEGER_REGEX,
-        'tag_id': INTEGER_REGEX,
-        'root': root
-    }
-    endpoints: List[Endpoint] = [
-        files, files_tags, files_search,
-        file, file_tags, file_bytes,
-        tags, tag
-    ]
-    for ep in endpoints:
-        ep.route(path_args, route_kwargs)
+@tags.endpoint
+def tag_autocomplete(*args,**kwargs):
+    return 'autocomplete'
