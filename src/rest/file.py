@@ -70,6 +70,7 @@ def get_files_search(request: Request) -> RestResponse:
     return b'', 301, {'Location': config.resolve_url(apply_get(files.path()))}
 
 
+
 # File ================================================================================================================
 @file.methods.get
 def get_file(request: Request, id: int) -> JsonResponse:

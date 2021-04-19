@@ -37,6 +37,88 @@ class FilesQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
+class FileTagQuery(BaseModel):
+    id: int
+    fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+
+class ModifyFileQuery(BaseModel):
+    id: int
+    path: Optional[str] = None
+    mime: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[int]] = None
+
+
+class SetFileQuery(BaseModel):
+    id: int
+    # Optional[...] without '= None' means the field is required BUT can be none
+    path: str
+    mime: Optional[str]
+    name: Optional[str]
+    description: Optional[str]
+    # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
+    tags: Optional[List[int]] = None
+
+
+class FileQuery(BaseModel):
+    id: int
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, File.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+    def create_tag_query(self) -> FileTagQuery:
+        return FileTagQuery(id=self.id, fields=self.tag_fields)
+
+
+class CreateFileQuery(BaseModel):
+    path: str
+    mime: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[int]] = None
+
+    def create_file(self, id: int, tags: List[Tag]) -> File:
+        return File(id=id, path=self.path, name=self.name, description=self.description, tags=tags)
+
+
+class SearchQuery(BaseModel):
+    # AND
+    required: Optional[List[Union['SearchQuery', str]]] = None
+    # OR
+    include: Optional[List[Union['SearchQuery', str]]] = None
+    # NOT
+    exclude: Optional[List[Union['SearchQuery', str]]] = None
+
+
+class FileSearchQuery(BaseModel):
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+    sort: Optional[List[SortQuery]] = None
+    search: Optional[SearchQuery] = None
+    page: Optional[int] = Field(1, ge=1)
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, File.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+
 def get_files(query: FilesQuery) -> List[File]:
     with __connect() as (conn, cursor):
         get_files_sql = read_sql_file("static/sql/file/select.sql", True)
@@ -80,63 +162,6 @@ def get_files_tags(query: FilesQuery) -> List[Tag]:
         return results
 
 
-class FileTagQuery(BaseModel):
-    id: int
-    fields: Optional[List[str]] = None
-
-    @validator('fields', each_item=True)
-    def validate_tag_fields(cls, value: str) -> str:
-        return validate_fields(value, Tag.__fields__)
-
-
-class ModifyFileQuery(BaseModel):
-    id: int
-    path: Optional[str] = None
-    mime: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    tags: Optional[List[int]] = None
-
-
-class SetFileQuery(BaseModel):
-    id: int
-    #Optional[...] without '= None' means the field is required BUT can be none
-    path: str
-    mime: Optional[str]
-    name: Optional[str]
-    description: Optional[str]
-    # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
-    tags: Optional[List[int]] = None
-
-
-class FileQuery(BaseModel):
-    id: int
-    fields: Optional[List[str]] = None
-    tag_fields: Optional[List[str]] = None
-
-    @validator('fields', each_item=True)
-    def validate_fields(cls, value: str) -> str:
-        return validate_fields(value, File.__fields__)
-
-    @validator('tag_fields', each_item=True)
-    def validate_tag_fields(cls, value: str) -> str:
-        return validate_fields(value, Tag.__fields__)
-
-    def create_tag_query(self) -> FileTagQuery:
-        return FileTagQuery(id=self.id, fields=self.tag_fields)
-
-
-class CreateFileQuery(BaseModel):
-    path: str
-    mime: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    tags: Optional[List[int]] = None
-
-    def create_file(self, id: int, tags: List[Tag]) -> File:
-        return File(id=id, path=self.path, name=self.name, description=self.description, tags=tags)
-
-
 def get_file(query: FileQuery) -> File:
     with __connect() as (conn, cursor):
         sql = read_sql_file("static/sql/file/select_by_id.sql")
@@ -174,8 +199,6 @@ class DeleteFileQuery(BaseModel):
     id: int
 
 
-
-
 def delete_file(query: DeleteFileQuery) -> bool:
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
@@ -187,12 +210,12 @@ def delete_file(query: DeleteFileQuery) -> bool:
 
 
 def modify_file(query: ModifyFileQuery) -> bool:
-    json = query.dict(exclude={'id','tags'}, exclude_unset=True)
+    json = query.dict(exclude={'id', 'tags'}, exclude_unset=True)
     parts: List[str] = [f"{key} = :{key}" for key in json]
     sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
     json['id'] = query.id
 
-    #HACK while tags is not implimented
+    # HACK while tags is not implimented
     if query.tags is not None:
         raise NotImplementedError
 
@@ -207,7 +230,7 @@ def modify_file(query: ModifyFileQuery) -> bool:
 def set_file(query: SetFileQuery) -> bool:
     sql = read_sql_file("static/sql/file/update.sql")
     args = query.dict(exclude={'tags'})
-    #HACK while tags is not implimented
+    # HACK while tags is not implimented
     if query.tags is not None:
         raise NotImplementedError
 
@@ -242,3 +265,11 @@ def get_file_bytes(query: FileDataQuery):
     result = get_file(FileQuery(id=query.id))
     local_path = result.path
     return serve(local_path, range=query.range, headers={"Accept-Ranges": "bytes"})
+
+
+def search_files(query: FileSearchQuery) -> List[File]:
+    sort_sql = SortQuery.list_sql(query.sort) if query.sort else None
+
+    if sort_sql:
+        raise NotImplementedError
+    return []

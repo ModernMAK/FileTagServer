@@ -3,9 +3,15 @@ from typing import Tuple, Optional, List
 # FULL BOOLEAN SEARCH
 # Allows grouping and literals
 #
+
+# Originally my plan was to support two types of string queries
+# A full boolean search language and a simple search language
+# BUT I think the REST api should rely on POST instead
+# This avoids the issue of parsing a string into a search query
+
 SEARCH_NOT = 'NOT'
-SEARCH_AND = '+'
-SEARCH_OR = '~'
+SEARCH_AND = 'AND'
+SEARCH_OR = 'OR'
 
 SEARCH_GROUP_START = '('
 SEARCH_GROUP_END = ')'

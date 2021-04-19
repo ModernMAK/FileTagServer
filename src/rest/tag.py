@@ -1,6 +1,6 @@
 import json
 from http import HTTPStatus
-from typing import Dict, Union, Tuple
+from typing import Dict, Union, Tuple, Any
 
 import src.api as api
 from src.api.common import SortQuery, parse_fields, Util
@@ -71,16 +71,30 @@ def put_tag(request: Request, id: int) -> RestResponse:
         return b'', HTTPStatus.BAD_REQUEST, {}
 
 
+def __shared_autocomplete_tags(request: Request, payload: Dict[str, Any]):
+    api_result = api.tag.autocomplete_tag(payload['name'])
+    r = serve_json(Util.json(api_result))
+    c, _, _ = r
+    print(c)
+    return r
+
+
 @tag_autocomplete.methods.post
 def autocomplete_tags(request: Request) -> JsonResponse:
     try:
         body = request['BODY']
         payload = json.loads(body)
-        api_result = api.tag.autocomplete_tag(payload['name'])
-        r = serve_json(Util.json(api_result))
-        c, _, _ = r
-        print(c)
-        return r
+        return __shared_autocomplete_tags(request, payload)
+    except Exception as e:
+        print(e)
+        raise
+
+
+@tag_autocomplete.methods.get
+def autocomplete_tags(request: Request) -> JsonResponse:
+    try:
+        payload = request['GET']
+        return __shared_autocomplete_tags(request, payload)
     except Exception as e:
         print(e)
         raise

@@ -17,30 +17,28 @@
 
 
 <script>
-$('.tag_autocomplete').autoComplete({
-    resolver: 'custom',
-    events: {
-        search: function (qry, callback) {
-            // let's do a custom ajax call
-            $.post(
-                '/rest/tags/autocomplete',
-                JSON.stringify({ 'name': qry }),
-            ).done(function (res) {
-
-                parsed = JSON.parse(res)
-                console.log(parsed)
-                var mapped = []
-                for(var key in parsed) {
-                    var v = parsed[key]
-                    var m = {
-                        text: v['value'],
-                        value: v['label']
-                    }
-                    mapped.push(m)
+$('.tag_autocomplete').autoComplete(
+{
+    resolverSettings:
+    {
+        url: '/rest/tags/autocomplete',
+        queryKey: 'name'
+    },
+    events:
+    {
+        searchPost: function(results)
+        {
+            parsed = JSON.parse(results)
+            var mapped = []
+            for(var key in parsed) {
+                var v = parsed[key]
+                var m = {
+                    text: v['value'],
+                    id: v['label']
                 }
-                console.log(mapped)
-                callback(mapped)
-            });
+                mapped.push(m)
+            }
+            return mapped
         }
     }
 });

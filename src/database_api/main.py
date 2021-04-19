@@ -5,9 +5,9 @@ import os
 import re
 from typing import List
 
-from src.database_api.clients import MasterClient
-from src.database_api.clients.file_extra_info import FileExtraInfoTable
-from src.page_groups import pathing
+# from src.database_api.clients import MasterClient
+# from src.database_api.clients.file_extra_info import FileExtraInfoTable
+# from src.page_groups import pathing
 
 
 def scan_and_add(db_dir: str, root_dir: str, patterns: List = None, exts: List[str] = None):
