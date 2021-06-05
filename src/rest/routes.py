@@ -2,9 +2,11 @@ from typing import List
 from src.rest.common import url_join
 from src.rest.decorators import Endpoint
 
+
 @Endpoint
 def rest(*args, root: str = None, **kwargs):
     return url_join(root or "/", 'rest')
+
 
 @rest.endpoint
 def files(*args, **kwargs):
@@ -30,18 +32,22 @@ def files_search(*args, **kwargs):
 def file_tags(*args, **kwargs):
     return 'tags'
 
+
 @file.endpoint
 def file_bytes(*args, **kwargs):
     return 'bytes'
+
 
 @rest.endpoint
 def tags(*args, **kwargs):
     return 'tags'
 
-@tags.endpoint
-def tag(*args,tag_id:int=None, **kwargs):
-    return tag_id or "{tag_id}"
 
 @tags.endpoint
-def tag_autocomplete(*args,**kwargs):
+def tag(*args, tag_id: int = None, **kwargs):
+    return tag_id or "{tag_id}"
+
+
+@tags.endpoint
+def tag_autocomplete(*args, **kwargs):
     return 'autocomplete'

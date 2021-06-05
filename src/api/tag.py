@@ -122,38 +122,60 @@ def delete_tag(query: DeleteTagQuery) -> bool:
 
 def set_tag(query: SetTagQuery) -> bool:
     try:
+        # Read sql
         sql = read_sql_file("static/sql/tag/update.sql")
+        # connect to database
         with __connect() as (conn, cursor):
+            # If id doesnt exist raise an error (Not Found)
             if not __exists(cursor, query.id):
                 raise ResponseError(HTTPStatus.NOT_FOUND)
             cursor.execute(sql, query.dict())
             conn.commit()
             return True
+    # On database error (Integrity error specifically) raise Conflict Response
     except IntegrityError as e:
-        raise ResponseError(409, str(e))
+        raise ResponseError(HTTPStatus.CONFLICT, str(e))
 
 
 def modify_tag(query: ModifyTagQuery) -> bool:
+    # Convert query object to sql args (ignore id)
     json = query.dict(exclude={'id'}, exclude_unset=True)
+    # Create sql parts from the args
     parts: List[str] = [f"{key} = :{key}" for key in json]
+    # Form full query
     sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
+    # Add id back to sql args
     json['id'] = query.id
-
+    # Connect to db
     with __connect() as (conn, cursor):
+        # If id doesnt exist raise an error (Not Found)
         if not __exists(cursor, query.id):
             raise ResponseError(HTTPStatus.NOT_FOUND)
+        # Execute query & save
         cursor.execute(query, sql)
         conn.commit()
         return True
 
 
 def autocomplete_tag(name: str) -> List[AutoComplete]:
+    """
+    Fetches a list of Autocomplete pairs for the tags.
+    """
+    # if name is none;
+    if name is None:
+        return []
+    # escape character for sql
     escape_char = "/"
     try:
         with __connect() as (conn, cursor):
-            sql = read_sql_file("static/sql/tag/autocomplete.sql")
+            sql = read_sql_file("static/sql/tag/autocomplete.sql") # I do this to fix sql-mistakes on the fly, and for reusability
+            # First, escape the escape character (we have to do this first)
+            # Then escape the '%' wildcard
+            # Lastly escape the '_' wildcard
             escaped = name.replace(escape_char, escape_char * 2).replace("%", f"{escape_char}%").replace("_", f"{escape_char}_")
+            # our query expects the escaped name and the escape character used (in case a different one is required)
             cursor.execute(sql, [f"%{escaped}%", escape_char])
+            # I arbitrarily replace spaces with '_' for autocomplete
             return [AutoComplete(value=row['name'].replace(" ", "_"), label=row['name']) for row in cursor.fetchall()]
     except DatabaseError as e:
         print(e)

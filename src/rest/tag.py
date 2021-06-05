@@ -72,7 +72,7 @@ def put_tag(request: Request, id: int) -> RestResponse:
 
 
 def __shared_autocomplete_tags(request: Request, payload: Dict[str, Any]):
-    api_result = api.tag.autocomplete_tag(payload['name'])
+    api_result = api.tag.autocomplete_tag(payload.get('name'))
     r = serve_json(Util.json(api_result))
     c, _, _ = r
     print(c)
