@@ -2,9 +2,8 @@ import json
 from http import HTTPStatus
 from typing import Dict, Union, Tuple, Any
 
-import src.api as api
-from src.api.common import SortQuery, parse_fields, Util
-from src.api.tag import TagsQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, SetTagQuery, CreateTagQuery
+from src.FileTagServer.API.common import SortQuery, parse_fields, Util
+from src.FileTagServer.API.tag import TagsQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, SetTagQuery, CreateTagQuery
 from src.rest.common import serve_json, JsonResponse
 from src.rest.routes import tags, tag, tag_autocomplete
 from src.util.litespeedx import Response, Request
@@ -26,7 +25,7 @@ def get_tags(request: Request) -> JsonResponse:
     sort_args = SortQuery.parse_str(args.get('sort'))
     fields = parse_fields(args.get('fields'))
     query = TagsQuery(sort=sort_args, fields=fields)
-    api_results = api.tag.get_tags(query)
+    api_results = src.FileTagServer.API.tag.get_tags(query)
     return serve_json(Util.json(api_results))
 
 
@@ -35,7 +34,7 @@ def post_tags(request: Request) -> JsonResponse:
     body = request['BODY']
     payload = json.loads(body)
     query = CreateTagQuery(**payload)
-    return serve_json(Util.json(api.tag.create_tag(query)))
+    return serve_json(Util.json(src.FileTagServer.API.tag.create_tag(query)))
 
 
 # Tag ================================================================================================================
@@ -43,14 +42,14 @@ def post_tags(request: Request) -> JsonResponse:
 def get_tag(request: Request, id: int) -> JsonResponse:
     args = request['GET']
     query = TagQuery(id=id, fields=args.get('fields'))
-    api_result = api.tag.get_tag(query)
+    api_result = src.FileTagServer.API.tag.get_tag(query)
     return serve_json(Util.json(api_result))
 
 
 @tag.methods.delete
 def delete_tag(request: Request, id: int) -> RestResponse:
     query = DeleteTagQuery(id=id)
-    if api.tag.delete_tag(query):
+    if src.FileTagServer.API.tag.delete_tag(query):
         return b'', HTTPStatus.Ok, {}
     else:
         return b'', HTTPStatus.BAD_REQUEST, {}
@@ -61,7 +60,7 @@ def patch_tag(request: Request, id: int) -> RestResponse:
     body = request['BODY']
     payload = json.loads(body)
     query = ModifyTagQuery(id=id, **payload)
-    if api.tag.modify_tag(query):
+    if src.FileTagServer.API.tag.modify_tag(query):
         return b'', HTTPStatus.NO_CONTENT, {}
     else:
         return b'', HTTPStatus.BAD_REQUEST, {}
@@ -72,14 +71,14 @@ def put_tag(request: Request, id: int) -> RestResponse:
     body = request['BODY']
     payload = json.loads(body)
     query = SetTagQuery(id=id, **payload)
-    if api.tag.set_tag(query):
+    if src.FileTagServer.API.tag.set_tag(query):
         return b'', HTTPStatus.NO_CONTENT, {}
     else:
         return b'', HTTPStatus.BAD_REQUEST, {}
 
 
 def __shared_autocomplete_tags(request: Request, payload: Dict[str, Any]):
-    api_result = api.tag.autocomplete_tag(payload.get('name'))
+    api_result = src.FileTagServer.API.tag.autocomplete_tag(payload.get('name'))
     r = serve_json(Util.json(api_result))
     c, _, _ = r
     print(c)

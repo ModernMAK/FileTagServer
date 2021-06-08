@@ -2,16 +2,14 @@ import json
 
 import pytest
 
-from src import config
+from FileTagServer import config
 from src.util.litespeedx import JSend
 from tests.litespeed_test import internal_fetch, assert_response, dict_to_body
 from src.rest.file import __files
 from http import HTTPStatus
 from shutil import copyfile
 
-from src.rest.file import App, __reformat_file_row
-from src.rest.tag import App
-import src.api.common as api
+from src.rest.file import __reformat_file_row
 import src.rest.common as rest
 
 source_db = "examples/example.db"

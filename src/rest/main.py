@@ -2,7 +2,7 @@ from typing import List
 
 from litespeed import route, start_with_args, App
 
-from src.api.common import initialize_database
+from src.FileTagServer.API.common import initialize_database
 from src.rest.routes import files, files_tags, file_tags, files_search, tags, file, tag
 from src.rest.common import url_join, url_protocol, serve_json
 from src.rest.decorators import Endpoint

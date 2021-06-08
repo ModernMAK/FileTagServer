@@ -1,17 +1,15 @@
 from http import HTTPStatus
-from typing import Dict, Any, Union, List, Tuple
+from typing import Dict, List, Tuple
 
 from litespeed import serve, route
 from litespeed.error import ResponseError
 from pystache import Renderer
 
-from src import config
-from src.page_groups import routing, static
-from src.page_groups.common import PaginationUtil
+from FileTagServer import config
+from src.page_groups import static
 from src.page_groups.shared_page_util import get_navbar_context
 from src.util.litespeedx import Response, Request
 from src.util.page_utils import reformat_serve
-import src.api.file as file_api
 
 renderer: Renderer = Renderer(search_dirs=[config.template_path])
 

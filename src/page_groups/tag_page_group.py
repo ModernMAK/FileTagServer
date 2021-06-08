@@ -5,7 +5,7 @@ from litespeed import serve, route
 from pystache import Renderer
 
 import src.database_api.clients as dbapi
-from src import config
+from FileTagServer import config
 from src.page_groups import routing, pathing
 from src.page_groups.page_group import PageGroup, ServeResponse
 from src.page_groups.shared_page_util import get_navbar_context

@@ -1,11 +1,9 @@
-from typing import Callable, List, Dict, Any
-
 from litespeed import route, serve
 from pystache import Renderer
 
-from src import config
+from FileTagServer import config
 from src.page_groups.shared_page_util import get_navbar_context
-from src.page_groups.page_group import PageGroup, ServeResponse, ServeFunction
+from src.page_groups.page_group import PageGroup, ServeResponse
 from src.util.page_utils import reformat_serve
 from src.page_groups import routing, pathing
 from src.page_groups.status_code_page_group import StatusPageGroup, HTTPStatus

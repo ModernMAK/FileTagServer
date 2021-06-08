@@ -5,10 +5,9 @@ from typing import Dict, Union, Tuple
 from litespeed.error import ResponseError
 from pydantic import ValidationError
 
-import src.api as api
-from src import config
-from src.api.common import SortQuery, parse_fields, Util
-from src.api.file import FilesQuery, FileQuery, CreateFileQuery, FileDataQuery, FileTagQuery, DeleteFileQuery, \
+from FileTagServer import config
+from src.FileTagServer.API.common import SortQuery, parse_fields, Util
+from src.FileTagServer.API.file import FilesQuery, FileQuery, CreateFileQuery, FileDataQuery, FileTagQuery, DeleteFileQuery, \
     ModifyFileQuery, SetFileQuery
 from src.rest.common import JsonResponse, serve_json
 from src.rest.routes import file, files, file_tags, files_tags, file_bytes, files_search
@@ -37,7 +36,7 @@ def get_files(request: Request) -> JsonResponse:
         return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
 
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
-    api_results = api.file.get_files(query)
+    api_results = src.FileTagServer.API.file.get_files(query)
     return serve_json(Util.json(api_results))
 
 
@@ -45,7 +44,7 @@ def get_files(request: Request) -> JsonResponse:
 def post_files(request: Request) -> JsonResponse:
     body: str = request['BODY']
     query = CreateFileQuery.parse_obj(json.loads(body))
-    api_result = api.file.create_file(query)
+    api_result = src.FileTagServer.API.file.create_file(query)
     return serve_json(api_result.json(), HTTPStatus.Created, {'location': config.resolve_url(file.path(api_result.id))})
 
 
@@ -59,7 +58,7 @@ def get_files_tags(request: Request):
     tag_fields = parse_fields(arguments.get("tag_fields"))
     query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
     # Try api call; if invalid, fetch errors from validation error and return Bad Request
-    api_results = api.file.get_files_tags(query)
+    api_results = src.FileTagServer.API.file.get_files_tags(query)
     return serve_json(Util.json(api_results))
 
 
@@ -85,7 +84,7 @@ def get_file(request: Request, id: int) -> JsonResponse:
     except ValidationError as e:
         return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
     try:
-        api_result = api.file.get_file(query)
+        api_result = src.FileTagServer.API.file.get_file(query)
         return serve_json(api_result.json())
     except ResponseError as e:
         if e.code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
@@ -101,7 +100,7 @@ def delete_file(request: Request, id: int) -> Union[RestResponse,JsonResponse]:
     except ValidationError as e:
         return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
     try:
-        success = api.file.delete_file(query)
+        success = src.FileTagServer.API.file.delete_file(query)
         if success:
             return b'', HTTPStatus.NO_CONTENT, {}
         else:
@@ -125,7 +124,7 @@ def patch_file(request: Request, id: str) ->  Union[RestResponse,JsonResponse]:
     except ValidationError as e:
         return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
     try:
-        api.file.modify_file(query)
+        src.FileTagServer.API.file.modify_file(query)
         return b'', HTTPStatus.NO_CONTENT, {}
     except ResponseError as e:
         if e.code == HTTPStatus.NOT_FOUND:
@@ -145,7 +144,7 @@ def put_file(request: Request, id: int) -> Union[RestResponse,JsonResponse]:
     except ValidationError as e:
         return serve_json(e.json(), HTTPStatus.BAD_REQUEST)
     try:
-        success = api.file.set_file(query)
+        success = src.FileTagServer.API.file.set_file(query)
         return b'', HTTPStatus.NO_CONTENT if success else HTTPStatus.INTERNAL_SERVER_ERROR, {}
     except ResponseError as e:
         if e.code == HTTPStatus.NOT_FOUND:
@@ -159,7 +158,7 @@ def put_file(request: Request, id: int) -> Union[RestResponse,JsonResponse]:
 def get_file_tags(request: Request, id: int) -> JsonResponse:
     q = FileTagQuery(id=id)
     try:
-        api_result = api.file.get_file_tags(q)
+        api_result = src.FileTagServer.API.file.get_file_tags(q)
         return serve_json(Util.json(api_result))
     except ResponseError as e:
         if e.code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
@@ -257,7 +256,7 @@ def get_file_data(request: Request, id: int):
     range = request['HEADERS'].get('Range')
     query = FileDataQuery(id=id, range=range)
     try:
-        return api.file.get_file_bytes(query)
+        return src.FileTagServer.API.file.get_file_bytes(query)
     except ResponseError as e:
         if e.code == 404:
             # The 'least smelly' IMO response

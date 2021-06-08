@@ -1,12 +1,11 @@
 from litespeed import serve, register_error_page
 from pystache import Renderer
 
-from src import config
+from FileTagServer import config
 from src.page_groups import pathing
 from src.page_groups.page_group import ServeResponse, ServeFunction
 from src.util.page_utils import reformat_serve
 # HELPER import
-from http import HTTPStatus
 
 
 class StatusPageGroup:

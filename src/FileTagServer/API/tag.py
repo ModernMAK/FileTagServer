@@ -5,8 +5,8 @@ from typing import Optional, List
 from litespeed.error import ResponseError
 from pydantic import BaseModel, validator
 
-from src.api.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete
-from src.api.models import Tag
+from src.FileTagServer.API.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete
+from src.FileTagServer.API.models import Tag
 from src.rest.common import read_sql_file
 
 

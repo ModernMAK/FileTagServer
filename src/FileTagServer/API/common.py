@@ -5,9 +5,9 @@ from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict
 
 from pydantic import BaseModel
 
-from src import config
-from src.api.models import Tag, File
-from src.rest.common import read_sql_file
+from FileTagServer import config
+from FileTagServer.API.models import Tag, File
+from rest.common import read_sql_file
 
 
 def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
