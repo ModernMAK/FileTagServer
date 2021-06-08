@@ -7,7 +7,15 @@ from pydantic import BaseModel
 
 from FileTagServer import config
 from FileTagServer.API.models import Tag, File
-from rest.common import read_sql_file
+
+
+def read_sql_file(file: str, strip_terminal=False):
+    with open(file, "r") as f:
+        r = f.read()
+        if strip_terminal and r[-1] == ';':
+            return r[:-1]
+        else:
+            return r
 
 
 def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:

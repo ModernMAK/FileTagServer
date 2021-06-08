@@ -2,12 +2,12 @@ from http import HTTPStatus
 from sqlite3 import Cursor, DatabaseError, IntegrityError
 from typing import Optional, List
 
-from litespeed.error import ResponseError
+# from litespeed.error import ResponseError
 from pydantic import BaseModel, validator
 
-from src.FileTagServer.API.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete
+from FileTagServer.API.error import ApiError
+from src.FileTagServer.API.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, read_sql_file
 from src.FileTagServer.API.models import Tag
-from src.rest.common import read_sql_file
 
 
 def __exists(cursor: Cursor, id: int) -> bool:
@@ -52,17 +52,22 @@ class DeleteTagQuery(TagsQuery):
 
 
 class SetTagQuery(BaseModel):
-    id: int
     # Optional[...] without '= None' means the field is required BUT can be none
     name: Optional[str]
     description: Optional[str]
     # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
 
 
-class ModifyTagQuery(BaseModel):
+class FullSetTagQuery(SetTagQuery):
     id: int
+
+
+class ModifyTagQuery(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+
+class FullModifyTagQuery(ModifyTagQuery):
+    id: int
 
 
 def get_tags(query: TagsQuery) -> List[Tag]:
@@ -83,15 +88,15 @@ def get_tags(query: TagsQuery) -> List[Tag]:
         return results
 
 
-def get_tag(query: TagQuery) -> List[Tag]:
+def get_tag(query: TagQuery) -> Tag:
     with __connect() as (conn, cursor):
         sql = read_sql_file("static/sql/tag/select_by_id.sql")
         cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
         if len(rows) < 1:
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
+            raise ApiError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
         elif len(rows) > 1:
-            raise ResponseError(HTTPStatus.MULTIPLE_CHOICES, f"Too many tags found with the given id: '{query.id}'")
+            raise ApiError(HTTPStatus.MULTIPLE_CHOICES, f"Too many tags found with the given id: '{query.id}'")
         result = row_to_tag(rows[0])
         if query.fields is not None:
             result = Util.copy(result, include=set(query.fields))
@@ -107,20 +112,20 @@ def create_tag(query: CreateTagQuery) -> Tag:
             conn.commit()
             return Tag(id=id, name=query.name, description=query.description)
     except IntegrityError as e:
-        raise ResponseError(409, str(e))
+        raise ApiError(409, str(e))
 
 
 def delete_tag(query: DeleteTagQuery) -> bool:
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
+            raise ApiError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
         sql = read_sql_file("static/sql/tag/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
     return True
 
 
-def set_tag(query: SetTagQuery) -> bool:
+def set_tag(query: FullSetTagQuery) -> bool:
     try:
         # Read sql
         sql = read_sql_file("static/sql/tag/update.sql")
@@ -128,16 +133,16 @@ def set_tag(query: SetTagQuery) -> bool:
         with __connect() as (conn, cursor):
             # If id doesnt exist raise an error (Not Found)
             if not __exists(cursor, query.id):
-                raise ResponseError(HTTPStatus.NOT_FOUND)
+                raise ApiError(HTTPStatus.NOT_FOUND)
             cursor.execute(sql, query.dict())
             conn.commit()
             return True
     # On database error (Integrity error specifically) raise Conflict Response
     except IntegrityError as e:
-        raise ResponseError(HTTPStatus.CONFLICT, str(e))
+        raise ApiError(HTTPStatus.CONFLICT, str(e))
 
 
-def modify_tag(query: ModifyTagQuery) -> bool:
+def modify_tag(query: FullModifyTagQuery) -> bool:
     # Convert query object to sql args (ignore id)
     json = query.dict(exclude={'id'}, exclude_unset=True)
     # Create sql parts from the args
@@ -150,7 +155,7 @@ def modify_tag(query: ModifyTagQuery) -> bool:
     with __connect() as (conn, cursor):
         # If id doesnt exist raise an error (Not Found)
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND)
+            raise ApiError(HTTPStatus.NOT_FOUND)
         # Execute query & save
         cursor.execute(query, sql)
         conn.commit()

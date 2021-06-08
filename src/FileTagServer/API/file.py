@@ -1,12 +1,11 @@
-from http import HTTPStatus
 from sqlite3 import Row, Cursor
 from typing import List, Dict, Optional, Union
-from litespeed import serve
-from litespeed.error import ResponseError
 from pydantic import BaseModel, validator, Field
-from src.FileTagServer.API.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file
-from src.FileTagServer.API.models import File, Tag
-from src.rest.common import read_sql_file
+from starlette import status
+
+from FileTagServer.API.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
+from FileTagServer.API.error import ApiError
+from FileTagServer.API.models import File, Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:
@@ -47,7 +46,6 @@ class FileTagQuery(BaseModel):
 
 
 class ModifyFileQuery(BaseModel):
-    id: int
     path: Optional[str] = None
     mime: Optional[str] = None
     name: Optional[str] = None
@@ -55,8 +53,11 @@ class ModifyFileQuery(BaseModel):
     tags: Optional[List[int]] = None
 
 
-class SetFileQuery(BaseModel):
+class FullModifyFileQuery(ModifyFileQuery):
     id: int
+
+
+class SetFileQuery(BaseModel):
     # Optional[...] without '= None' means the field is required BUT can be none
     path: str
     mime: Optional[str]
@@ -64,6 +65,10 @@ class SetFileQuery(BaseModel):
     description: Optional[str]
     # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
     tags: Optional[List[int]] = None
+
+
+class FullSetFileQuery(SetFileQuery):
+    id: int
 
 
 class FileQuery(BaseModel):
@@ -91,7 +96,7 @@ class CreateFileQuery(BaseModel):
     tags: Optional[List[int]] = None
 
     def create_file(self, id: int, tags: List[Tag]) -> File:
-        return File(id=id, path=self.path, name=self.name, description=self.description, tags=tags)
+        return File(id=id, path=self.path, mime=self.mime, name=self.name, description=self.description, tags=tags)
 
 
 class SearchQuery(BaseModel):
@@ -117,8 +122,6 @@ class FileSearchQuery(BaseModel):
     @validator('tag_fields', each_item=True)
     def validate_tag_fields(cls, value: str) -> str:
         return validate_fields(value, Tag.__fields__)
-
-
 
 
 def get_files(query: FilesQuery) -> List[File]:
@@ -170,9 +173,9 @@ def get_file(query: FileQuery) -> File:
         cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
         if len(rows) < 1:
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{query.id}'")
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         elif len(rows) > 1:
-            raise ResponseError(HTTPStatus.MULTIPLE_CHOICES, f"Too many files found with the given id: '{query.id}'")
+            raise ApiError(status.HTTP_300_MULTIPLE_CHOICES, f"Too many files found with the given id: '{query.id}'")
         tags = get_file_tags(query.create_tag_query())
         result = row_to_file(rows[0], tags=tags)
         if query.fields is not None:
@@ -187,31 +190,30 @@ def create_file(query: CreateFileQuery) -> File:
         cursor.execute(sql, sql_args)
         id = cursor.lastrowid
         tags = []
-        if query.tags is not None:
-            raise ResponseError(500)
+        if query.tags is not None and len(query.tags) > 0:
+            raise ApiError(status.HTTP_501_NOT_IMPLEMENTED)
             # TODO impliment tags
             # set_file_tags(SetFileTagsQuery)
             # tags = get_file_tags(FileTagQuery(id=id))
 
         conn.commit()
-        return query.create_file(id=id, tags=tags)
+        return query.create_file(id=id, tags=tags, **sql_args)
 
 
 class DeleteFileQuery(BaseModel):
     id: int
 
 
-def delete_file(query: DeleteFileQuery) -> bool:
+def delete_file(query: DeleteFileQuery):
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{query.id}'")
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("static/sql/file/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
-    return True
 
 
-def modify_file(query: ModifyFileQuery) -> bool:
+def modify_file(query: FullModifyFileQuery):
     json = query.dict(exclude={'id', 'tags'}, exclude_unset=True)
     parts: List[str] = [f"{key} = :{key}" for key in json]
     sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
@@ -223,13 +225,12 @@ def modify_file(query: ModifyFileQuery) -> bool:
 
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND)
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         cursor.execute(query, sql)
         conn.commit()
-        return True
 
 
-def set_file(query: SetFileQuery) -> bool:
+def set_file(query: FullSetFileQuery) -> None:
     sql = read_sql_file("static/sql/file/update.sql")
     args = query.dict(exclude={'tags'})
     # HACK while tags is not implimented
@@ -238,18 +239,17 @@ def set_file(query: SetFileQuery) -> bool:
 
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND)
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         cursor.execute(sql, args)
         conn.commit()
-        return True
+        # return True
     # return b'', ResponseCode.NO_CONTENT, {}
 
 
 def get_file_tags(query: FileTagQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
-            raise ResponseError(HTTPStatus.NOT_FOUND, f"No file found with the given id: '{query.id}'")
-
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("static/sql/tag/select_by_file_id.sql")
         cursor.execute(sql, str(query.id))
         results = [row_to_tag(row) for row in cursor.fetchall()]
@@ -263,10 +263,18 @@ class FileDataQuery(BaseModel):
     range: Optional[str] = None
 
 
+def get_file_path(file_id: int) -> Optional[str]:
+    # Dont need to check; it will raise an API error if it fails to get the file
+    # Parent functions should handle the error as they need
+    file = get_file(FileQuery(id=file_id, fields=["path"]))
+    return file.path
+
+
 def get_file_bytes(query: FileDataQuery):
-    result = get_file(FileQuery(id=query.id))
-    local_path = result.path
-    return serve(local_path, range=query.range, headers={"Accept-Ranges": "bytes"})
+    raise Exception("This function is depricated. Please use get_file_path and open manually")
+    # result = get_file(FileQuery(id=query.id))
+    # local_path = result.path
+    # return serve(local_path, range=query.range, headers={"Accept-Ranges": "bytes"})
 
 
 def search_files(query: FileSearchQuery) -> List[File]:
