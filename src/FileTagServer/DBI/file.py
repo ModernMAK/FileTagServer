@@ -3,9 +3,9 @@ from typing import List, Dict, Optional, Union
 from pydantic import BaseModel, validator, Field
 from starlette import status
 
-from FileTagServer.API.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
-from FileTagServer.API.error import ApiError
-from FileTagServer.API.models import File, Tag
+from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
+from FileTagServer.DBI.error import ApiError
+from FileTagServer.DBI.models import File, Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:
@@ -264,7 +264,7 @@ class FileDataQuery(BaseModel):
 
 
 def get_file_path(file_id: int) -> Optional[str]:
-    # Dont need to check; it will raise an API error if it fails to get the file
+    # Dont need to check; it will raise an DBI error if it fails to get the file
     # Parent functions should handle the error as they need
     file = get_file(FileQuery(id=file_id, fields=["path"]))
     return file.path

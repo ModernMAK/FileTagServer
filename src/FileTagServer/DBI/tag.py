@@ -5,9 +5,9 @@ from typing import Optional, List
 # from litespeed.error import ResponseError
 from pydantic import BaseModel, validator
 
-from FileTagServer.API.error import ApiError
-from src.FileTagServer.API.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, read_sql_file
-from src.FileTagServer.API.models import Tag
+from FileTagServer.DBI.error import ApiError
+from src.FileTagServer.DBI.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, read_sql_file
+from src.FileTagServer.DBI.models import Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:

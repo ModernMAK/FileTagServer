@@ -7,13 +7,13 @@ from pydantic import ValidationError
 from starlette import status
 from starlette.responses import JSONResponse, FileResponse
 
-from FileTagServer.API import file as file_api
-from FileTagServer.API.common import parse_fields, SortQuery
+from FileTagServer.DBI import file as file_api
+from FileTagServer.DBI.common import parse_fields, SortQuery
 # Files ===============================================================================================================
-from FileTagServer.API.error import ApiError
-from FileTagServer.API.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
-    FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery, FileDataQuery
-from FileTagServer.API.models import File, Tag
+from FileTagServer.DBI.error import ApiError
+from FileTagServer.DBI.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
+    FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery
+from FileTagServer.DBI.models import File, Tag
 from common import rest_api
 
 tags_metadata = [
@@ -92,13 +92,13 @@ def get_file(file_id: int):
         query = FileQuery(id=file_id)
         api_result = file_api.get_file(query)
         return api_result
-    except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND:  # WE don't use 404 to avoid confusing it with an invalid endpoint
-            return JSONResponse(status_code=status.HTTP_410_GONE, content=None)
-        elif e.code == HTTPStatus.CONFLICT:
-            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=None)
-        else:
-            return JSONResponse(status_code=int(e.code), content=None)
+    except ApiError as e:
+        # if e.status_code == HTTPStatus.NOT_FOUND:  # WE don't use 404 to avoid confusing it with an invalid endpoint
+        #     return JSONResponse(status_code=status.HTTP_410_GONE, content=None)
+        # elif e.status_code == HTTPStatus.CONFLICT:
+        #     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=None)
+        # else:
+        return JSONResponse(status_code=int(e.status_code), content=None)
 
 
 #
@@ -112,9 +112,9 @@ def delete_file(file_id: int):
     try:
         file_api.delete_file(query)
         return None
-    except ResponseError as e:
-        if e.code == 404:
-            return JSONResponse(status_code=status.HTTP_410_GONE)
+    except ApiError as e:
+        # if e.code == 404:
+        return JSONResponse(status_code=int(e.status_code))
 
 
 @rest_api.patch(file_route, status_code=status.HTTP_204_NO_CONTENT, tags=["File"])
@@ -126,11 +126,11 @@ def patch_file(file_id: int, body: ModifyFileQuery):
     try:
         file_api.modify_file(query)
         return
-    except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND:
+    except ApiError as e:
+        if e.status_code == HTTPStatus.NOT_FOUND:
             return JSONResponse(status_code=status.HTTP_410_GONE)
         else:
-            return JSONResponse(status_code=int(e.code))
+            return JSONResponse(status_code=int(e.status_code))
 
 
 #
@@ -147,11 +147,11 @@ def put_file(file_id: int, body: SetFileQuery):
         file_api.set_file(query)
         return
         # return b'', HTTPStatus.NO_CONTENT if success else HTTPStatus.INTERNAL_SERVER_ERROR, {}
-    except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND:
+    except ApiError as e:
+        if e.status_code == HTTPStatus.NOT_FOUND:
             return JSONResponse(status_code=status.HTTP_410_GONE)
         else:
-            return JSONResponse(status_code=int(e.code))
+            return JSONResponse(status_code=int(e.status_code))
             # raise
 
 
@@ -165,12 +165,12 @@ def get_file_tags(file_id: int) -> List[Tag]:
         api_result = file_api.get_file_tags(q)
         return api_result
         # return serve_json(Util.json(api_result))
-    except ResponseError as e:
-        if e.code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
+    except ApiError as e:
+        if e.status_code == HTTPStatus.NOT_FOUND:  # SEE get_file_bytes for why we do this
             return JSONResponse(status_code=status.HTTP_410_GONE)
             # raise ResponseError(HTTPStatus.GONE)
         else:
-            return JSONResponse(status_code=int(e.code))
+            return JSONResponse(status_code=int(e.status_code))
             # raise
 
 

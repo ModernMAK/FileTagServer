@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict
 from pydantic import BaseModel
 
 from FileTagServer import config
-from FileTagServer.API.models import Tag, File
+from FileTagServer.DBI.models import Tag, File
 
 
 def read_sql_file(file: str, strip_terminal=False):

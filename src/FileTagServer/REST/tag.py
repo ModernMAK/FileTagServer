@@ -2,13 +2,13 @@ from typing import Optional, List
 
 from starlette import status
 
-from FileTagServer.API import tag as tag_api
-from FileTagServer.API.common import parse_fields, SortQuery
+from FileTagServer.DBI import tag as tag_api
+from FileTagServer.DBI.common import parse_fields, SortQuery
 # Files ===============================================================================================================
-# from FileTagServer.API.tag import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
+# from FileTagServer.DBI.tag import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
 #     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery, FileDataQuery
-from FileTagServer.API.models import Tag
-from FileTagServer.API.tag import TagsQuery, CreateTagQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, \
+from FileTagServer.DBI.models import Tag
+from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, \
     FullModifyTagQuery, SetTagQuery, FullSetTagQuery
 from common import rest_api
 
