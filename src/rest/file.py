@@ -16,6 +16,12 @@ from src.util.litespeedx import Response, Request
 
 RestResponse = Union[Response, Tuple[Dict, int, Dict[str, str]]]
 
+def setup_routes():
+    """
+    A Dummy Function To ensure endpoints have been loaded.
+    The endpoints must be finalized by calling .route(*args,**kwargs)
+    """
+    pass
 
 # Files ===============================================================================================================
 @files.methods.get(allow_cors=True)

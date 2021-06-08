@@ -12,6 +12,13 @@ from src.util.litespeedx import Response, Request
 RestResponse = Union[Response, Dict, Tuple[Dict, int], Tuple[Dict, int, Dict]]
 
 
+def setup_routes():
+    """
+    A Dummy Function To ensure endpoints have been loaded.
+    The endpoints must be finalized by calling .route(*args,**kwargs)
+    """
+    pass
+
 # Tags ===============================================================================================================
 @tags.methods.get
 def get_tags(request: Request) -> JsonResponse:

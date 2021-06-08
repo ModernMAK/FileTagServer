@@ -1,15 +1,22 @@
 from typing import List
 
 from litespeed import route, start_with_args, App
+
+from src.api.common import initialize_database
 from src.rest.routes import files, files_tags, file_tags, files_search, tags, file, tag
 from src.rest.common import url_join, url_protocol, serve_json
 from src.rest.decorators import Endpoint
 from src.rest.routes import tag_autocomplete, file_bytes
 
-import src.rest.file as _
-import src.rest.tag as _
+import src.rest.file as rest_file
+import src.rest.tag as rest_tag
+
 
 def finalize_routes(root=None, *, no_end_slash: bool = True, **route_kwargs):
+    # A safety precaution
+    rest_file.setup_routes()
+    rest_tag.setup_routes()
+
     route_kwargs['no_end_slash'] = no_end_slash  # I do this because I personally prefer not having the trailing /
     INTEGER_REGEX = r"(\d+)"
     path_args = {
@@ -25,7 +32,9 @@ def finalize_routes(root=None, *, no_end_slash: bool = True, **route_kwargs):
     for ep in endpoints:
         ep.route(path_args, route_kwargs)
 
+
 if __name__ == '__main__':
+    initialize_database()
     finalize_routes()
 
 

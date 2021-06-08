@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from src import config
 from src.api.models import Tag, File
+from src.rest.common import read_sql_file
 
 
 def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
@@ -43,6 +44,14 @@ def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
         cursor = conn.cursor()
         cursor.row_factory = Row
         yield conn, cursor
+
+
+def initialize_database():
+    with __connect() as (conn, cursor):
+        dirs = ['file', 'tag', 'file_tag']
+        for dir in dirs:
+            sql_part = read_sql_file(f"static/sql/{dir}/create.sql")
+            cursor.execute(sql_part)
 
 
 IntStr = Union[int, str]

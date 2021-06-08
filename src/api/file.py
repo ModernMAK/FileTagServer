@@ -119,6 +119,8 @@ class FileSearchQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
+
+
 def get_files(query: FilesQuery) -> List[File]:
     with __connect() as (conn, cursor):
         get_files_sql = read_sql_file("static/sql/file/select.sql", True)
