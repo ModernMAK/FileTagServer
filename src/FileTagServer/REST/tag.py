@@ -4,25 +4,18 @@ from starlette import status
 
 from FileTagServer.DBI import tag as tag_api
 from FileTagServer.DBI.common import parse_fields, SortQuery
-# Files ===============================================================================================================
-# from FileTagServer.DBI.tag import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
-#     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery, FileDataQuery
 from FileTagServer.DBI.models import Tag
 from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, \
     FullModifyTagQuery, SetTagQuery, FullSetTagQuery
-from common import rest_api
+from FileTagServer.REST.routing import tags_route, tag_route, tag_files_route, tags_search_route, tags_autocomplete
+from FileTagServer.REST.common import rest_api
+
 
 tags_metadata = [
     {"name": "Tags", "description": ""},
     {"name": "Tag", "description": ""},
 ]
 
-rest_route = "/rest"
-tags_route = f"{rest_route}/tags"
-tags_search_route = f"f{rest_route}/search"
-tag_route = f"{tags_route}/{{tag_id}}"
-tag_files_route = f"{tag_route}/files"
-tags_autocomplete = f"f{tags_route}/autocomplete"
 
 
 # Tags ===============================================================================================================

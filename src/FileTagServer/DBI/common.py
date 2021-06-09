@@ -174,7 +174,26 @@ class SortQuery(BaseModel):
             results.append(SortQuery(field=name, ascending=asc))
         return results
 
+    def to_str(self) -> str:
+        if self.ascending:
+            return f"{self.field}"
+        else:
+            return f"-{self.field}"
+
+    @staticmethod
+    def list_to_str(q:List['SortQuery']) -> str:
+        if q is None:
+            return None
+        parts = [p.to_str() for p in q]
+        return ",".join(parts)
+
 
 class AutoComplete(BaseModel):
     label: str
     value: str
+
+
+def fields_to_str(fields:List[str]):
+    if fields is None or len(fields) == 0:
+        return None
+    return ",".join(fields)

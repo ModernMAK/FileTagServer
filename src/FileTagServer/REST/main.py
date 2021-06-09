@@ -1,9 +1,13 @@
-from common import rest_api
+from FileTagServer.REST.common import rest_api
 import uvicorn
 from FileTagServer.REST.file import tags_metadata as file_tagmetadata
 from FileTagServer.REST.tag import tags_metadata as tags_tagmetadata
+from FileTagServer.REST.graph import dummy
 
-if __name__ == "__main__":
+
+def run(**kwargs):
+    dummy()
+
     tags_metadata = []
     parts = [file_tagmetadata, tags_tagmetadata]
     for part in parts:
@@ -14,4 +18,8 @@ if __name__ == "__main__":
         else:
             rest_api.openapi_tags.extend(tags_metadata)
 
-    uvicorn.run(rest_api, host="localhost", port=8000)
+    uvicorn.run(rest_api, **kwargs)
+
+
+if __name__ == "__main__":
+    run(host="localhost", port=8000)

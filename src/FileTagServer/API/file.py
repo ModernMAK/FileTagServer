@@ -1,52 +1,78 @@
 from http import HTTPStatus
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
+from requests import request
 from fastapi import Header
-# from litespeed.error import ResponseError
 from pydantic import ValidationError
 from starlette import status
 from starlette.responses import JSONResponse
-
 from FileTagServer.DBI import file as file_api
-from FileTagServer.DBI.common import parse_fields, SortQuery
-# Files ===============================================================================================================
+from FileTagServer.DBI.common import parse_fields, SortQuery, fields_to_str
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery
-from FileTagServer.DBI.models import File, Tag, FileResponse, TagResponse
-from FileTagServer.REST.routing import files_route, files_tags_route, file_route, file_tags_route, file_bytes_route
+from FileTagServer.DBI.models import File, Tag, FileResponse
 from FileTagServer.REST.common import rest_api
+from FileTagServer.REST.routing import files_route, files_tags_route, file_route, file_tags_route, file_bytes_route, \
+    reformat
 
-tags_metadata = [
-    {"name": "Files", "description": ""},
-    {"name": "File", "description": ""},
-]
+
+def drop_none_args(args: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: v for k, v in args.items() if v is not None}
 
 
 # FILES (GET) ======================================
-@rest_api.get(files_route, response_model=List[File], tags=["Files"], response_model_exclude_unset=TagResponse)
-def get_files(sort: Optional[str] = None, fields: Optional[str] = None, tag_fields: Optional[str] = None) -> List[File]:
-    # Parse individual api arguments; data is validated at the api level
-    sort = SortQuery.parse_str(sort)
-    fields = parse_fields(fields)
-    tag_fields = parse_fields(tag_fields)
-    try:
-        query = FilesQuery(sort=sort, fields=fields, tag_fields=tag_fields)
-    except ValidationError as e:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST)
+def get_files(url: str, sort: Optional[List[SortQuery]] = None, fields: Optional[List[str]] = None,
+              tag_fields: Optional[List[str]] = None) -> List[File]:
+    route = files_route
+    full_url = url + route
+    method = "GET"
+    args = {
+        'sort': SortQuery.list_to_str(sort),
+        'fields': fields_to_str(fields),
+        'tag_fields': fields_to_str(tag_fields)
+    }
+    args = drop_none_args(args)
+    response = request(method, full_url, params=args)
+    if response.status_code == status.HTTP_200_OK:
+        json = response.json()
+        files = [File.parse_obj(data) for data in json]
+        return files
+    else:
+        raise ApiError(status_code=response.status_code, message=response.json())
 
-    # Try api call; if invalid, fetch errors from validation error and return Bad Request
-    api_results = file_api.get_files(query)
-    return api_results
+
+def get_file(url: str, file_id: int, fields: Optional[List[str]] = None,
+             tag_fields: Optional[List[str]] = None) -> File:
+    route = file_route
+    full_url = url + route
+    method = "GET"
+    args = {
+        'fields': fields_to_str(fields),
+        'tag_fields': fields_to_str(tag_fields)
+    }
+    drop_none_args(args)
+    full_url = reformat(full_url, file_id=file_id)
+    response = request(method, full_url, params=args)
+    if response.status_code == status.HTTP_200_OK:
+        json = response.json()
+        set_fields = None if not fields else set(fields)
+        file = FileResponse.construct(set_fields, **json).copy(include=set_fields)
+        return file
+    else:
+        try:
+            raise ApiError(status_code=response.status_code, message=response.json())
+        except ValueError:
+            raise ApiError(status_code=response.status_code, message=response.raw)
 
 
 # FILES (POST) ======================================
-@rest_api.post(files_route, name="Create File", description="Creates a new File", response_model=FileResponse,
+@rest_api.post(files_route, name="Create File", description="Creates a new File", response_model=File,
                status_code=status.HTTP_201_CREATED,
                tags=["Files"])
 def post_files(query: CreateFileQuery) -> File:
     api_result = file_api.create_file(query)
-    return api_result.as_response()
+    return api_result
     # return serve_json(api_result.json(), HTTPStatus.Created, {'location': config.resolve_url(file.path(api_result.id))})
 
 
@@ -74,27 +100,6 @@ def get_files_tags(sort: Optional[str] = None, fields: Optional[str] = None, tag
 #
 #     return RedirectResponse(url=config.resolve_url(apply_get(files_route)),
 #                             status_code=status.HTTP_301_MOVED_PERMANENTLY)
-
-
-# FILE (GET) ================================================================================================================
-@rest_api.get(file_route, response_model=FileResponse,
-              responses={status.HTTP_410_GONE: {"model": None}, status.HTTP_409_CONFLICT: {"model": None}},
-              tags=["File"], response_model_exclude_unset=TagResponse)
-def get_file(file_id: int, fields: Optional[str] = None, tag_fields: Optional[str] = None) -> FileResponse:
-    try:
-        fields = parse_fields(fields)
-        tag_fields = parse_fields(tag_fields)
-        query = FileQuery(id=file_id, fields=fields, tag_fields=tag_fields)
-        api_result = file_api.get_file(query)
-        response = api_result.as_response(fields, tag_fields)
-        return response
-    except ApiError as e:
-        # if e.status_code == HTTPStatus.NOT_FOUND:  # WE don't use 404 to avoid confusing it with an invalid endpoint
-        #     return JSONResponse(status_code=status.HTTP_410_GONE, content=None)
-        # elif e.status_code == HTTPStatus.CONFLICT:
-        #     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=None)
-        # else:
-        return JSONResponse(status_code=int(e.status_code), content=None)
 
 
 #
