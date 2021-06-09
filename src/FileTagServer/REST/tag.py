@@ -3,7 +3,7 @@ from typing import Optional, List
 from starlette import status
 
 from FileTagServer.DBI import tag as tag_api
-from FileTagServer.DBI.common import parse_fields, SortQuery
+from FileTagServer.DBI.common import parse_fields, SortQuery, AutoComplete
 from FileTagServer.DBI.models import Tag
 from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, \
     FullModifyTagQuery, SetTagQuery, FullSetTagQuery
@@ -83,7 +83,7 @@ def put_tag(tag_id: int, request: SetTagQuery):
 
 @rest_api.get(tags_autocomplete)
 @rest_api.post(tags_autocomplete)
-def autocomplete_tags(name: str):
+def autocomplete_tags(name: str) -> List[AutoComplete]:
     return tag_api.autocomplete_tag(name)
     # try:
     #     body = request['BODY']

@@ -1,0 +1,16 @@
+{{#preview}}
+{{#image}}
+<img src="{{url}}" alt="{{description}}" class="img-fluid card-img">
+{{/image}}
+{{#video}}
+<video controls loop class="w-100">
+    <source src="{{url}}" type="{{mime}}">
+</video>
+{{/video}}
+{{#unsupported}}
+<a href="{{url}}">Preview Not Supported</a>
+{{/unsupported}}
+{{/preview}}
+{{^preview}}
+<a href="{{url}}">No Preview Given</a>
+{{/preview}}

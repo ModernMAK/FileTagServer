@@ -1,17 +1,17 @@
-import mimetypes
 from os.path import split
 from typing import Union, List, Tuple, Optional
 
 from fastapi import Header
-from starlette.responses import PlainTextResponse, HTMLResponse, FileResponse, StreamingResponse
+from starlette.responses import HTMLResponse
 
+from FileTagServer.DBI import file as file_api
 from FileTagServer.DBI.common import Util
 from FileTagServer.DBI.file import FilesQuery, FileQuery
 from FileTagServer.DBI.models import File, WebTag, WebFile
 from FileTagServer.REST.routing import reformat
-from FileTagServer.WEB.routing import file_list_route, file_route, tag_route, file_data_route
 from FileTagServer.WEB.common import web_app, render, serve_streamable
-from FileTagServer.DBI import file as file_api
+from FileTagServer.WEB.routing import file_list_route, file_route, tag_route, file_data_route, file_edit_route, \
+    file_edit_submit_route
 
 
 def dummy():
@@ -40,6 +40,7 @@ def add_file_preview(files: Union[List[WebFile], WebFile]) -> Union[List[WebFile
 def add_file_page_url(files: Union[List[WebFile], WebFile]) -> Union[List[WebFile], WebFile]:
     def add_url(file: WebFile) -> WebFile:
         file.page = reformat(file_route, file_id=file.id)
+        file.edit_page = reformat(file_edit_route, file_id=file.id)
         return file
 
     return [add_url(f) for f in files] if isinstance(files, (List, Tuple)) else add_url(files)
@@ -62,6 +63,7 @@ def fix_files(files: Union[List[File], File]) -> Union[List[WebFile], WebFile]:
 
 
 @web_app.get(file_list_route)
+@web_app.get(file_list_route + "/list")
 def file_list():
     q = FilesQuery()
     files = file_api.get_files(q)
@@ -69,6 +71,17 @@ def file_list():
     results = Util.dict(files)
     context = {'results': results}
     html = render("../static/html/file/list.html", **context)
+    return HTMLResponse(html)
+
+
+@web_app.get(file_list_route + "/grid")
+def file_grid():
+    q = FilesQuery()
+    files = file_api.get_files(q)
+    files = fix_files(files)
+    results = Util.dict(files)
+    context = {'results': results}
+    html = render("../static/html/file/grid.html", **context)
     return HTMLResponse(html)
 
 
@@ -83,9 +96,19 @@ def file(file_id: int):
     return HTMLResponse(html)
 
 
+@web_app.get(file_edit_route)
+def file_edit(file_id: int):
+    q = FileQuery(id=file_id)
+    file = file_api.get_file(q)
+    file = fix_files(file)
+    result = Util.dict(file)
+    action_url = reformat(file_edit_submit_route, file_id=file_id)
+    context = {'result': result, 'form': {'action': action_url}}
+    html = render("../static/html/file/page_edit.html", **context)
+    return HTMLResponse(html)
+
+
 @web_app.get(file_data_route)
 def file_data(file_id: int, range: Optional[str] = Header(None)):
     path = file_api.get_file_path(file_id)
-    mime = mimetypes.guess_type(path)
-    # with open(path) as file:
     return serve_streamable(path, range)

@@ -38,6 +38,7 @@ class File(BaseModel):
 
 class WebFile(File):
     page: Optional[str] = None
+    edit_page: Optional[str] = None
     tags: Optional[List[WebTag]] = Field(default_factory=lambda: [])
     preview: Optional[Dict[str, Any]] = None
 
