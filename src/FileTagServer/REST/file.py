@@ -5,7 +5,7 @@ from fastapi import Header
 # from litespeed.error import ResponseError
 from pydantic import ValidationError
 from starlette import status
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, FileResponse
 
 from FileTagServer.DBI import file as file_api
 from FileTagServer.DBI.common import parse_fields, SortQuery
@@ -13,7 +13,7 @@ from FileTagServer.DBI.common import parse_fields, SortQuery
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery
-from FileTagServer.DBI.models import File, Tag, FileResponse, TagResponse
+from FileTagServer.DBI.models import File, Tag, RestFile, RestTag
 from FileTagServer.REST.routing import files_route, files_tags_route, file_route, file_tags_route, file_bytes_route
 from FileTagServer.REST.common import rest_api
 
@@ -24,7 +24,7 @@ tags_metadata = [
 
 
 # FILES (GET) ======================================
-@rest_api.get(files_route, response_model=List[File], tags=["Files"], response_model_exclude_unset=TagResponse)
+@rest_api.get(files_route, response_model=List[File], tags=["Files"], response_model_exclude_unset=True)
 def get_files(sort: Optional[str] = None, fields: Optional[str] = None, tag_fields: Optional[str] = None) -> List[File]:
     # Parse individual api arguments; data is validated at the api level
     sort = SortQuery.parse_str(sort)
@@ -41,7 +41,7 @@ def get_files(sort: Optional[str] = None, fields: Optional[str] = None, tag_fiel
 
 
 # FILES (POST) ======================================
-@rest_api.post(files_route, name="Create File", description="Creates a new File", response_model=FileResponse,
+@rest_api.post(files_route, name="Create File", description="Creates a new File", response_model=RestFile,
                status_code=status.HTTP_201_CREATED,
                tags=["Files"])
 def post_files(query: CreateFileQuery) -> File:
@@ -77,10 +77,10 @@ def get_files_tags(sort: Optional[str] = None, fields: Optional[str] = None, tag
 
 
 # FILE (GET) ================================================================================================================
-@rest_api.get(file_route, response_model=FileResponse,
+@rest_api.get(file_route, response_model=RestFile,
               responses={status.HTTP_410_GONE: {"model": None}, status.HTTP_409_CONFLICT: {"model": None}},
-              tags=["File"], response_model_exclude_unset=TagResponse)
-def get_file(file_id: int, fields: Optional[str] = None, tag_fields: Optional[str] = None) -> FileResponse:
+              tags=["File"], response_model_exclude_unset=True)
+def get_file(file_id: int, fields: Optional[str] = None, tag_fields: Optional[str] = None) -> RestFile:
     try:
         fields = parse_fields(fields)
         tag_fields = parse_fields(tag_fields)
@@ -256,7 +256,7 @@ def get_file_tags(file_id: int) -> List[Tag]:
 # # #     pass
 # #
 # FILE DATA ================================================================================================= FILE DATA
-@rest_api.get(file_bytes_route, tags=["File"], response_class=FileResponse)
+@rest_api.get(file_bytes_route, tags=["File"], response_model=RestFile)
 def get_file_data(file_id: int, range: Optional[str] = Header(None)):
     # range = request['HEADERS'].get('Range')
     # query = FileDataQuery(id=file_id, range=range)

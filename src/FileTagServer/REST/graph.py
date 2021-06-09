@@ -13,11 +13,13 @@ from FileTagServer.REST.routing import graph_route
 def dummy():
     pass
 
+
 class TagGraph(ObjectType):
     id = graphene.Int()
     name = graphene.String()
     description = graphene.String()
     count = graphene.Int()
+
 
 class FileGraph(ObjectType):
     id = graphene.Int()
@@ -26,6 +28,7 @@ class FileGraph(ObjectType):
     description = graphene.String()
     mime = graphene.String()
     tags = graphene.List(TagGraph)
+
 
 class Query(ObjectType):
     files = graphene.List(FileGraph)
@@ -42,5 +45,6 @@ class Query(ObjectType):
         r = tag_api.get_tags(q)
         d = Util.dict(r)
         return d
+
 
 rest_api.add_route(graph_route, GraphQLApp(schema=Schema(query=Query)))

@@ -23,9 +23,9 @@ web/dynamic/generated/*
 # src/old/config.ini
 
 # Ignore Bootstrap 4.5 Icons (Smaller Size / + Not redistributing)
-src/static/image/icon/bs/*
+static/image/icon/bs/*
 # This is empty (as it should be), but i accidentally did this once, im sure ill do it again
-src/static/html/image/icon/bs/*
+static/html/image/icon/bs/*
 
 # Dont commit old files
 /file/*

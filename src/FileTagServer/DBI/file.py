@@ -9,7 +9,7 @@ from FileTagServer.DBI.models import File, Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:
-    sql = read_sql_file("static/sql/file/exists.sql")
+    sql = read_sql_file("../static/sql/file/exists.sql")
     cursor.execute(sql, str(id))
     row = cursor.fetchone()
     return row[0] == 1
@@ -126,7 +126,7 @@ class FileSearchQuery(BaseModel):
 
 def get_files(query: FilesQuery) -> List[File]:
     with __connect() as (conn, cursor):
-        get_files_sql = read_sql_file("static/sql/file/select.sql", True)
+        get_files_sql = read_sql_file("../static/sql/file/select.sql", True)
         # SORT
         if query.sort is not None:
             sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
@@ -145,7 +145,7 @@ def get_files(query: FilesQuery) -> List[File]:
 
 def get_files_tags(query: FilesQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        get_files_sql = read_sql_file("static/sql/file/select.sql", True)
+        get_files_sql = read_sql_file("../static/sql/file/select.sql", True)
         # SORT
         if query.sort is not None:
             sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
@@ -153,7 +153,7 @@ def get_files_tags(query: FilesQuery) -> List[Tag]:
             sort_query = ''
 
         sql = f"SELECT id from ({get_files_sql} {sort_query})"
-        sql = read_sql_file("static/sql/tag/select_by_file_query.sql").replace("<file_query>", sql)
+        sql = read_sql_file("../static/sql/tag/select_by_file_query.sql").replace("<file_query>", sql)
         cursor.execute(sql)
         rows = cursor.fetchall()
 
@@ -169,7 +169,7 @@ def get_files_tags(query: FilesQuery) -> List[Tag]:
 
 def get_file(query: FileQuery) -> File:
     with __connect() as (conn, cursor):
-        sql = read_sql_file("static/sql/file/select_by_id.sql")
+        sql = read_sql_file("../static/sql/file/select_by_id.sql")
         cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
         if len(rows) < 1:
@@ -185,7 +185,7 @@ def get_file(query: FileQuery) -> File:
 
 def create_file(query: CreateFileQuery) -> File:
     with __connect() as (conn, cursor):
-        sql = read_sql_file("static/sql/file/insert.sql")
+        sql = read_sql_file("../static/sql/file/insert.sql")
         sql_args = query.dict(include={'path', 'mime', 'description', 'name'})
         cursor.execute(sql, sql_args)
         id = cursor.lastrowid
@@ -197,7 +197,7 @@ def create_file(query: CreateFileQuery) -> File:
             # tags = get_file_tags(FileTagQuery(id=id))
 
         conn.commit()
-        return query.create_file(id=id, tags=tags, **sql_args)
+        return query.create_file(id=id, tags=tags)
 
 
 class DeleteFileQuery(BaseModel):
@@ -208,7 +208,7 @@ def delete_file(query: DeleteFileQuery):
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
-        sql = read_sql_file("static/sql/file/delete_by_id.sql")
+        sql = read_sql_file("../static/sql/file/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
 
@@ -231,7 +231,7 @@ def modify_file(query: FullModifyFileQuery):
 
 
 def set_file(query: FullSetFileQuery) -> None:
-    sql = read_sql_file("static/sql/file/update.sql")
+    sql = read_sql_file("../static/sql/file/update.sql")
     args = query.dict(exclude={'tags'})
     # HACK while tags is not implimented
     if query.tags is not None:
@@ -250,7 +250,7 @@ def get_file_tags(query: FileTagQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
-        sql = read_sql_file("static/sql/tag/select_by_file_id.sql")
+        sql = read_sql_file("../static/sql/tag/select_by_file_id.sql")
         cursor.execute(sql, str(query.id))
         results = [row_to_tag(row) for row in cursor.fetchall()]
         if query.fields is not None:

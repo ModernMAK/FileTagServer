@@ -11,7 +11,7 @@ from FileTagServer.DBI.common import parse_fields, SortQuery, fields_to_str
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery
-from FileTagServer.DBI.models import File, Tag, FileResponse
+from FileTagServer.DBI.models import File, Tag, RestFile
 from FileTagServer.REST.common import rest_api
 from FileTagServer.REST.routing import files_route, files_tags_route, file_route, file_tags_route, file_bytes_route, \
     reformat
@@ -57,7 +57,7 @@ def get_file(url: str, file_id: int, fields: Optional[List[str]] = None,
     if response.status_code == status.HTTP_200_OK:
         json = response.json()
         set_fields = None if not fields else set(fields)
-        file = FileResponse.construct(set_fields, **json).copy(include=set_fields)
+        file = RestFile.construct(set_fields, **json).copy(include=set_fields)
         return file
     else:
         try:
@@ -261,13 +261,13 @@ def get_file_tags(file_id: int) -> List[Tag]:
 # # #     pass
 # #
 # FILE DATA ================================================================================================= FILE DATA
-@rest_api.get(file_bytes_route, tags=["File"], response_class=FileResponse)
+@rest_api.get(file_bytes_route, tags=["File"], response_class=RestFile)
 def get_file_data(file_id: int, range: Optional[str] = Header(None)):
     # range = request['HEADERS'].get('Range')
     # query = FileDataQuery(id=file_id, range=range)
     try:
         local_path = file_api.get_file_path(file_id)
-        return FileResponse(path=local_path, headers={'range': range})
+        return RestFile(path=local_path, headers={'range': range})
     except ApiError as e:
         return JSONResponse(status_code=e.status_code, content={'message': e.message})
         # if e.code == 404:
