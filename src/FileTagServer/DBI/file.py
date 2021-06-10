@@ -1,5 +1,5 @@
 from sqlite3 import Row, Cursor
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Tuple
 from pydantic import BaseModel, validator, Field
 from starlette import status
 
@@ -8,11 +8,23 @@ from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.models import File, Tag
 
 
-def __exists(cursor: Cursor, id: int) -> bool:
-    sql = read_sql_file("../static/sql/file/exists.sql")
-    cursor.execute(sql, str(id))
+def __run_exists(cursor: Cursor, path: str, args: Tuple) -> bool:
+    sql = read_sql_file(path)
+    cursor.execute(sql, args)
     row = cursor.fetchone()
     return row[0] == 1
+
+
+def __file_exists(cursor: Cursor, id: int) -> bool:
+    path = "../static/sql/file/exists.sql"
+    args = (str(id),)
+    return __run_exists(cursor, path, args)
+
+
+def __file_tag_exists(cursor: Cursor, id: int, tag_id: int) -> bool:
+    path = "../static/sql/file_tag/exists.sql"
+    args = (str(id), str(tag_id))
+    return __run_exists(cursor, path, args)
 
 
 class FilesQuery(BaseModel):
@@ -206,11 +218,30 @@ class DeleteFileQuery(BaseModel):
 
 def delete_file(query: DeleteFileQuery):
     with __connect() as (conn, cursor):
-        if not __exists(cursor, query.id):
+        if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/file/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
+
+
+# Does not commit
+def set_file_tags(cursor: Cursor, file_id: int, tags: List[int]):
+    q = FileTagQuery(id=file_id, fields=["id"])
+    current_tags = get_file_tags(q)
+    current_ids = [tag.id for tag in current_tags]
+    # ADD PASS
+    add_sql = read_sql_file("../static/sql/file_tag/insert.sql")
+    for tag in tags:
+        if tag not in current_ids:
+            args = (str(file_id), str(tag))
+            cursor.execute(add_sql, args)
+    # DEL PASS
+    del_sql = read_sql_file("../static/sql/file_tag/delete_pair.sql")
+    for tag in current_ids:
+        if tag not in tags:
+            args = {'file_id': file_id, 'tag_id': tag}
+            cursor.execute(del_sql, args)
 
 
 def modify_file(query: FullModifyFileQuery):
@@ -219,14 +250,12 @@ def modify_file(query: FullModifyFileQuery):
     sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
     json['id'] = query.id
 
-    # HACK while tags is not implimented
-    if query.tags is not None:
-        raise NotImplementedError
-
     with __connect() as (conn, cursor):
-        if not __exists(cursor, query.id):
+        if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
-        cursor.execute(query, sql)
+        cursor.execute(sql, json)
+        if query.tags is not None:
+            set_file_tags(cursor, query.id, query.tags)
         conn.commit()
 
 
@@ -238,7 +267,7 @@ def set_file(query: FullSetFileQuery) -> None:
         raise NotImplementedError
 
     with __connect() as (conn, cursor):
-        if not __exists(cursor, query.id):
+        if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         cursor.execute(sql, args)
         conn.commit()
@@ -248,7 +277,7 @@ def set_file(query: FullSetFileQuery) -> None:
 
 def get_file_tags(query: FileTagQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        if not __exists(cursor, query.id):
+        if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/tag/select_by_file_id.sql")
         cursor.execute(sql, str(query.id))
@@ -256,6 +285,13 @@ def get_file_tags(query: FileTagQuery) -> List[Tag]:
         if query.fields is not None:
             results = Util.copy(results, include=set(query.fields))
         return results
+
+
+def file_has_tag(file_id: int, tag_id: int) -> bool:
+    with __connect() as (conn, cursor):
+        if not __file_exists(cursor, file_id):
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{file_id}'")
+        return __file_tag_exists(cursor, file_id, tag_id)
 
 
 class FileDataQuery(BaseModel):

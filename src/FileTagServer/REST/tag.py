@@ -5,7 +5,7 @@ from starlette import status
 from FileTagServer.DBI import tag as tag_api
 from FileTagServer.DBI.common import parse_fields, SortQuery, AutoComplete
 from FileTagServer.DBI.models import Tag
-from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagQuery, DeleteTagQuery, ModifyTagQuery, \
+from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagIdQuery, DeleteTagQuery, ModifyTagQuery, \
     FullModifyTagQuery, SetTagQuery, FullSetTagQuery
 from FileTagServer.REST.routing import tags_route, tag_route, tag_files_route, tags_search_route, tags_autocomplete
 from FileTagServer.REST.common import rest_api
@@ -37,8 +37,8 @@ def post_tags(query: CreateTagQuery) -> Tag:
 # Tag ================================================================================================================
 @rest_api.get(tag_route)
 def get_tag(tag_id: int, fields: Optional[str] = None) -> Tag:
-    query = TagQuery(id=tag_id, fields=fields)
-    api_result = tag_api.get_tag(query)
+    query = TagIdQuery(id=tag_id, fields=fields)
+    api_result = tag_api.get_tag_from_id(query)
     return api_result
 
 

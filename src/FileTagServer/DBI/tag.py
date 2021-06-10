@@ -6,12 +6,13 @@ from typing import Optional, List
 from pydantic import BaseModel, validator
 
 from FileTagServer.DBI.error import ApiError
-from src.FileTagServer.DBI.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, read_sql_file
+from src.FileTagServer.DBI.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, \
+    read_sql_file
 from src.FileTagServer.DBI.models import Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:
-    sql = read_sql_file("static/sql/tag/exists.sql")
+    sql = read_sql_file("../static/sql/tag/exists.sql")
     cursor.execute(sql, str(id))
     row = cursor.fetchone()
     return row[0] == 1
@@ -33,7 +34,7 @@ class TagsQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
-class TagQuery(BaseModel):
+class TagIdQuery(BaseModel):
     id: int
     fields: Optional[List[str]] = None
 
@@ -42,12 +43,21 @@ class TagQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
-class CreateTagQuery(TagsQuery):
+class TagNameQuery(BaseModel):
+    name: str
+    fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+
+class CreateTagQuery(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
 
-class DeleteTagQuery(TagsQuery):
+class DeleteTagQuery(BaseModel):
     id: int
 
 
@@ -66,13 +76,14 @@ class ModifyTagQuery(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
+
 class FullModifyTagQuery(ModifyTagQuery):
     id: int
 
 
 def get_tags(query: TagsQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        get_files_sql = read_sql_file("static/sql/tag/select.sql", True)
+        get_files_sql = read_sql_file("../static/sql/tag/select.sql", True)
         # SORT
         if query.sort is not None:
             sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
@@ -88,9 +99,9 @@ def get_tags(query: TagsQuery) -> List[Tag]:
         return results
 
 
-def get_tag(query: TagQuery) -> Tag:
+def get_tag_from_id(query: TagIdQuery) -> Tag:
     with __connect() as (conn, cursor):
-        sql = read_sql_file("static/sql/tag/select_by_id.sql")
+        sql = read_sql_file("../static/sql/tag/select_by_id.sql")
         cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
         if len(rows) < 1:
@@ -103,10 +114,26 @@ def get_tag(query: TagQuery) -> Tag:
         return result
 
 
+
+def get_tag_from_name(query: TagNameQuery) -> Tag:
+    with __connect() as (conn, cursor):
+        sql = read_sql_file("../static/sql/tag/select_by_name.sql")
+        cursor.execute(sql, (str(query.name),))
+        rows = cursor.fetchall()
+        if len(rows) < 1:
+            raise ApiError(HTTPStatus.NOT_FOUND, f"No tag found with the given name: '{query.name}'")
+        elif len(rows) > 1:
+            raise ApiError(HTTPStatus.MULTIPLE_CHOICES, f"Too many tags found with the given name: '{query.name}'")
+        result = row_to_tag(rows[0])
+        if query.fields is not None:
+            result = Util.copy(result, include=set(query.fields))
+        return result
+
+
 def create_tag(query: CreateTagQuery) -> Tag:
     try:
         with __connect() as (conn, cursor):
-            sql = read_sql_file("static/sql/tag/insert.sql")
+            sql = read_sql_file("../static/sql/tag/insert.sql")
             cursor.execute(sql, query.dict(include={'name', 'description'}))
             id = cursor.lastrowid
             conn.commit()
@@ -115,11 +142,20 @@ def create_tag(query: CreateTagQuery) -> Tag:
         raise ApiError(409, str(e))
 
 
+def ensure_tags_exist(tags: List[str]) -> List[Tag]:
+    def try_get_tag(tag: str):
+        try:
+            return get_tag_from_name(TagNameQuery(name=tag))
+        except ApiError:
+            return create_tag(CreateTagQuery(name=tag))
+    return [try_get_tag(tag) for tag in tags]
+
+
 def delete_tag(query: DeleteTagQuery) -> bool:
     with __connect() as (conn, cursor):
         if not __exists(cursor, query.id):
             raise ApiError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
-        sql = read_sql_file("static/sql/tag/delete_by_id.sql")
+        sql = read_sql_file("../static/sql/tag/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
     return True
@@ -128,7 +164,7 @@ def delete_tag(query: DeleteTagQuery) -> bool:
 def set_tag(query: FullSetTagQuery) -> bool:
     try:
         # Read sql
-        sql = read_sql_file("static/sql/tag/update.sql")
+        sql = read_sql_file("../static/sql/tag/update.sql")
         # connect to database
         with __connect() as (conn, cursor):
             # If id doesnt exist raise an error (Not Found)
@@ -173,11 +209,13 @@ def autocomplete_tag(name: str) -> List[AutoComplete]:
     escape_char = "/"
     try:
         with __connect() as (conn, cursor):
-            sql = read_sql_file("static/sql/tag/autocomplete.sql") # I do this to fix sql-mistakes on the fly, and for reusability
+            sql = read_sql_file(
+                "../static/sql/tag/autocomplete.sql")  # I do this to fix sql-mistakes on the fly, and for reusability
             # First, escape the escape character (we have to do this first)
             # Then escape the '%' wildcard
             # Lastly escape the '_' wildcard
-            escaped = name.replace(escape_char, escape_char * 2).replace("%", f"{escape_char}%").replace("_", f"{escape_char}_")
+            escaped = name.replace(escape_char, escape_char * 2).replace("%", f"{escape_char}%").replace("_",
+                                                                                                         f"{escape_char}_")
             # our query expects the escaped name and the escape character used (in case a different one is required)
             cursor.execute(sql, [f"%{escaped}%", escape_char])
             # I arbitrarily replace spaces with '_' for autocomplete

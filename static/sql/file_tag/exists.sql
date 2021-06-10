@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM file_tag WHERE file_id=? and tag_id=?);

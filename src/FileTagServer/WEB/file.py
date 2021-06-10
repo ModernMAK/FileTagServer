@@ -7,7 +7,7 @@ from starlette.responses import HTMLResponse
 from FileTagServer.DBI import file as file_api
 from FileTagServer.DBI.common import Util
 from FileTagServer.DBI.file import FilesQuery, FileQuery
-from FileTagServer.DBI.models import File, WebTag, WebFile
+from FileTagServer.DBI.models import File, WebTag, WebFile, Tag
 from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import web_app, render, serve_streamable
 from FileTagServer.WEB.routing import file_list_route, file_route, tag_route, file_data_route, file_edit_route, \
@@ -68,6 +68,7 @@ def file_list():
     q = FilesQuery()
     files = file_api.get_files(q)
     files = fix_files(files)
+    sort_file_tags(files)
     results = Util.dict(files)
     context = {'results': results}
     html = render("../static/html/file/list.html", **context)
@@ -90,10 +91,22 @@ def file(file_id: int):
     q = FileQuery(id=file_id)
     file = file_api.get_file(q)
     file = fix_files(file)
+    sort_file_tags(file)
     result = Util.dict(file)
     context = {'result': result}
     html = render("../static/html/file/page.html", **context)
     return HTMLResponse(html)
+
+
+def sort_file_tags(file: Union[File, List[File]]) -> Union[File, List[File]]:
+    def do_sort(f: File) -> File:
+        def get_name(tag: Tag) -> str:
+            return tag.name
+
+        f.tags.sort(key=get_name)
+        return f
+
+    return [do_sort(fi) for fi in file] if isinstance(file, (List, Tuple)) else do_sort(file)
 
 
 @web_app.get(file_edit_route)
@@ -101,6 +114,7 @@ def file_edit(file_id: int):
     q = FileQuery(id=file_id)
     file = file_api.get_file(q)
     file = fix_files(file)
+    sort_file_tags(file)
     result = Util.dict(file)
     action_url = reformat(file_edit_submit_route, file_id=file_id)
     context = {'result': result, 'form': {'action': action_url}}
