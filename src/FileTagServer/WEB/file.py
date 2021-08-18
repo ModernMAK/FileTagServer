@@ -10,7 +10,7 @@ from FileTagServer.DBI.file import FilesQuery, FileQuery
 from FileTagServer.DBI.models import File, WebTag, WebFile, Tag
 from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import web_app, render, serve_streamable
-from FileTagServer.WEB.routing import file_list_route, file_route, tag_route, file_data_route, file_edit_route, \
+from FileTagServer.WEB.routing import files_route, file_route, tag_route, file_data_route, file_edit_route, \
     file_edit_submit_route
 
 
@@ -62,8 +62,8 @@ def fix_files(files: Union[List[File], File]) -> Union[List[WebFile], WebFile]:
     return files
 
 
-@web_app.get(file_list_route)
-@web_app.get(file_list_route + "/list")
+@web_app.get(files_route)
+@web_app.get(files_route + "/list")
 def file_list():
     q = FilesQuery()
     files = file_api.get_files(q)
@@ -75,7 +75,7 @@ def file_list():
     return HTMLResponse(html)
 
 
-@web_app.get(file_list_route + "/grid")
+@web_app.get(files_route + "/grid")
 def file_grid():
     q = FilesQuery()
     files = file_api.get_files(q)
