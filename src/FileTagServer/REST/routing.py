@@ -9,7 +9,7 @@ tags_route = f"{rest_route}/tags"
 tags_search_route = f"f{rest_route}/search"
 tag_route = f"{tags_route}/{{tag_id}}"
 tag_files_route = f"{tag_route}/files"
-tags_autocomplete = f"f{tags_route}/autocomplete"
+tags_autocomplete = f"{tags_route}/autocomplete"
 
 graph_route = "/graphql"
 

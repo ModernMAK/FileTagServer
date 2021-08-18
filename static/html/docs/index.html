@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Documentation Portal</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="text-center">
+    <div class="cover-container w-100 h-100 p-3 mx-auto flex-column">
+        <main role="main" class="inner cover my-auto">
+            <h1 class="cover-heading">Documentation Portal</h1>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="card-title">Swagger UI</div>
+                            <a href="{{swagger_ui_route}}" class="btn btn-primary">Use Swagger</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="card-title">Redoc</div>
+                            <a href="{{redoc_route}}" class="btn btn-primary">Use Redoc</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
+<script src="/js/tagsearch.js"></script>
+</body>
+</html>
+

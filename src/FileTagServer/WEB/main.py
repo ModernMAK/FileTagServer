@@ -5,13 +5,15 @@ from FileTagServer.WEB.static import dummy as dummy_static
 from FileTagServer.WEB.forms import dummy as dummy_form
 import uvicorn
 
-dummy_error()
-dummy_file()
-dummy_static()
-dummy_form()
+def init():
+    dummy_error()
+    dummy_file()
+    dummy_static()
+    dummy_form()
 
 
 def run(**kwargs):
+    init()
     uvicorn.run(web_app, **kwargs)
 
 

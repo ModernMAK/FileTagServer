@@ -1,11 +1,11 @@
-from FileTagServer.REST.common import rest_api
+from FileTagServer.REST.common import rest_api, initialize_routes
 import uvicorn
 from FileTagServer.REST.file import tags_metadata as file_tagmetadata
 from FileTagServer.REST.tag import tags_metadata as tags_tagmetadata
 from FileTagServer.REST.graph import dummy
 
 
-def run(**kwargs):
+def init():
     dummy()
 
     tags_metadata = []
@@ -18,6 +18,10 @@ def run(**kwargs):
         else:
             rest_api.openapi_tags.extend(tags_metadata)
 
+
+def run(**kwargs):
+    init()
+    initialize_routes()
     uvicorn.run(rest_api, **kwargs)
 
 

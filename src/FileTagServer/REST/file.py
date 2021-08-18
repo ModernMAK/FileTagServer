@@ -2,7 +2,6 @@ from http import HTTPStatus
 from typing import Optional, List
 
 from fastapi import Header
-# from litespeed.error import ResponseError
 from pydantic import ValidationError
 from starlette import status
 from starlette.responses import JSONResponse, FileResponse

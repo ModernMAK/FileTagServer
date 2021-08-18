@@ -182,7 +182,7 @@ def get_files_tags(query: FilesQuery) -> List[Tag]:
 def get_file(query: FileQuery) -> File:
     with __connect() as (conn, cursor):
         sql = read_sql_file("../static/sql/file/select_by_id.sql")
-        cursor.execute(sql, str(query.id))
+        cursor.execute(sql, (str(query.id),))
         rows = cursor.fetchall()
         if len(rows) < 1:
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
@@ -280,7 +280,7 @@ def get_file_tags(query: FileTagQuery) -> List[Tag]:
         if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/tag/select_by_file_id.sql")
-        cursor.execute(sql, str(query.id))
+        cursor.execute(sql, (str(query.id),))
         results = [row_to_tag(row) for row in cursor.fetchall()]
         if query.fields is not None:
             results = Util.copy(results, include=set(query.fields))
