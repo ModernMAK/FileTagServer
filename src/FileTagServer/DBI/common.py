@@ -58,7 +58,7 @@ def initialize_database():
     with __connect() as (conn, cursor):
         dirs = ['file', 'tag', 'file_tag']
         for dir in dirs:
-            sql_part = read_sql_file(f"static/sql/{dir}/create.sql")
+            sql_part = read_sql_file(f"../static/sql/{dir}/create.sql")
             cursor.execute(sql_part)
 
 
