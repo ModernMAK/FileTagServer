@@ -1,5 +1,7 @@
 import json
+import os
 from contextlib import contextmanager
+from os.path import join
 from sqlite3 import Connection, Cursor, connect, Row
 from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict, Callable, Set
 
@@ -9,7 +11,22 @@ from FileTagServer import config
 from FileTagServer.DBI.models import Tag, File
 
 
-def read_sql_file(file: str, strip_terminal=False):
+def find_src_root():
+    # Lazy implimentation
+    # This is at src\FileTagServer\DBI\common.py
+    # Therefore....
+    root = os.path.abspath(fr"{__file__}\..\..\..")
+    # Should be src
+    return root
+
+
+src_root = find_src_root()
+
+
+def read_sql_file(file: str, strip_terminal=False, force_src_root: bool = True):
+    if force_src_root:
+        file = os.path.abspath(join(src_root, file))
+
     with open(file, "r") as f:
         r = f.read()
         if strip_terminal and r[-1] == ';':
@@ -181,7 +198,7 @@ class SortQuery(BaseModel):
             return f"-{self.field}"
 
     @staticmethod
-    def list_to_str(q:List['SortQuery']) -> str:
+    def list_to_str(q: List['SortQuery']) -> str:
         if q is None:
             return None
         parts = [p.to_str() for p in q]
@@ -193,7 +210,7 @@ class AutoComplete(BaseModel):
     value: str
 
 
-def fields_to_str(fields:List[str]):
+def fields_to_str(fields: List[str]):
     if fields is None or len(fields) == 0:
         return None
     return ",".join(fields)
