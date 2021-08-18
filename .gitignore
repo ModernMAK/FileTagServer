@@ -40,3 +40,4 @@ settings.ini
 
 # Except test.db which should be copied from our example.db
 examples/test.db
+src/main/Local Server/settings.json
