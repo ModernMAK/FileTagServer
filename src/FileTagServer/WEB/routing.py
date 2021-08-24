@@ -11,4 +11,4 @@ folders_route = f"/folders"
 folder_route = f"{folders_route}/{{folder_id}}"
 
 root_route = "/"
-
+orphaned_files_route = "/orphaned_files"

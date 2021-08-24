@@ -8,24 +8,52 @@ from FileTagServer.DBI import file as file_api
 from FileTagServer.DBI.common import Util
 from FileTagServer.DBI.file import FilesQuery, FileQuery
 from FileTagServer.DBI.folder import get_root_folders
-from FileTagServer.DBI.models import File, WebTag, WebFile, Tag
+from FileTagServer.DBI.models import File, WebTag, WebFile, Tag, Folder
 from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import web_app, render, serve_streamable
 from FileTagServer.WEB.routing import files_route, file_route, tag_route, file_data_route, file_edit_route, \
-    file_edit_submit_route, folder_route, root_route
+    file_edit_submit_route, folder_route, root_route, orphaned_files_route
 
 
 def dummy():
     pass
 
 
+def build_context(name: str, description: str, folders: List[Folder], files: List[File], tags: List[Tag]):
+    folders = Util.dict(folders)
+    for f in folders:
+        f['page'] = reformat(folder_route, folder_id=f['id'])
+
+    files = Util.dict(files)
+    for f in files:
+        f['page'] = reformat(file_route, file_id=f['id'])
+
+    tags = Util.dict(tags)
+    for t in tags:
+        t['page'] = reformat(tag_route, tag_id=t['id'])
+
+    return {
+        'name': name,
+        'desc': description,
+        'files': files,
+        'folders': folders,
+        'tags': tags
+    }
+
+
 @web_app.get(root_route)
 def root():
-    folders = get_root_folders()
-    results = Util.dict(folders)
-    context = {'results': results}
-    print(context)
-    html = render("../static/html/folder/main.html", **context)
+    folders: List[Folder] = get_root_folders()
+    files = []  # get_orphaned_files()
+    tags = []
+    context = build_context("Root", None, folders, files, tags)
+    orphaned_folder = {
+        'name': 'Orphaned Files',
+        'id': '-',
+        'page': orphaned_files_route
+    }
+    context['folders'].append(orphaned_folder)
+    html = render("../static/html/folder/table.html", **context)
     return HTMLResponse(html)
 
 
