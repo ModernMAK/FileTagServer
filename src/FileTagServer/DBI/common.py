@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict
 from pydantic import BaseModel
 
 from FileTagServer import config
-from FileTagServer.DBI.models import Tag, File
+from FileTagServer.DBI.models import Tag, File, Folder
 
 
 def find_src_root():
@@ -42,6 +42,11 @@ def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str
     return value
 
 
+def row_to_folder(r: Row) -> Folder:
+    r: Dict = dict(r)
+    return Folder(**r)
+
+
 def row_to_file(r: Row, *, tags: List[Tag] = None, tag_lookup: Dict[int, Tag] = None, ) -> File:
     r: Dict = dict(r)
     if tags:
@@ -73,7 +78,7 @@ def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
 
 def initialize_database():
     with __connect() as (conn, cursor):
-        dirs = ['file', 'tag', 'file_tag']
+        dirs = ['file', 'tag', 'file_tag', 'folder', 'folder_tag', 'folder_file', 'folder_folder']
         for dir in dirs:
             sql_part = read_sql_file(f"../static/sql/{dir}/create.sql")
             cursor.execute(sql_part)

@@ -27,6 +27,7 @@ class File(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[Tag]] = Field(default_factory=lambda: [])
+    parent: Optional['Folder']
 
     def as_response(self, fields=None, tag_fields=None) -> 'RestFile':
         fields = set(fields) if fields else None
@@ -48,3 +49,14 @@ class RestFile(File):
     id: Optional[int] = None
     path: Optional[str] = None
     tags: Optional[List[RestTag]] = Field(default_factory=lambda: [])
+
+
+class Folder(BaseModel):
+    id: int
+    path: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[Tag]] = Field(default_factory=lambda: [])
+    files: Optional[List[File]] = Field(default_factory=lambda: [])
+    subfolders: Optional[List['Folder']] = Field(default_factory=lambda: [])
+
