@@ -136,6 +136,24 @@ class FileSearchQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
+class FilePathQuery(BaseModel):
+    path: str
+
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, File.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+    def create_tag_query(self, id: int) -> FileTagQuery:
+        return FileTagQuery(id=id, fields=self.tag_fields)
+
+
 def get_files(query: FilesQuery) -> List[File]:
     with __connect() as (conn, cursor):
         get_files_sql = read_sql_file("../static/sql/file/select.sql", True)
@@ -189,6 +207,24 @@ def get_file(query: FileQuery) -> File:
         elif len(rows) > 1:
             raise ApiError(status.HTTP_300_MULTIPLE_CHOICES, f"Too many files found with the given id: '{query.id}'")
         tags = get_file_tags(query.create_tag_query())
+        result = row_to_file(rows[0], tags=tags)
+        if query.fields is not None:
+            result = result.copy(include=set(query.fields))
+        return result
+
+
+def get_file_by_path(query: FilePathQuery) -> File:
+    with __connect() as (conn, cursor):
+        sql = read_sql_file("../static/sql/file/select_by_path.sql")
+        cursor.execute(sql, (str(query.path),))
+        rows = cursor.fetchall()
+        if len(rows) < 1:
+            raise ApiError(status.HTTP_410_GONE, f"No file found with the given path: '{query.path}'")
+        elif len(rows) > 1:
+            raise ApiError(status.HTTP_300_MULTIPLE_CHOICES,
+                           f"Too many files found with the given path: '{query.path}'")
+        result = row_to_file(rows[0])
+        tags = get_file_tags(query.create_tag_query(id=result.id))
         result = row_to_file(rows[0], tags=tags)
         if query.fields is not None:
             result = result.copy(include=set(query.fields))

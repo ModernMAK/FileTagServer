@@ -8,18 +8,20 @@ from FileTagServer.WEB.error import dummy as dummy_error
 from FileTagServer.WEB.file import dummy as dummy_file
 from FileTagServer.WEB.static import dummy as dummy_static
 from FileTagServer.WEB.forms import dummy as dummy_form
+from FileTagServer.WEB.folder import dummy as dummy_folder
 import uvicorn
 
 
 def init():
     dummy_error()
     dummy_file()
+    dummy_folder()
     dummy_static()
     dummy_form()
 
-    @web_app.get("/")
-    def index():
-        return RedirectResponse(files_route, HTTPStatus.SEE_OTHER)
+    # @web_app.get("/")
+    # def index():
+    #     return RedirectResponse(files_route, HTTPStatus.SEE_OTHER)
 
 
 def run(**kwargs):

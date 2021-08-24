@@ -3,7 +3,8 @@ from typing import List, Dict, Optional, Union, Tuple
 from pydantic import BaseModel, validator, Field
 from starlette import status
 
-from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_folder, read_sql_file
+from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_folder, \
+    read_sql_file
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.models import Folder, File, Tag
 
@@ -100,15 +101,32 @@ class FolderQuery(BaseModel):
         return FolderTagQuery(id=self.id, fields=self.tag_fields)
 
 
+class FolderPathQuery(BaseModel):
+    path: str
+
+    fields: Optional[List[str]] = None
+    tag_fields: Optional[List[str]] = None
+
+    @validator('fields', each_item=True)
+    def validate_fields(cls, value: str) -> str:
+        return validate_fields(value, Folder.__fields__)
+
+    @validator('tag_fields', each_item=True)
+    def validate_tag_fields(cls, value: str) -> str:
+        return validate_fields(value, Tag.__fields__)
+
+    def create_tag_query(self, id: int) -> FolderTagQuery:
+        return FolderTagQuery(id=id, fields=self.tag_fields)
+
+
 class CreateFolderQuery(BaseModel):
     path: str
-    mime: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[int]] = None
 
     def create_folder(self, id: int, tags: List[Tag]) -> Folder:
-        return Folder(id=id, path=self.path, mime=self.mime, name=self.name, description=self.description, tags=tags)
+        return Folder(id=id, path=self.path, name=self.name, description=self.description, tags=tags)
 
 
 class SearchQuery(BaseModel):
@@ -138,7 +156,7 @@ class FolderSearchQuery(BaseModel):
 
 def get_folders(query: FoldersQuery) -> List[Folder]:
     with __connect() as (conn, cursor):
-        get_folders_sql = read_sql_folder("../static/sql/folder/select.sql", True)
+        get_folders_sql = read_sql_file("../static/sql/folder/select.sql", True)
         # SORT
         if query.sort is not None:
             sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
@@ -157,7 +175,7 @@ def get_folders(query: FoldersQuery) -> List[Folder]:
 
 def get_folders_tags(query: FoldersQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
-        get_folders_sql = read_sql_folder("../static/sql/folder/select.sql", True)
+        get_folders_sql = read_sql_file("../static/sql/folder/select.sql", True)
         # SORT
         if query.sort is not None:
             sort_query = "ORDER BY " + SortQuery.list_sql(query.sort)
@@ -165,7 +183,7 @@ def get_folders_tags(query: FoldersQuery) -> List[Tag]:
             sort_query = ''
 
         sql = f"SELECT id from ({get_folders_sql} {sort_query})"
-        sql = read_sql_folder("../static/sql/tag/select_by_folder_query.sql").replace("<folder_query>", sql)
+        sql = read_sql_file("../static/sql/tag/select_by_folder_query.sql").replace("<folder_query>", sql)
         cursor.execute(sql)
         rows = cursor.fetchall()
 
@@ -181,15 +199,43 @@ def get_folders_tags(query: FoldersQuery) -> List[Tag]:
 
 def get_folder(query: FolderQuery) -> Folder:
     with __connect() as (conn, cursor):
-        sql = read_sql_folder("../static/sql/folder/select_by_id.sql")
+        sql = read_sql_file("../static/sql/folder/select_by_id.sql")
         cursor.execute(sql, (str(query.id),))
         rows = cursor.fetchall()
         if len(rows) < 1:
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{query.id}'")
         elif len(rows) > 1:
             raise ApiError(status.HTTP_300_MULTIPLE_CHOICES, f"Too many folders found with the given id: '{query.id}'")
-        tags = get_folder_tags(query.create_tag_query())
-        result = row_to_folder(rows[0], tags=tags)
+        # tags = get_folder_tags(query.create_tag_query())
+        result = row_to_folder(rows[0])#, tags=tags)
+        if query.fields is not None:
+            result = result.copy(include=set(query.fields))
+        return result
+
+
+def get_root_folders() -> Folder:
+    with __connect() as (conn, cursor):
+        sql = read_sql_file("../static/sql/folder_folder/get_root_folders.sql")
+        cursor.execute(sql)#, (str(query.id),))
+        rows = cursor.fetchall()
+        if len(rows) < 1:
+            raise ApiError(status.HTTP_410_GONE, f"No root folders?! Perhaps the database is empty?")
+        folders = [get_folder(FolderQuery(id=r['parent_id'])) for r in rows]
+        return folders
+
+def get_folder_by_path(query: FolderPathQuery) -> Folder:
+    with __connect() as (conn, cursor):
+        sql = read_sql_file("../static/sql/folder/select_by_path.sql")
+        cursor.execute(sql, (str(query.path),))
+        rows = cursor.fetchall()
+        if len(rows) < 1:
+            raise ApiError(status.HTTP_410_GONE, f"No folder found with the given path: '{query.path}'")
+        elif len(rows) > 1:
+            raise ApiError(status.HTTP_300_MULTIPLE_CHOICES,
+                           f"Too many folders found with the given path: '{query.path}'")
+        result = row_to_folder(rows[0])
+        # tags = get_folder_tags(query.create_tag_query(id=result.id))
+        # result = row_to_folder(rows[0], tags=tags)
         if query.fields is not None:
             result = result.copy(include=set(query.fields))
         return result
@@ -197,8 +243,8 @@ def get_folder(query: FolderQuery) -> Folder:
 
 def create_folder(query: CreateFolderQuery) -> Folder:
     with __connect() as (conn, cursor):
-        sql = read_sql_folder("../static/sql/folder/insert.sql")
-        sql_args = query.dict(include={'path', 'mime', 'description', 'name'})
+        sql = read_sql_file("../static/sql/folder/insert.sql")
+        sql_args = query.dict(include={'path', 'description', 'name'})
         cursor.execute(sql, sql_args)
         id = cursor.lastrowid
         tags = []
@@ -220,7 +266,7 @@ def delete_folder(query: DeleteFolderQuery):
     with __connect() as (conn, cursor):
         if not __folder_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{query.id}'")
-        sql = read_sql_folder("../static/sql/folder/delete_by_id.sql")
+        sql = read_sql_file("../static/sql/folder/delete_by_id.sql")
         cursor.execute(sql, str(query.id))
         conn.commit()
 
@@ -231,13 +277,13 @@ def set_folder_tags(cursor: Cursor, folder_id: int, tags: List[int]):
     current_tags = get_folder_tags(q)
     current_ids = [tag.id for tag in current_tags]
     # ADD PASS
-    add_sql = read_sql_folder("../static/sql/folder_tag/insert.sql")
+    add_sql = read_sql_file("../static/sql/folder_tag/insert.sql")
     for tag in tags:
         if tag not in current_ids:
             args = (str(folder_id), str(tag))
             cursor.execute(add_sql, args)
     # DEL PASS
-    del_sql = read_sql_folder("../static/sql/folder_tag/delete_pair.sql")
+    del_sql = read_sql_file("../static/sql/folder_tag/delete_pair.sql")
     for tag in current_ids:
         if tag not in tags:
             args = {'folder_id': folder_id, 'tag_id': tag}
@@ -260,7 +306,7 @@ def modify_folder(query: FullModifyFolderQuery):
 
 
 def set_folder(query: FullSetFolderQuery) -> None:
-    sql = read_sql_folder("../static/sql/folder/update.sql")
+    sql = read_sql_file("../static/sql/folder/update.sql")
     args = query.dict(exclude={'tags'})
     # HACK while tags is not implimented
     if query.tags is not None:
@@ -279,7 +325,7 @@ def get_folder_tags(query: FolderTagQuery) -> List[Tag]:
     with __connect() as (conn, cursor):
         if not __folder_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{query.id}'")
-        sql = read_sql_folder("../static/sql/tag/select_by_folder_id.sql")
+        sql = read_sql_file("../static/sql/tag/select_by_folder_id.sql")
         cursor.execute(sql, (str(query.id),))
         results = [row_to_tag(row) for row in cursor.fetchall()]
         if query.fields is not None:

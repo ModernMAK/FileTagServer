@@ -7,16 +7,27 @@ from starlette.responses import HTMLResponse
 from FileTagServer.DBI import file as file_api
 from FileTagServer.DBI.common import Util
 from FileTagServer.DBI.file import FilesQuery, FileQuery
+from FileTagServer.DBI.folder import get_root_folders
 from FileTagServer.DBI.models import File, WebTag, WebFile, Tag
 from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import web_app, render, serve_streamable
 from FileTagServer.WEB.routing import files_route, file_route, tag_route, file_data_route, file_edit_route, \
-    file_edit_submit_route, root_route
-
+    file_edit_submit_route, folder_route, root_route
 
 
 def dummy():
     pass
+
+
+@web_app.get(root_route)
+def root():
+    folders = get_root_folders()
+    results = Util.dict(folders)
+    context = {'results': results}
+    print(context)
+    html = render("../static/html/folder/main.html", **context)
+    return HTMLResponse(html)
+
 
 def add_file_tag_page_url(files: Union[List[WebFile], WebFile]) -> Union[List[WebFile], WebFile]:
     def add_url(file: WebFile) -> WebFile:
@@ -62,11 +73,10 @@ def fix_files(files: Union[List[File], File]) -> Union[List[WebFile], WebFile]:
     return files
 
 
-@web_app.get(files_route)
-@web_app.get(files_route + "/list")
-def file_list():
-    q = FilesQuery()
-    files = file_api.get_files(q)
+@web_app.get(folder_route)
+def folder():
+    q = FoldersQuery()
+    folders = file_api.get_root_folders()
     files = fix_files(files)
     sort_file_tags(files)
     results = Util.dict(files)
