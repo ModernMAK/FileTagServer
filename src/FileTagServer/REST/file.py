@@ -6,13 +6,13 @@ from pydantic import ValidationError
 from starlette import status
 from starlette.responses import JSONResponse, FileResponse
 
-from FileTagServer.DBI import file as file_api
+from FileTagServer.DBI.file import old_file as file_api
 from FileTagServer.DBI.common import parse_fields, SortQuery
 # Files ===============================================================================================================
 from FileTagServer.DBI.error import ApiError
-from FileTagServer.DBI.file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
+from FileTagServer.DBI.file.old_file import FileQuery, FilesQuery, CreateFileQuery, DeleteFileQuery, ModifyFileQuery, \
     FullModifyFileQuery, SetFileQuery, FullSetFileQuery, FileTagQuery
-from FileTagServer.DBI.models import File, Tag, RestFile, RestTag
+from FileTagServer.DBI.old_models import File, Tag, RestFile
 from FileTagServer.REST.routing import files_route, files_tags_route, file_route, file_tags_route, file_bytes_route
 from FileTagServer.REST.common import rest_api
 

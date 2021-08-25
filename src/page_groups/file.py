@@ -9,7 +9,7 @@ from src.page_groups.common import PaginationUtil
 from src.page_groups.shared_page_util import get_navbar_context
 from src.util.litespeedx import Response, Request
 from src.util.page_utils import reformat_serve
-import src.FileTagServer.DBI.file as file_api
+import FileTagServer.DBI.file.old_file as file_api
 
 renderer: Renderer = Renderer(search_dirs=[config.template_path])
 

@@ -1,62 +1,62 @@
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
+from typing import Optional, List
+
+from pydantic import BaseModel
 
 
+# BASE MODELS
 class Tag(BaseModel):
     id: int
     name: Optional[str] = None
     description: Optional[str] = None
+    # Generated Fields
     count: Optional[int] = 0
-
-
-class WebTag(Tag):
-    page: Optional[str] = None
-
-
-class RestTag(Tag):
-    id: Optional[int] = None
-
-    def as_response(self) -> 'RestTag':
-        return RestTag(**self.dict())
 
 
 class File(BaseModel):
     id: int
-    path: str
-    mime: Optional[str] = None
+    path: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[List[Tag]] = Field(default_factory=lambda: [])
-    parent: Optional['Folder']
+    mime: Optional[str] = None
 
-    def as_response(self, fields=None, tag_fields=None) -> 'RestFile':
-        fields = set(fields) if fields else None
-        d = self.dict(include=fields)
-        r = RestFile.construct(fields, **d)
-        r_fixed = r.copy(include=fields)
-        return r_fixed
-
-
-class WebFile(File):
-    page: Optional[str] = None
-    edit_page: Optional[str] = None
-    tags: Optional[List[WebTag]] = Field(default_factory=lambda: [])
-    preview: Optional[Dict[str, Any]] = None
-
-
-#
-class RestFile(File):
-    id: Optional[int] = None
-    path: Optional[str] = None
-    tags: Optional[List[RestTag]] = Field(default_factory=lambda: [])
+    # Generated Fields
+    parent_folder_id: Optional[int] = None
+    tags: Optional[List[int]] = None
 
 
 class Folder(BaseModel):
     id: int
-    path: str
+    path: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[List[Tag]] = Field(default_factory=lambda: [])
-    files: Optional[List[File]] = Field(default_factory=lambda: [])
-    subfolders: Optional[List['Folder']] = Field(default_factory=lambda: [])
+    files: Optional[List[int]] = None
+    folders: Optional[List[int]] = None
+    tags: Optional[List[int]] = None
 
+
+# WEB MODELS
+class WebModel:
+    page: str
+
+
+class WebAncestor(WebModel):
+    name: str
+
+
+class WebAncestryModel:
+    ancestry: Optional[List[WebAncestor]] = None
+
+
+class WebTag(Tag, WebModel):
+    pass
+
+
+class WebFile(File, WebModel, WebAncestryModel):
+    parent: Optional['WebFolder'] = None
+    tags: Optional[List[WebTag]] = None
+
+
+class WebFolder(File, WebModel, WebAncestryModel):
+    files: Optional[List[WebFile]] = None
+    folders: Optional[List['WebFolder']] = None
+    tags: Optional[List[WebTag]] = None

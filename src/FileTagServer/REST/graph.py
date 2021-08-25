@@ -1,11 +1,12 @@
 import graphene
-from graphene import String, ObjectType, Schema
+from graphene import ObjectType, Schema
 from starlette.graphql import GraphQLApp
 
-from FileTagServer.DBI import file as file_api, tag as tag_api
+from FileTagServer.DBI import tag as tag_api
+from FileTagServer.DBI.file import old_file as file_api
 from FileTagServer.DBI.common import Util
-from FileTagServer.DBI.file import FilesQuery
-from FileTagServer.DBI.tag import TagsQuery
+from FileTagServer.DBI.file.old_file import FilesQuery
+from FileTagServer.DBI.tag.old_tag import TagsQuery
 from FileTagServer.REST.common import rest_api
 from FileTagServer.REST.routing import graph_route
 

@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict
 from pydantic import BaseModel
 
 from FileTagServer import config
-from FileTagServer.DBI.models import Tag, File, Folder
+from FileTagServer.DBI.old_models import Tag, File, Folder
 
 
 def find_src_root():
@@ -219,3 +219,10 @@ def fields_to_str(fields: List[str]):
     if fields is None or len(fields) == 0:
         return None
     return ",".join(fields)
+
+
+def replace_kwargs(s: str, **kwargs):
+    for k, v in kwargs.items():
+        p = "{" + k + "}"
+        s = s.replace(p, v)
+    return s

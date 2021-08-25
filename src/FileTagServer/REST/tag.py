@@ -2,12 +2,12 @@ from typing import Optional, List
 
 from starlette import status
 
-from FileTagServer.DBI import tag as tag_api
+from FileTagServer.DBI.tag import tag as tag_api
 from FileTagServer.DBI.common import parse_fields, SortQuery, AutoComplete
-from FileTagServer.DBI.models import Tag
-from FileTagServer.DBI.tag import TagsQuery, CreateTagQuery, TagIdQuery, DeleteTagQuery, ModifyTagQuery, \
+from FileTagServer.DBI.old_models import Tag
+from FileTagServer.DBI.tag.old_tag import TagsQuery, CreateTagQuery, TagIdQuery, DeleteTagQuery, ModifyTagQuery, \
     FullModifyTagQuery, SetTagQuery, FullSetTagQuery
-from FileTagServer.REST.routing import tags_route, tag_route, tag_files_route, tags_search_route, tags_autocomplete
+from FileTagServer.REST.routing import tags_route, tag_route, tags_autocomplete
 from FileTagServer.REST.common import rest_api
 
 

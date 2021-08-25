@@ -3,7 +3,7 @@ from multiprocessing.context import Process
 from shutil import copyfile
 from typing import Any, List
 
-from FileTagServer.DBI.models import File, Tag
+from FileTagServer.DBI.old_models import File, Tag
 
 source_db = "../examples/example.db"
 test_db = "../examples/test.db"

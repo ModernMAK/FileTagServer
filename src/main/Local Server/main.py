@@ -2,12 +2,12 @@ import json
 import mimetypes
 import os
 import sqlite3
-from os.path import join, basename
-from typing import Dict, List, Tuple, Iterable
+from os.path import join
+from typing import Dict, List
 
 from FileTagServer.DBI.common import initialize_database
-from FileTagServer.DBI.file import CreateFileQuery, create_file, FileQuery, FilePathQuery, get_file_by_path
-from FileTagServer.DBI.folder import create_folder, CreateFolderQuery, FolderQuery, get_folder, FolderPathQuery, \
+from FileTagServer.DBI.file.old_file import CreateFileQuery, create_file, FilePathQuery, get_file_by_path
+from FileTagServer.DBI.folder.old_folder import create_folder, CreateFolderQuery, FolderPathQuery, \
     get_folder_by_path
 from FileTagServer.DBI.folder_children import AddSubFolderQuery, AddSubFileQuery, add_folder_to_folder, \
     add_file_to_folder
@@ -30,6 +30,7 @@ def add_and_update_files(paths: List[str]):
     # TODO After inserting, scan DB for files which no longer exist. and then delete those entires
     # Currently, only adds all paths
     for path in paths:
+        print(path)
         q = CreateFolderQuery(path=path, name=path)
         try:
             create_folder(q)
@@ -37,10 +38,13 @@ def add_and_update_files(paths: List[str]):
             pass
 
         for cur_dir, folders, files in os.walk(path):
+            print("\t",cur_dir)
             q = FolderPathQuery(path=cur_dir)
             parent_f = get_folder_by_path(q)
 
+            print("\t\t", "Folders")
             for folder in folders:
+                print("\t\t\t", folder)
                 folder_path = join(cur_dir, folder)
                 try:
                     q = CreateFolderQuery(path=folder_path, name=folder)
@@ -55,7 +59,9 @@ def add_and_update_files(paths: List[str]):
                 except sqlite3.IntegrityError:
                     continue
 
+            print("\t\t", "Files")
             for file in files:
+                print("\t\t\t", file)
                 file_path = join(cur_dir, file)
                 mime = mimetypes.guess_type(file_path)[0]
                 try:

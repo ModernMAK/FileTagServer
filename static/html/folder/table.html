@@ -12,6 +12,8 @@
     <main class="container-fluid">
         <div class="justify-content-center">
             <div class="container-fluid">
+                {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
+                {{^last}}<a href="{{page}}">{{name}}</a> <b>/</b> {{/last}}{{/ancestry}}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>

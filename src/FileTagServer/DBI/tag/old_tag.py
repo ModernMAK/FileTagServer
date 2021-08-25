@@ -8,7 +8,7 @@ from pydantic import BaseModel, validator
 from FileTagServer.DBI.error import ApiError
 from src.FileTagServer.DBI.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, \
     read_sql_file
-from src.FileTagServer.DBI.models import Tag
+from src.FileTagServer.DBI.old_models import Tag
 
 
 def __exists(cursor: Cursor, id: int) -> bool:

@@ -5,7 +5,7 @@ from starlette import status
 
 from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
 from FileTagServer.DBI.error import ApiError
-from FileTagServer.DBI.models import File, Tag
+from FileTagServer.DBI.old_models import File, Tag
 
 
 def __run_exists(cursor: Cursor, path: str, args: Tuple) -> bool:
