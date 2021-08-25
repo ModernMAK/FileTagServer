@@ -8,3 +8,4 @@ def dummy():
 
 web_app.mount("/js", StaticFiles(directory="../static/js"), name="JavaScript")
 web_app.mount("/css", StaticFiles(directory="../static/css"), name="Cascading Style Sheet")
+web_app.mount("/img", StaticFiles(directory="../static/img"), name="Cascading Style Sheet")

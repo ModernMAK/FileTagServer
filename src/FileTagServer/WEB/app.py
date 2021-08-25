@@ -1,5 +1,5 @@
 from os.path import dirname
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from fastapi import FastAPI
 from starlette.responses import HTMLResponse
@@ -11,9 +11,41 @@ from FileTagServer.DBI.folder.folder import get_folder, get_folders, get_folder_
 from FileTagServer.DBI.folder.old_folder import get_root_folders
 from FileTagServer.DBI.models import Folder, File, Tag
 from FileTagServer.DBI.tag.tag import get_tags
-from FileTagServer.REST.routing import reformat, file_route, tag_route
+from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import render
-from FileTagServer.WEB.routing import root_route, orphaned_files_route, folder_route
+from FileTagServer.WEB.routing import root_route, orphaned_files_route, folder_route, file_route, tag_route
+
+
+def get_icon(name: str) -> str:
+    return f"/img/bootstrap/{name}.svg"
+
+
+def get_folder_icon():
+    return get_icon("folder-fill")
+
+
+def get_file_icon_name(mime: Optional[str] = None):
+    unknown = "file-earmark-fill"
+    if not mime:
+        return unknown
+
+    main, minor = mime.split("/")
+    if main == "application":
+        app_lookup = {
+            "pdf": "file-earmark-pdf-fill"
+        }
+        return app_lookup.get(main, unknown)
+    else:
+        main_lookup = {
+            "image": "file-earmark-image-fill",
+            "audio": "file-earmark-music-fill",
+            "video": "file-earmark-play-fill",
+        }
+        return main_lookup.get(main, unknown)
+
+
+def get_file_icon(mime: Optional[str] = None) -> str:
+    return get_icon(get_file_icon_name(mime))
 
 
 def build_ancestry(name: str = "", url: str = "", path: str = "", add_self: bool = True):
@@ -42,10 +74,12 @@ def build_context(name: str, description: str, ancestry: List[Dict], folders: Li
     folders = Util.dict(folders)
     for f in folders:
         f['page'] = reformat(folder_route, folder_id=f['id'])
+        f['icon'] = get_folder_icon()
 
     files = Util.dict(files)
     for f in files:
         f['page'] = reformat(file_route, file_id=f['id'])
+        f['icon'] = get_file_icon(f['mime'])
 
     tags = Util.dict(tags)
     for t in tags:
@@ -72,6 +106,7 @@ def add_routes(app: FastAPI):
         orphaned_folder = {
             'name': 'Orphaned Files',
             'id': '-',
+            'icon': get_folder_icon(),
             'page': orphaned_files_route
         }
         context['folders'].append(orphaned_folder)
