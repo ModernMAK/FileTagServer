@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Union, Tuple
 from pydantic import BaseModel, validator, Field
 from starlette import status
 
-from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_folder, \
+from FileTagServer.DBI.common import _connect, SortQuery, Util, validate_fields, row_to_tag, row_to_folder, \
     read_sql_file
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.old_models import Folder, File, Tag
@@ -51,7 +51,7 @@ class AddSubFileQuery(BaseModel):
 
 
 def add_folder_to_folder(query: AddSubFolderQuery):
-    with __connect() as (conn, cursor):
+    with _connect() as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_folder/insert.sql")
         args = str(query.parent_id), str(query.child_id)
         cursor.execute(sql, args)
@@ -59,7 +59,7 @@ def add_folder_to_folder(query: AddSubFolderQuery):
 
 
 def add_file_to_folder(query: AddSubFileQuery):
-    with __connect() as (conn, cursor):
+    with _connect() as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_file/insert.sql")
         args = str(query.folder_id), str(query.file_id)
         cursor.execute(sql, args)

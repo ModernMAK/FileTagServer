@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 
-# BASE MODELS
 class Tag(BaseModel):
     id: int
     name: Optional[str] = None
@@ -35,7 +34,7 @@ class Folder(BaseModel):
 
 
 # WEB MODELS
-class WebModel:
+class WebModel(BaseModel):
     page: str
 
 
@@ -47,16 +46,23 @@ class WebAncestryModel:
     ancestry: Optional[List[WebAncestor]] = None
 
 
+class WebIcon(BaseModel):
+    icon: str
+
+
 class WebTag(Tag, WebModel):
     pass
 
 
-class WebFile(File, WebModel, WebAncestryModel):
+class WebFile(File, WebModel, WebAncestryModel, WebIcon):
     parent: Optional['WebFolder'] = None
     tags: Optional[List[WebTag]] = None
 
 
-class WebFolder(File, WebModel, WebAncestryModel):
+class WebFolder(Folder, WebModel, WebAncestryModel, WebIcon):
     files: Optional[List[WebFile]] = None
     folders: Optional[List['WebFolder']] = None
     tags: Optional[List[WebTag]] = None
+
+# required
+WebFolder.update_forward_refs()

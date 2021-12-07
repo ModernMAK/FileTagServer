@@ -3,20 +3,25 @@ import os
 
 from fastapi import FastAPI
 from fastapi.datastructures import Default
-from pystache import renderer
+from pystache import Renderer
 from starlette.responses import HTMLResponse, StreamingResponse, FileResponse
 
-web_app = FastAPI(
-    openapi_url=None,  # This shouldn't exist, if it does, ignore it
-    docs_url=None,
-    redoc_url=None,
-    default_response_class=Default(HTMLResponse))
-renderer = renderer.Renderer(search_dirs="../static/html/templates")
 
 
-def render(path: str, *context, **kwargs) -> str:
-    return renderer.render_path(path, *context, **kwargs)
+def create_app_instance(**kwargs):
+    # Default to none for any api/doc urls
+    default_none_keys = ["openapi_url", "docs_url", "redoc_url"]
+    for key in default_none_keys:
+        kwargs[key] = None if key not in kwargs else kwargs[key]
 
+    # Default to HTML Response (unless overriden)
+    kwargs["default_response_class"] = Default(HTMLResponse) if "default_response_class" not in kwargs else kwargs["default_response_class"]
+    return FastAPI(**kwargs)
+
+
+def create_renderer(**kwargs):
+    kwargs["search_dirs"] = "../static/html/templates" if "search_dirs" not in kwargs else kwargs["search_dirs"]
+    return Renderer(**kwargs)
 
 # stolen from 'https://github.com/tiangolo/fastapi/issues/1240'
 Kibi = 1024

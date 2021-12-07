@@ -6,7 +6,7 @@ from typing import Optional, List
 from pydantic import BaseModel, validator
 
 from FileTagServer.DBI.error import ApiError
-from src.FileTagServer.DBI.common import SortQuery, validate_fields, __connect, row_to_tag, Util, AutoComplete, \
+from src.FileTagServer.DBI.common import SortQuery, validate_fields, _connect, row_to_tag, Util, AutoComplete, \
     read_sql_file
 from src.FileTagServer.DBI.old_models import Tag
 
@@ -81,8 +81,8 @@ class FullModifyTagQuery(ModifyTagQuery):
     id: int
 
 
-def get_tags(query: TagsQuery) -> List[Tag]:
-    with __connect() as (conn, cursor):
+def get_tags(path:str,query: TagsQuery) -> List[Tag]:
+    with _connect(path) as (conn, cursor):
         get_files_sql = read_sql_file("../static/sql/tag/select.sql", True)
         # SORT
         if query.sort is not None:
@@ -99,8 +99,8 @@ def get_tags(query: TagsQuery) -> List[Tag]:
         return results
 
 
-def get_tag_from_id(query: TagIdQuery) -> Tag:
-    with __connect() as (conn, cursor):
+def get_tag_from_id(path:str,query: TagIdQuery) -> Tag:
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/tag/select_by_id.sql")
         cursor.execute(sql, str(query.id))
         rows = cursor.fetchall()
@@ -115,8 +115,8 @@ def get_tag_from_id(query: TagIdQuery) -> Tag:
 
 
 
-def get_tag_from_name(query: TagNameQuery) -> Tag:
-    with __connect() as (conn, cursor):
+def get_tag_from_name(path:str,query: TagNameQuery) -> Tag:
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/tag/select_by_name.sql")
         cursor.execute(sql, (str(query.name),))
         rows = cursor.fetchall()
@@ -130,9 +130,9 @@ def get_tag_from_name(query: TagNameQuery) -> Tag:
         return result
 
 
-def create_tag(query: CreateTagQuery) -> Tag:
+def create_tag(path:str,query: CreateTagQuery) -> Tag:
     try:
-        with __connect() as (conn, cursor):
+        with _connect(path) as (conn, cursor):
             sql = read_sql_file("../static/sql/tag/insert.sql")
             cursor.execute(sql, query.dict(include={'name', 'description'}))
             id = cursor.lastrowid
@@ -151,8 +151,8 @@ def ensure_tags_exist(tags: List[str]) -> List[Tag]:
     return [try_get_tag(tag) for tag in tags]
 
 
-def delete_tag(query: DeleteTagQuery) -> bool:
-    with __connect() as (conn, cursor):
+def delete_tag(path:str,query: DeleteTagQuery) -> bool:
+    with _connect(path) as (conn, cursor):
         if not __exists(cursor, query.id):
             raise ApiError(HTTPStatus.NOT_FOUND, f"No tag found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/tag/delete_by_id.sql")
@@ -161,12 +161,12 @@ def delete_tag(query: DeleteTagQuery) -> bool:
     return True
 
 
-def set_tag(query: FullSetTagQuery) -> bool:
+def set_tag(path:str,query: FullSetTagQuery) -> bool:
     try:
         # Read sql
         sql = read_sql_file("../static/sql/tag/update.sql")
         # connect to database
-        with __connect() as (conn, cursor):
+        with _connect(path) as (conn, cursor):
             # If id doesnt exist raise an error (Not Found)
             if not __exists(cursor, query.id):
                 raise ApiError(HTTPStatus.NOT_FOUND)
@@ -178,7 +178,7 @@ def set_tag(query: FullSetTagQuery) -> bool:
         raise ApiError(HTTPStatus.CONFLICT, str(e))
 
 
-def modify_tag(query: FullModifyTagQuery) -> bool:
+def modify_tag(path:str,query: FullModifyTagQuery) -> bool:
     # Convert query object to sql args (ignore id)
     json = query.dict(exclude={'id'}, exclude_unset=True)
     # Create sql parts from the args
@@ -188,7 +188,7 @@ def modify_tag(query: FullModifyTagQuery) -> bool:
     # Add id back to sql args
     json['id'] = query.id
     # Connect to db
-    with __connect() as (conn, cursor):
+    with _connect(path) as (conn, cursor):
         # If id doesnt exist raise an error (Not Found)
         if not __exists(cursor, query.id):
             raise ApiError(HTTPStatus.NOT_FOUND)
@@ -198,7 +198,7 @@ def modify_tag(query: FullModifyTagQuery) -> bool:
         return True
 
 
-def autocomplete_tag(name: str) -> List[AutoComplete]:
+def autocomplete_tag(path:str,name: str) -> List[AutoComplete]:
     """
     Fetches a list of Autocomplete pairs for the tags.
     """
@@ -208,7 +208,7 @@ def autocomplete_tag(name: str) -> List[AutoComplete]:
     # escape character for sql
     escape_char = "/"
     try:
-        with __connect() as (conn, cursor):
+        with _connect(path) as (conn, cursor):
             sql = read_sql_file(
                 "../static/sql/tag/autocomplete.sql")  # I do this to fix sql-mistakes on the fly, and for reusability
             # First, escape the escape character (we have to do this first)

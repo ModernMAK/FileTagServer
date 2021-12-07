@@ -67,7 +67,7 @@ def row_to_tag(r: Row) -> Tag:
 
 
 @contextmanager
-def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
+def _connect(path: str = None, **kwargs) -> Tuple[Connection, Cursor]:
     path = path or config.db_path
     with connect(path, **kwargs) as conn:
         conn.execute("PRAGMA foreign_keys = 1")
@@ -76,8 +76,8 @@ def __connect(path=None, **kwargs) -> Tuple[Connection, Cursor]:
         yield conn, cursor
 
 
-def initialize_database():
-    with __connect() as (conn, cursor):
+def initialize_database(path: str = None):
+    with _connect(path) as (conn, cursor):
         dirs = ['file', 'tag', 'file_tag', 'folder', 'folder_tag', 'folder_file', 'folder_folder']
         for dir in dirs:
             sql_part = read_sql_file(f"../static/sql/{dir}/create.sql")
@@ -226,3 +226,17 @@ def replace_kwargs(s: str, **kwargs):
         p = "{" + k + "}"
         s = s.replace(p, v)
     return s
+
+
+class AbstractDBI:
+    def __init__(self, db_filepath: str):
+        self.__path = db_filepath
+
+    @property
+    def database_file(self) -> str:
+        return self.__path
+
+    @contextmanager
+    def connect(self) -> Tuple[Connection, Cursor]:
+        with _connect(self.__path) as (conn, curs):
+            yield conn, curs

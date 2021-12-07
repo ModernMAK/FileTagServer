@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Union, Tuple
 from pydantic import BaseModel, validator, Field
 from starlette import status
 
-from FileTagServer.DBI.common import __connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
+from FileTagServer.DBI.common import _connect, SortQuery, Util, validate_fields, row_to_tag, row_to_file, read_sql_file
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.old_models import File, Tag
 
@@ -154,8 +154,8 @@ class FilePathQuery(BaseModel):
         return FileTagQuery(id=id, fields=self.tag_fields)
 
 
-def get_files(query: FilesQuery) -> List[File]:
-    with __connect() as (conn, cursor):
+def get_files(path:str,query: FilesQuery) -> List[File]:
+    with _connect(path) as (conn, cursor):
         get_files_sql = read_sql_file("../static/sql/file/select.sql", True)
         # SORT
         if query.sort is not None:
@@ -173,8 +173,8 @@ def get_files(query: FilesQuery) -> List[File]:
         return results
 
 
-def get_files_tags(query: FilesQuery) -> List[Tag]:
-    with __connect() as (conn, cursor):
+def get_files_tags(path:str, query: FilesQuery) -> List[Tag]:
+    with _connect(path) as (conn, cursor):
         get_files_sql = read_sql_file("../static/sql/file/select.sql", True)
         # SORT
         if query.sort is not None:
@@ -197,8 +197,8 @@ def get_files_tags(query: FilesQuery) -> List[Tag]:
         return results
 
 
-def get_file(query: FileQuery) -> File:
-    with __connect() as (conn, cursor):
+def get_file(path:str,query: FileQuery) -> File:
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/file/select_by_id.sql")
         cursor.execute(sql, (str(query.id),))
         rows = cursor.fetchall()
@@ -213,8 +213,8 @@ def get_file(query: FileQuery) -> File:
         return result
 
 
-def get_file_by_path(query: FilePathQuery) -> File:
-    with __connect() as (conn, cursor):
+def get_file_by_path(path:str,query: FilePathQuery) -> File:
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/file/select_by_path.sql")
         cursor.execute(sql, (str(query.path),))
         rows = cursor.fetchall()
@@ -231,8 +231,8 @@ def get_file_by_path(query: FilePathQuery) -> File:
         return result
 
 
-def create_file(query: CreateFileQuery) -> File:
-    with __connect() as (conn, cursor):
+def create_file(path:str,query: CreateFileQuery) -> File:
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/file/insert.sql")
         sql_args = query.dict(include={'path', 'mime', 'description', 'name'})
         cursor.execute(sql, sql_args)
@@ -252,8 +252,8 @@ class DeleteFileQuery(BaseModel):
     id: int
 
 
-def delete_file(query: DeleteFileQuery):
-    with __connect() as (conn, cursor):
+def delete_file(path:str,query: DeleteFileQuery):
+    with _connect(path) as (conn, cursor):
         if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/file/delete_by_id.sql")
@@ -280,13 +280,13 @@ def set_file_tags(cursor: Cursor, file_id: int, tags: List[int]):
             cursor.execute(del_sql, args)
 
 
-def modify_file(query: FullModifyFileQuery):
+def modify_file(path:str,query: FullModifyFileQuery):
     json = query.dict(exclude={'id', 'tags'}, exclude_unset=True)
     parts: List[str] = [f"{key} = :{key}" for key in json]
     sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
     json['id'] = query.id
 
-    with __connect() as (conn, cursor):
+    with _connect(path) as (conn, cursor):
         if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         cursor.execute(sql, json)
@@ -295,14 +295,14 @@ def modify_file(query: FullModifyFileQuery):
         conn.commit()
 
 
-def set_file(query: FullSetFileQuery) -> None:
+def set_file(path:str,query: FullSetFileQuery) -> None:
     sql = read_sql_file("../static/sql/file/update.sql")
     args = query.dict(exclude={'tags'})
     # HACK while tags is not implimented
     if query.tags is not None:
         raise NotImplementedError
 
-    with __connect() as (conn, cursor):
+    with _connect(path) as (conn, cursor):
         if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         cursor.execute(sql, args)
@@ -311,8 +311,8 @@ def set_file(query: FullSetFileQuery) -> None:
     # return b'', ResponseCode.NO_CONTENT, {}
 
 
-def get_file_tags(query: FileTagQuery) -> List[Tag]:
-    with __connect() as (conn, cursor):
+def get_file_tags(path:str,query: FileTagQuery) -> List[Tag]:
+    with _connect(path) as (conn, cursor):
         if not __file_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         sql = read_sql_file("../static/sql/tag/select_by_file_id.sql")
@@ -323,8 +323,8 @@ def get_file_tags(query: FileTagQuery) -> List[Tag]:
         return results
 
 
-def file_has_tag(file_id: int, tag_id: int) -> bool:
-    with __connect() as (conn, cursor):
+def file_has_tag(path:str,file_id: int, tag_id: int) -> bool:
+    with _connect(path) as (conn, cursor):
         if not __file_exists(cursor, file_id):
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{file_id}'")
         return __file_tag_exists(cursor, file_id, tag_id)

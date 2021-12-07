@@ -6,160 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{name}}</title>
     <link href="/css/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 </head>
 <body>
 <div id="content">
-<!--    <main class="container-fluid">-->
-<!--        <div class="justify-content-center">-->
-<!--            <div class="container-fluid">-->
-<!--                {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}-->
-<!--                {{^last}}<a href="{{page}}">{{name}}</a> <b>/</b> {{/last}}{{/ancestry}}-->
-<!--                <div class="table-responsive">-->
-<!--                    <table class="table table-striped">-->
-<!--                        <thead>-->
-<!--                        <tr>-->
-<!--                            <th>ID</th>-->
-<!--                            <th>Name</th>-->
-<!--                            <th>Description</th>-->
-<!--                            <th>Tags</th>-->
-<!--                            <th>Link</th>-->
-<!--                        </tr>-->
-<!--                        </thead>-->
-<!--                        <tbody>-->
-<!--                        {{#folders}}-->
-<!--                        <tr>-->
-<!--                            <th>{{id}}</th>-->
-<!--                            <td>{{name}}</td>-->
-<!--                            <td>{{#description}}{{description}}{{/description}}</td>-->
-<!--                            <td>-->
-<!--                                {{#tags}}-->
-<!--                                {{> tag_badge}}-->
-<!--                                {{/tags}}-->
-<!--                            </td>-->
-<!--                            <td>-->
-<!--                                <a href="{{page}}">-->
-<!--                                    &lt;!&ndash;                                         TODO Link SVG, would use image as svg but i cant get use to work;    &ndash;&gt;-->
-<!--                                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-link"-->
-<!--                                         fill="currentColor" xmlns="http://www.w3.org/2000/svg">-->
-<!--                                        <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/>-->
-<!--                                        <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/>-->
-<!--                                    </svg>-->
-<!--                                    &lt;!&ndash;                                            <img src="/img/icon/bs/link.svg" alt="Open"/>&ndash;&gt;-->
-<!--                                </a>-->
-<!--                            </td>-->
-<!--                        </tr>-->
-<!--                        {{/folders}}-->
-<!--                        {{^folders}}-->
-<!--                        <tr>-->
-<!--                            <td class="align-content-center" colspan="6">No Folders Found</td>-->
-<!--                        </tr>-->
-<!--                        {{/folders}}-->
-<!--                        </tbody>-->
-<!--                    </table>-->
-<!--                    <table class="table table-striped">-->
-<!--                        <thead>-->
-<!--                        <tr>-->
-<!--                            <th>ID</th>-->
-<!--                            <th>Name</th>-->
-<!--                            <th>Description</th>-->
-<!--                            <th>MimeType</th>-->
-<!--                            <th>Tags</th>-->
-<!--                            <th>Link</th>-->
-<!--                        </tr>-->
-<!--                        </thead>-->
-<!--                        <tbody>-->
-<!--                        {{#files}}-->
-<!--                        <tr>-->
-<!--                            <th>{{id}}</th>-->
-<!--                            <td>{{name}}</td>-->
-<!--                            <td>{{#description}}{{description}}{{/description}}</td>-->
-<!--                            <td>{{#mime}}{{mime}}{{/mime}}</td>-->
-<!--                            <td>-->
-<!--                                {{#tags}}-->
-<!--                                {{> tag_badge}}-->
-<!--                                {{/tags}}-->
-<!--                            </td>-->
-<!--                            <td>-->
-<!--                                <a href="{{page}}">-->
-<!--                                    &lt;!&ndash;                                         TODO Link SVG, would use image as svg but i cant get use to work;    &ndash;&gt;-->
-<!--                                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-link"-->
-<!--                                         fill="currentColor" xmlns="http://www.w3.org/2000/svg">-->
-<!--                                        <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/>-->
-<!--                                        <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/>-->
-<!--                                    </svg>-->
-<!--                                    &lt;!&ndash;                                            <img src="/img/icon/bs/link.svg" alt="Open"/>&ndash;&gt;-->
-<!--                                </a>-->
-<!--                            </td>-->
-<!--                        </tr>-->
-<!--                        {{/files}}-->
-<!--                        {{^files}}-->
-<!--                        <tr>-->
-<!--                            <td class="align-content-center" colspan="6">No Files Found</td>-->
-<!--                        </tr>-->
-<!--                        {{/files}}-->
-<!--                        </tbody>-->
-<!--                    </table>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </main>-->
-<!--    <div class="container">-->
-<!--        <div class="col-12">-->
-<!--            {{#folders}}-->
-<!--            <div class="card w-100 mb-4">-->
-<!--                <a href="{{page}}">-->
-<!--                    <div class="card-header">-->
-<!--                        <div class="row">-->
-<!--                            <div class="col-1 card-img">-->
-<!--                            <svg class="bi" width="32" height="32" fill="currentColor">-->
-<!--                              <use xlink:href="{{icon}}"/>-->
-<!--                            </svg>-->
-<!--                        </div>-->
-<!--                            <div class="col-11">-->
-<!--                                <h4>{{name}}</h4>-->
-<!--                            </div>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </a>-->
-<!--                {{#description}}<div class="card-body"><p class="card-text">{{description}}</p></div>{{/description}}-->
-<!--                <div class="card-body">-->
-<!--                    {{#tags}}-->
-<!--                    {{> tag_badge}}-->
-<!--                    {{/tags}}-->
-<!--                    {{^tags}}-->
-<!--                    No Tags-->
-<!--                    {{/tags}}-->
-<!--                </div>-->
-<!--                <div class="card-footer">-->
-
-<!--                </div>-->
-<!--            </div>-->
-<!--            {{/folders}}-->
-<!--            {{#files}}-->
-<!--            <div class="card w-100 mb-4">-->
-<!--                <a href="{{page}}">-->
-<!--                    <div class="card-header">-->
-<!--                        <img src="{{icon}}" style="float:left" alt="Icon" width="24" height="24">-->
-<!--                        <h5>{{name}}</h5>-->
-<!--                    </div>-->
-<!--                </a>-->
-<!--                {{#description}}<div class="card-body"><p class="card-text">{{description}}</p></div>{{/description}}-->
-<!--                <div class="card-body">-->
-<!--                    {{#tags}}-->
-<!--                    {{> tag_badge}}-->
-<!--                    {{/tags}}-->
-<!--                    {{^tags}}-->
-<!--                    No Tags-->
-<!--                    {{/tags}}-->
-<!--                </div>-->
-<!--                <div class="card-footer">-->
-
-<!--                </div>-->
-<!--            </div>-->
-<!--            {{/files}}-->
-<!--        </div>-->
-<!--    </div>-->
-
     <div class="container">
         <div>
                 {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
@@ -177,7 +27,10 @@
             <tbody>
             {{#folders}}
             <tr>
-                <th><img src="{{icon}}" style="float:left" alt="Icon" width="24" height="24"></th>
+                <th>
+<!--                    <img src="{{icon}}" style="float:left" alt="Icon" width="24" height="24">-->
+                <i class="bi {{icon}}"></i>
+                </th>
                 <td><a href="{{page}}">{{name}}</a></td>
                 <td>{{#description}}{{description}}{{/description}}</td>
                 <td>
@@ -206,7 +59,10 @@
             <tbody>
             {{#files}}
             <tr>
-                <th><img src="{{icon}}" style="float:left" alt="Icon" width="24" height="24"></th>
+                <th>
+                <i class="bi {{icon}}"></i>
+<!--                    <img src="{{icon}}" style="float:left" alt="Icon" width="24" height="24">-->
+                </th>
                 <td><a href="{{page}}">{{name}}</a></td>
                 <td>{{#description}}{{description}}{{/description}}</td>
                 <td>

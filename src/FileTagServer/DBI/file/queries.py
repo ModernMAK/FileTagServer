@@ -15,4 +15,4 @@ create = """CREATE TABLE IF NOT EXISTS file(
 select_by_ids = f"""SELECT * FROM ({select}) WHERE id in ({{file_ids}})"""
 select_by_id = f"""SELECT * FROM ({select}) WHERE id = ?"""
 
-select_orphaned_files = f"""SELECT * FROM ({select}) WHERE id not in in (select DISTINCT folder_file.file_id from folder_file)"""
+select_orphaned_files = f"""SELECT * FROM ({select}) WHERE id not in (select DISTINCT folder_file.file_id from folder_file)"""

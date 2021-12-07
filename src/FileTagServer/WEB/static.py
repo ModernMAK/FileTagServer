@@ -1,11 +1,10 @@
-from FileTagServer.WEB.common import web_app
+from os.path import join
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 
-def dummy():
-    pass
-
-
-web_app.mount("/js", StaticFiles(directory="../static/js"), name="JavaScript")
-web_app.mount("/css", StaticFiles(directory="../static/css"), name="Cascading Style Sheet")
-web_app.mount("/img", StaticFiles(directory="../static/img"), name="Cascading Style Sheet")
+def mount(app: FastAPI, static_root: str = None):
+    static_root = static_root or "../static"
+    app.mount("/js", StaticFiles(directory=join(static_root, "js")), name="JavaScript")
+    app.mount("/css", StaticFiles(directory=join(static_root, "css")), name="Cascading Style Sheet")
+    # app.mount("/img", StaticFiles(directory=join(static_root, "img")), name="Images")
