@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{TITLE}}</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+</head>
+<body>
+{{> navbar}}
+<main role="main" class="container-fluid">
+    {{#result}}
+    <div class="card">
+        <div class="card-body align-content-center">
+            {{#page_path}}<a href="{{page_path}}" class="mx-auto my-auto">{{/page_path}}
+            <div class="card-text text-center">
+                Preview Not Supported
+            </div>
+            {{#page_path}}</a>{{/page_path}}
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+                <h1 class="card-title">
+                    {{#name}}{{name}}{{/name}}
+                    {{^name}}'Unnamed'{{/name}}
+                </h1>
+            </li>
+            <li class="list-group-item">
+
+                <h4 class="card-title">Description</h4>
+                <div class="card-text">
+                    {{#description}}{{description}}{{/description}}
+                    {{^description}}No description given.{{/description}}
+                </div>
+            </li>
+            <li class="list-group-item">
+                <h4 class="card-title">Info</h4>
+                <dl>
+                    <dt class="card-title">Name</dt>
+                    <dd class="card-text">
+                        {{#name}}{{name}}{{/name}}
+                        {{^name}}Not Specified{{/name}}
+                    </dd>
+                    <dt class="card-title">Internal ID</dt>
+                    <dd class="card-text">
+                        {{#id}}{{id}}{{/id}}
+                        {{^id}}Not Specified{{/id}}
+                    </dd>
+                    <dt class="card-title">Files Tagged</dt>
+                    <dd class="card-text">
+                        {{#count}}{{count}}{{/count}}
+                        {{^count}}Not Specified{{/count}}
+                    </dd>
+                </dl>
+            </li>
+            <li class="list-group-item">
+                <a class="nav-link active" href="{{edit_path}}">Edit</a>
+            </li>
+        </ul>
+
+    </div>
+    {{/result}}
+</main>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="/js/bootstrap.bundle.js"></script>
+</body>
+</html>

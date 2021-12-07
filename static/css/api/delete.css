@@ -1,0 +1,131 @@
+:root {
+    --method-put: #dc3545;
+}
+
+.table-method-delete,
+.table-method-delete > th,
+.table-method-delete > td {
+    background-color: #f5c6cb;
+}
+
+.table-method-delete th,
+.table-method-delete td,
+.table-method-delete thead th,
+.table-method-delete tbody + tbody {
+    border-color: #ed969e;
+}
+
+.table-hover .table-method-delete:hover {
+    background-color: #f1b0b7;
+}
+
+.table-hover .table-method-delete:hover > td,
+.table-hover .table-method-delete:hover > th {
+    background-color: #f1b0b7;
+}
+
+.btn-method-delete {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-method-delete:hover {
+    color: #fff;
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-method-delete:focus, .btn-method-delete.focus {
+    color: #fff;
+    background-color: #c82333;
+    border-color: #bd2130;
+    box-shadow: 0 0 0 0.2rem rgba(225, 83, 97, 0.5);
+}
+
+.btn-method-delete.disabled, .btn-method-delete:disabled {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-method-delete:not(:disabled):not(.disabled):active, .btn-method-delete:not(:disabled):not(.disabled).active,
+.show > .btn-method-delete.dropdown-toggle {
+    color: #fff;
+    background-color: #bd2130;
+    border-color: #b21f2d;
+}
+
+.btn-method-delete:not(:disabled):not(.disabled):active:focus, .btn-method-delete:not(:disabled):not(.disabled).active:focus,
+.show > .btn-method-delete.dropdown-toggle:focus {
+    box-shadow: 0 0 0 0.2rem rgba(225, 83, 97, 0.5);
+}
+
+.btn-outline-method-delete {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-method-delete:hover {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-method-delete:focus, .btn-outline-method-delete.focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.5);
+}
+
+.btn-outline-method-delete.disabled, .btn-outline-method-delete:disabled {
+    color: #dc3545;
+    background-color: transparent;
+}
+
+.btn-outline-method-delete:not(:disabled):not(.disabled):active, .btn-outline-method-delete:not(:disabled):not(.disabled).active,
+.show > .btn-outline-method-delete.dropdown-toggle {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-method-delete:not(:disabled):not(.disabled):active:focus, .btn-outline-method-delete:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-method-delete.dropdown-toggle:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.5);
+}
+
+.badge-method-delete {
+  color: #fff;
+  background-color: #dc3545;
+}
+
+a.badge-method-delete:hover, a.badge-method-delete:focus {
+  color: #fff;
+  background-color: #bd2130;
+}
+
+a.badge-method-delete:focus, a.badge-method-delete.focus {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.5);
+}
+
+.bg-method-delete {
+    background-color: #dc3545 !important;
+}
+
+a.bg-method-delete:hover, a.bg-method-delete:focus,
+button.bg-method-delete:hover,
+button.bg-method-delete:focus {
+    background-color: #bd2130 !important;
+}
+
+.border-method-delete {
+    border-color: #dc3545 !important;
+}
+
+.text-method-delete {
+    color: #dc3545 !important;
+}
+
+a.text-method-delete:hover, a.text-method-delete:focus {
+    color: #a71d2a !important;
+}

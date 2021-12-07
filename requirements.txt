@@ -1,7 +1,7 @@
-dicttoxml==1.7.4
-EasyConnect==1.0.5
-LiteSpeed==1.0.6
-pathtools==0.1.2
-Pillow==7.1.2
-pystache==0.5.4
-watchdog==0.10.3
+pathtools>=0.1.2
+pystache>=0.5.4
+pydantic~=1.8.1
+pytest~=6.2.2 # Only required for tests
+starlette~=0.14.2
+fastapi~=0.65.1
+uvicorn~=0.14.0

@@ -1,0 +1,6 @@
+@import "api/get.css";
+@import "api/patch.css";
+@import "api/post.css";
+@import "api/delete.css";
+@import "api/put.css";
+@import "api/not-allowed.css";

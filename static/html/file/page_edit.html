@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{page_title}}</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+</head>
+<body>
+{{> navbar}}
+{{> file_subnavbar}}
+<div id="content">
+    <div class="row">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky pt-3">
+                {{> sidebar_taglist}}
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>Manage</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{edit_page}}">Edit</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+            <main role="main" class="container-fluid">
+                {{#result}}
+                <div class="container">
+                    <div class="text-center">
+                        {{> file_preview}}
+                        {{^preview}}
+                        <a href="{{url}}">No Preview Given</a>
+                        {{/preview}}
+                    </div>
+                </div>
+                {{#form}}
+                <form name="UpdateFileInfo" action="{{action}}" method="POST">
+                    <input type="hidden" name="id" id="id" value="{{id}}">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="'Unnamed'"
+                               value="{{name}}">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" class="form-control" name="description" id="description"
+                               placeholder="None Given"
+                               value="{{description}}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tags">Tags</label>
+                        <textarea class="form-control" id="tags" name="tags" placeholder="No Tags" rows="10"
+                                  autocomplete="off">{{#tags}}{{name}}&#013;&#010;{{/tags}}</textarea>
+                        <small id="tagsHelp" class="form-text text-muted">Enter each tag on a new line.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+                {{/form}}
+                {{/result}}
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
+</body>
+</html>

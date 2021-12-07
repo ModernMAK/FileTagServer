@@ -1,12 +1,16 @@
 import sqlite3
-from typing import Union, List, Tuple, Set
+from typing import List, Union, Tuple, Set
 
 
 class Conwrapper():
     def __init__(self, db_path: str):
-        self.con = sqlite3.connect(db_path)
-        self.cursor = self.con.cursor()
-
+        try:
+            self.con = sqlite3.connect(db_path)
+            self.cursor = self.con.cursor()
+        except sqlite3.OperationalError:
+            print(f"db_path = '{db_path}'")
+            raise
+        
     def __enter__(self):
         return self.con, self.cursor
 
@@ -32,9 +36,9 @@ def sanitize(data: Union[object, List[object], Tuple[object]]) -> Union[str, Lis
 
 
 def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool = False) -> str:
-    if isinstance(data, Set):
+    if isinstance(data, set):
         data = list(data)
-    if isinstance(data, (List, Tuple)):
+    if isinstance(data, (list, tuple)):
         temp = []  # in the case of tuples, we cant assign back to data, so we use temp instead
         for i in range(len(data)):
             if skip_sanitize:
@@ -50,13 +54,13 @@ def create_entry_string(data: Union[object, List[object]], skip_sanitize: bool =
 
 
 def create_value_string(values: Union[object, List[object], List[List[object]]]) -> str:
-    if isinstance(values, (List, Tuple)):
-        values = values.copy()
+    result = []
+    if isinstance(values, (list, tuple)):
         for i in range(len(values)):
-            values[i] = create_entry_string(values[i])
+            result.append(create_entry_string(values[i]))
     else:
-        values = create_entry_string(values)
-    return ','.join(values)
+        result = create_entry_string(result)
+    return ','.join(result)
 
 
 def convert_tuple_to_list(values: List[Tuple[object]]) -> List[object]:

@@ -1,0 +1,28 @@
+<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+    <a class="navbar-brand" href="/">ImageServer</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            {{#navbar}}
+                {{#link}}
+                    <li class="nav-item {{status}}">
+                        <a class="nav-link {{status}}" href="{{path}}">{{text}}</a>
+                    </li>
+                {{/link}}
+                {{#dropdown}}
+                    <li class="nav-item dropdown {{status}}">
+                        <a class="nav-link dropdown-toggle {{status}}" id="navbarDropdown" data-toggle="dropdown"
+                           href="#">{{text}}</a>
+                        <div class="dropdown-menu">
+                            {{#links}}
+                                <a class="dropdown-item {{status}}" href="{{path}}">{{text}}</a>
+                            {{/links}}
+                        </div>
+                    </li>
+                {{/dropdown}}
+            {{/navbar}}
+        </ul>
+    </div>
+</nav>

@@ -1,0 +1,38 @@
+<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">Tags</h6>
+<ul class="nav">
+    {{#tags}}
+        <li class="nav-item  w-100 mx-auto">
+            <div class="nav-link active">
+                <div class="btn-group w-100">
+                    <a class=" w-100" href="{{page_path}}">
+                        <button class="btn-outline-primary  w-100">
+                            {{#formatted_name}}{{formatted_name}}{{/formatted_name}}
+                            {{^formatted_name}}{{name}}{{/formatted_name}}
+                            <span class="badge badge-secondary">{{count}}</span>
+                        </button>
+                    </a>
+                </div>
+                {{#search_support}}
+                    <div class="btn-group justify-content-between  w-100">
+                        <button class="btn-outline-success  w-100"
+                                onclick="addAndTagToSearchBox('{{search_id}}','{{js_name}}')"><b>+</b>
+                        </button>
+
+                        <button class="btn-outline-info  w-100"
+                                onclick="addOrTagToSearchBox('{{search_id}}','{{js_name}}')"><b>~</b>
+                        </button>
+
+                        <button class="btn-outline-danger  w-100"
+                                onclick="addNotTagToSearchBox('{{search_id}}','{{js_name}}')"><b>-</b>
+                        </button>
+                    </div>
+                {{/search_support}}
+            </div>
+        </li>
+    {{/tags}}
+    {{^tags}}
+        <li class="nav-item">
+            <span class="nav-link">No Tags Present</span>
+        </li>
+    {{/tags}}
+</ul>

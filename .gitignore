@@ -18,5 +18,26 @@ web/dynamic/generated/*
 *.db
 
 # Ignore personal settings/configs
-settings.ini
+# No longer in use
+# src/old/settings.ini
+# src/old/config.ini
+
+# Ignore Bootstrap 4.5 Icons (Smaller Size / + Not redistributing)
+static/image/icon/bs/*
+# This is empty (as it should be), but i accidentally did this once, im sure ill do it again
+static/html/image/icon/bs/*
+
+# Dont commit old files
+/file/*
 config.ini
+settings.ini
+
+# Ignore old watch directory
+/Watch
+
+# Always write examples
+!examples/*
+
+# Except test.db which should be copied from our example.db
+examples/test.db
+src/main/Local Server/settings.json
