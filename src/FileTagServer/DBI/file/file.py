@@ -16,7 +16,6 @@ class FileDBI(AbstractDBI):
             d['tags'] = [int(tag_id) for tag_id in d['tags'].split(",")]
         return File(**d)
 
-
     def get_files(self, file_ids: List[int]) -> List[File]:
         if not file_ids:
             return []
@@ -27,8 +26,7 @@ class FileDBI(AbstractDBI):
             rows = cursor.fetchall()
             return [self.parse_row(row) for row in rows]
 
-
-    def get_file(self,file_id: int) -> File:
+    def get_file(self, file_id: int) -> File:
         with self.connect() as (conn, cursor):
             cursor.execute(queries.select_by_id, (file_id,))
             rows = cursor.fetchall()
@@ -36,7 +34,6 @@ class FileDBI(AbstractDBI):
                 return self.parse_row(rows[0])
             else:
                 raise ApiError(500, "Not Implemented")
-
 
     def get_orphaned_files(self) -> List[File]:
         with self.connect() as (conn, cursor):

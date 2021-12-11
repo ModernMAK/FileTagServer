@@ -7,7 +7,6 @@ from pystache import Renderer
 from starlette.responses import HTMLResponse, StreamingResponse, FileResponse
 
 
-
 def create_app_instance(**kwargs):
     # Default to none for any api/doc urls
     default_none_keys = ["openapi_url", "docs_url", "redoc_url"]
@@ -22,6 +21,7 @@ def create_app_instance(**kwargs):
 def create_renderer(**kwargs):
     kwargs["search_dirs"] = "../static/html/templates" if "search_dirs" not in kwargs else kwargs["search_dirs"]
     return Renderer(**kwargs)
+
 
 # stolen from 'https://github.com/tiangolo/fastapi/issues/1240'
 Kibi = 1024

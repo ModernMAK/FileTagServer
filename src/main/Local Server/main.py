@@ -19,7 +19,6 @@ def load_settings(path: str = None) -> Dict:
         return json.load(settings)
 
 
-
 def add_and_update_files(db_path, paths: List[str]):
     # TODO check if file name exists
     #   Check that Mimetype matches
@@ -38,7 +37,7 @@ def add_and_update_files(db_path, paths: List[str]):
             pass
 
         for cur_dir, folders, files in os.walk(path):
-            print("\t",cur_dir)
+            print("\t", cur_dir)
             q = FolderPathQuery(path=cur_dir)
             parent_f = get_folder_by_path(db_path, q)
 
