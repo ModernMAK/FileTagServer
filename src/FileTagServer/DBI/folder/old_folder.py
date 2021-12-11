@@ -199,7 +199,7 @@ class FolderSearchQuery(BaseModel):
 #         return results
 
 
-def __get_folder(path:str, id: int) -> Folder:
+def __get_folder(path: str, id: int) -> Folder:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder/select_by_id.sql")
         cursor.execute(sql, (str(id),))
@@ -211,7 +211,7 @@ def __get_folder(path:str, id: int) -> Folder:
         return row_to_folder(rows[0])
 
 
-def __get_subfolders(path:str, id: int) -> List[Folder]:
+def __get_subfolders(path: str, id: int) -> List[Folder]:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_folder/get_subfolders.sql")
         cursor.execute(sql, (str(id),))
@@ -219,15 +219,15 @@ def __get_subfolders(path:str, id: int) -> List[Folder]:
         if len(rows) < 1:
             raise ApiError(status.HTTP_410_GONE, f"No subfolders found for the given folder id: '{id}'")
 
-        result = [__get_folder(path,row['child_id']) for row in rows]
+        result = [__get_folder(path, row['child_id']) for row in rows]
         return result
 
 
-def __get_file(path:str, id: int) -> File:
-    return get_file(path,FileQuery(id=id))
+def __get_file(path: str, id: int) -> File:
+    return get_file(path, FileQuery(id=id))
 
 
-def __get_subfiles(path:str, id: int) -> List[File]:
+def __get_subfiles(path: str, id: int) -> List[File]:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_file/get_subfiles.sql")
         cursor.execute(sql, (str(id),))
@@ -235,19 +235,19 @@ def __get_subfiles(path:str, id: int) -> List[File]:
         if len(rows) < 1:
             raise ApiError(status.HTTP_410_GONE, f"No subfiles found for the given folder id: '{id}'")
 
-        result = [__get_file(row['file_id']) for row in rows]
+        result = [__get_file(path, row['file_id']) for row in rows]
         return result
 
 
-def get_folder(path:str, query: FolderQuery) -> Folder:
-    folder = __get_folder(path,query.id)
+def get_folder(path: str, query: FolderQuery) -> Folder:
+    folder = __get_folder(path, query.id)
     try:
-        folder.subfolders = __get_subfolders(path,query.id)
+        folder.subfolders = __get_subfolders(path, query.id)
     except ApiError:
         folder.subfolders = []
 
     try:
-        folder.files = __get_subfiles(path,query.id)
+        folder.files = __get_subfiles(path, query.id)
     except ApiError:
         folder.files = []
 
@@ -255,18 +255,18 @@ def get_folder(path:str, query: FolderQuery) -> Folder:
     return folder
 
 
-def get_root_folders(path:str) -> List[Folder]:
+def get_root_folders(path: str) -> List[Folder]:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_folder/get_root_folders.sql")
         cursor.execute(sql)  # , (str(query.id),))
         rows = cursor.fetchall()
         if len(rows) < 1:
             raise ApiError(status.HTTP_410_GONE, f"No root folders?! Perhaps the database is empty?")
-        folders = [get_folder(path,FolderQuery(id=r['parent_id'])) for r in rows]
+        folders = [get_folder(path, FolderQuery(id=r['id'])) for r in rows]
         return folders
 
 
-def get_folder_by_path(path:str,query: FolderPathQuery) -> Folder:
+def get_folder_by_path(path: str, query: FolderPathQuery) -> Folder:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder/select_by_path.sql")
         cursor.execute(sql, (str(query.path),))
@@ -284,7 +284,7 @@ def get_folder_by_path(path:str,query: FolderPathQuery) -> Folder:
         return result
 
 
-def create_folder(path:str,query: CreateFolderQuery) -> Folder:
+def create_folder(path: str, query: CreateFolderQuery) -> Folder:
     with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder/insert.sql")
         sql_args = query.dict(include={'path', 'description', 'name'})
@@ -305,7 +305,7 @@ class DeleteFolderQuery(BaseModel):
     id: int
 
 
-def delete_folder(path:str,query: DeleteFolderQuery):
+def delete_folder(path: str, query: DeleteFolderQuery):
     with _connect(path) as (conn, cursor):
         if not __folder_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{query.id}'")
@@ -333,7 +333,7 @@ def set_folder_tags(cursor: Cursor, folder_id: int, tags: List[int]):
             cursor.execute(del_sql, args)
 
 
-def modify_folder(path:str,query: FullModifyFolderQuery):
+def modify_folder(path: str, query: FullModifyFolderQuery):
     json = query.dict(exclude={'id', 'tags'}, exclude_unset=True)
     parts: List[str] = [f"{key} = :{key}" for key in json]
     sql = f"UPDATE folder SET {', '.join(parts)} WHERE id = :id"
@@ -348,7 +348,7 @@ def modify_folder(path:str,query: FullModifyFolderQuery):
         conn.commit()
 
 
-def set_folder(path:str,query: FullSetFolderQuery) -> None:
+def set_folder(path: str, query: FullSetFolderQuery) -> None:
     sql = read_sql_file("../static/sql/folder/update.sql")
     args = query.dict(exclude={'tags'})
     # HACK while tags is not implimented
@@ -364,7 +364,7 @@ def set_folder(path:str,query: FullSetFolderQuery) -> None:
     # return b'', ResponseCode.NO_CONTENT, {}
 
 
-def get_folder_tags(path:str,query: FolderTagQuery) -> List[Tag]:
+def get_folder_tags(path: str, query: FolderTagQuery) -> List[Tag]:
     with _connect(path) as (conn, cursor):
         if not __folder_exists(cursor, query.id):
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{query.id}'")
@@ -376,7 +376,7 @@ def get_folder_tags(path:str,query: FolderTagQuery) -> List[Tag]:
         return results
 
 
-def folder_has_tag(path:str,folder_id: int, tag_id: int) -> bool:
+def folder_has_tag(path: str, folder_id: int, tag_id: int) -> bool:
     with _connect(path) as (conn, cursor):
         if not __folder_exists(cursor, folder_id):
             raise ApiError(status.HTTP_410_GONE, f"No folder found with the given id: '{folder_id}'")

@@ -50,16 +50,16 @@ class AddSubFileQuery(BaseModel):
     file_id: int
 
 
-def add_folder_to_folder(query: AddSubFolderQuery):
-    with _connect() as (conn, cursor):
+def add_folder_to_folder(path:str, query: AddSubFolderQuery):
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_folder/insert.sql")
         args = str(query.parent_id), str(query.child_id)
         cursor.execute(sql, args)
         conn.commit()
 
 
-def add_file_to_folder(query: AddSubFileQuery):
-    with _connect() as (conn, cursor):
+def add_file_to_folder(path:str, query: AddSubFileQuery):
+    with _connect(path) as (conn, cursor):
         sql = read_sql_file("../static/sql/folder_file/insert.sql")
         args = str(query.folder_id), str(query.file_id)
         cursor.execute(sql, args)

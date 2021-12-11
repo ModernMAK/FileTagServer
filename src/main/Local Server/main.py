@@ -19,8 +19,8 @@ def load_settings(path: str = None) -> Dict:
         return json.load(settings)
 
 
-def add_and_update_files(paths: List[str]):
 
+def add_and_update_files(db_path, paths: List[str]):
     # TODO check if file name exists
     #   Check that Mimetype matches
     #       Generate a hash for the local file
@@ -33,14 +33,14 @@ def add_and_update_files(paths: List[str]):
         print(path)
         q = CreateFolderQuery(path=path, name=path)
         try:
-            create_folder(q)
+            create_folder(db_path, q)
         except sqlite3.IntegrityError:
             pass
 
         for cur_dir, folders, files in os.walk(path):
             print("\t",cur_dir)
             q = FolderPathQuery(path=cur_dir)
-            parent_f = get_folder_by_path(q)
+            parent_f = get_folder_by_path(db_path, q)
 
             print("\t\t", "Folders")
             for folder in folders:
@@ -48,14 +48,14 @@ def add_and_update_files(paths: List[str]):
                 folder_path = join(cur_dir, folder)
                 try:
                     q = CreateFolderQuery(path=folder_path, name=folder)
-                    f = create_folder(q)
+                    f = create_folder(db_path, q)
                 except sqlite3.IntegrityError:
                     q = FolderPathQuery(path=folder_path)
-                    f = get_folder_by_path(q)
+                    f = get_folder_by_path(db_path, q)
 
                 try:
                     q = AddSubFolderQuery(parent_id=parent_f.id, child_id=f.id)
-                    add_folder_to_folder(q)
+                    add_folder_to_folder(db_path, q)
                 except sqlite3.IntegrityError:
                     continue
 
@@ -66,14 +66,14 @@ def add_and_update_files(paths: List[str]):
                 mime = mimetypes.guess_type(file_path)[0]
                 try:
                     q = CreateFileQuery(path=file_path, mime=mime, name=file)
-                    f = create_file(q)
+                    f = create_file(db_path, q)
                 except sqlite3.IntegrityError:
                     q = FilePathQuery(path=file_path)
-                    f = get_file_by_path(q)
+                    f = get_file_by_path(db_path, q)
 
                 try:
                     q = AddSubFileQuery(folder_id=parent_f.id, file_id=f.id)
-                    add_file_to_folder(q)
+                    add_file_to_folder(db_path, q)
                 except sqlite3.IntegrityError:
                     continue
 
@@ -81,5 +81,7 @@ def add_and_update_files(paths: List[str]):
 if __name__ == "__main__":
     initialize_database()
     settings = load_settings()
+    db_path = r"C:\Users\andre\Documents\GitHub\FileTagServer\local.db"
+    initialize_database(db_path)
     paths = settings.get('paths', [])
-    add_and_update_files(paths)
+    add_and_update_files(db_path, paths)

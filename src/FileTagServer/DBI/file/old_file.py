@@ -206,7 +206,7 @@ def get_file(path:str,query: FileQuery) -> File:
             raise ApiError(status.HTTP_410_GONE, f"No file found with the given id: '{query.id}'")
         elif len(rows) > 1:
             raise ApiError(status.HTTP_300_MULTIPLE_CHOICES, f"Too many files found with the given id: '{query.id}'")
-        tags = get_file_tags(query.create_tag_query())
+        tags = get_file_tags(path, query.create_tag_query())
         result = row_to_file(rows[0], tags=tags)
         if query.fields is not None:
             result = result.copy(include=set(query.fields))
@@ -224,7 +224,7 @@ def get_file_by_path(path:str,query: FilePathQuery) -> File:
             raise ApiError(status.HTTP_300_MULTIPLE_CHOICES,
                            f"Too many files found with the given path: '{query.path}'")
         result = row_to_file(rows[0])
-        tags = get_file_tags(query.create_tag_query(id=result.id))
+        tags = get_file_tags(path, query.create_tag_query(id=result.id))
         result = row_to_file(rows[0], tags=tags)
         if query.fields is not None:
             result = result.copy(include=set(query.fields))
@@ -351,7 +351,6 @@ def get_file_bytes(query: FileDataQuery):
 
 def search_files(query: FileSearchQuery) -> List[File]:
     sort_sql = SortQuery.list_sql(query.sort) if query.sort else None
-
     if sort_sql:
         raise NotImplementedError
     return []
