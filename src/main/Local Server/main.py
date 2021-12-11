@@ -78,7 +78,6 @@ def add_and_update_files(db_path, paths: List[str]):
 
 
 if __name__ == "__main__":
-    initialize_database()
     settings = load_settings()
     db_path = r"C:\Users\andre\Documents\GitHub\FileTagServer\local.db"
     initialize_database(db_path)
