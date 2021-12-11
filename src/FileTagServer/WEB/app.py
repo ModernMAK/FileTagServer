@@ -16,7 +16,7 @@ from FileTagServer.DBI.models import Folder, File, Tag
 from FileTagServer.DBI.webconverter import WebConverter
 from FileTagServer.REST.routing import reformat
 from FileTagServer.WEB.common import serve_streamable
-from FileTagServer.WEB.routing import root_route, orphaned_files_route, folder_route, file_route, tag_route
+from FileTagServer.WEB.routing import root_route, orphaned_files_route, folder_route, file_route, tag_route, file_data_route
 
 
 def get_icon(name: str) -> str:
@@ -102,6 +102,13 @@ def create_webconv() -> WebConverter:
 
 
 def add_routes(app: FastAPI, renderer: Renderer, database: Database, webconv: WebConverter):
+
+    def _folder(context: Dict, list_view: bool = True):
+        template_name = "list" if list_view else "table"
+        html = renderer.render_path(f"../static/html/folder/{template_name}.html", **context)
+        return HTMLResponse(html)
+
+
     @app.get(root_route)
     def root_folder():
         folders: List[Folder] = get_root_folders(database.database_file)
@@ -116,8 +123,7 @@ def add_routes(app: FastAPI, renderer: Renderer, database: Database, webconv: We
             'page': orphaned_files_route
         }
         context['folders'].append(orphaned_folder)
-        html = renderer.render_path("../static/html/folder/table.html", **context)
-        return HTMLResponse(html)
+        return _folder(context)
 
     @app.get(folder_route)
     def sub_folder(folder_id: int):
@@ -131,8 +137,7 @@ def add_routes(app: FastAPI, renderer: Renderer, database: Database, webconv: We
 
         ancestry = build_ancestry(database, folder.name, reformat(folder_route, folder_id=folder_id), folder.path)
         context = build_context(webconv, folder.name, folder.description, ancestry, subfolders, files, tags, tag_lookup)
-        html = renderer.render_path("../static/html/folder/table.html", **context)
-        return HTMLResponse(html)
+        return _folder(context)
 
     @app.get(orphaned_files_route)
     def orphaned_file_folder():
@@ -146,10 +151,9 @@ def add_routes(app: FastAPI, renderer: Renderer, database: Database, webconv: We
 
         ancestry = build_ancestry(database, "Orphaned Files", orphaned_files_route)
         context = build_context(webconv, "Orphaned Files", "Files with no parent folder.", ancestry, subfolders, files, tags, tag_lookup)
-        html = renderer.render_path("../static/html/folder/table.html", **context)
-        return HTMLResponse(html)
+        return _folder(context)
 
     @app.get(file_route)
-    def file(file_id: int, content_range: Optional[str] = Header(None)):
+    def file(file_id: int, range: Optional[str] = Header(None)):
         file = database.file.get_file(file_id)
-        return serve_streamable(file.path, content_range)
+        return serve_streamable(file.path, range, file.name)
