@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{name}}</title>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+<body>
+<div id="content">
+    <div class="container">
+        <div>
+            {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
+            {{^last}}<a href="{{page}}">{{name}}</a> <b>&gt;</b> {{/last}}{{/ancestry}}
+        </div>
+        <h5 class="row">Folders</h5>
+        <div class="row">
+            {{#folders}}
+            <div class="col-sm-5 col-md-4 col-lg-3 col-xl-2 py-2">
+                <a class="btn btn-outline-secondary dbl-click-link text-left text-truncate w-100" href="{{page}}"><i class="bi {{icon}}"></i> {{name}}</a>
+            </div>
+            {{/folders}}
+        </div>
+        <h5 class="row">Files</h5>
+        <div class="row">
+            {{#files}}
+            <div class="col-xs-6 col-sm-5 col-md-4 col-lg-3 col-xl-2 py-2">
+                <a class="dbl-click-link" href="{{page}}" style="color: inherit; text-decoration: inherit;">
+                <div class="card aspect-1x1">
+                    {{#preview}}
+                        <img style="object-fit:cover; overflow:hidden; width:100%;" src="{{preview}}" alt="Preview">
+                    {{/preview}}
+                    {{^preview}}
+                        <div class="w-100 h-100 text-center align-middle">
+                            No Preview Available
+                        </div>
+                    {{/preview}}
+                    <div class="card-footer w-100 text-left text-truncate bottom-0">
+                        <i class="bi {{icon}}"></i>&nbsp;{{name}}
+                    </div>
+
+                </div>
+                </a>
+            </div>
+            {{/files}}
+        </div>
+    </div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<!--<script src="/js/node-jquery.js"></script>-->
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/js/bootstrap.bundle.js"></script>
+<script src="/js/tagsearch.js"></script>
+<script src="/js/dbl-click-link.js"></script>
+<script src="/js/aspect-1x1.js"></script>
+</body>
+</html>
