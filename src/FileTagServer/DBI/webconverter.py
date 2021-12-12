@@ -2,10 +2,12 @@ from typing import Optional, List, Dict, Set
 
 from FileTagServer.DBI.models import File, Folder, WebTag, Tag, WebFile, WebFolder
 from FileTagServer.REST.routing import reformat
+from FileTagServer.WEB import content
 
 
 class WebConverter:
-    def __init__(self, folder_route, get_folder_icon, file_route, get_file_icon, tag_route):
+    def __init__(self, folder_route, get_folder_icon, file_route, file_preview_route, get_file_icon, tag_route):
+        self.file_preview_route = file_preview_route
         self.folder_route = folder_route
         self.folder_icon = get_folder_icon
         self.file_route = file_route
@@ -75,6 +77,9 @@ class WebConverter:
             tags=tags,
             **kwargs
         )
+    def __is_previewable(self, mimetype:str):
+        return content.supports_preview(mimetype)
+
 
     def file(self, file: File, tag_lookup: Dict[int, 'WebTag'] = None) -> 'WebFile':
         tags = (None if not tag_lookup else [tag_lookup[t] for t in file.tags]) if file.tags else None
@@ -82,7 +87,11 @@ class WebConverter:
             tags.sort(key=lambda tag: tag.name)
 
         kwargs = file.dict(exclude={"tags"})
+        preview = None
+        if self.__is_previewable(file.mime):
+            preview = reformat(self.file_preview_route, file_id=file.id)
         return WebFile(
+            preview = preview,
             page=reformat(self.file_route, file_id=file.id),
             icon=self.file_icon(file.mime),
             tags=tags,

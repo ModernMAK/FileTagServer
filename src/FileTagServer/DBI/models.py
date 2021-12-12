@@ -55,6 +55,7 @@ class WebTag(Tag, WebModel):
 
 
 class WebFile(File, WebModel, WebAncestryModel, WebIcon):
+    preview: Optional[str] = None
     parent: Optional['WebFolder'] = None
     tags: Optional[List[WebTag]] = None
 
@@ -64,5 +65,11 @@ class WebFolder(Folder, WebModel, WebAncestryModel, WebIcon):
     folders: Optional[List['WebFolder']] = None
     tags: Optional[List[WebTag]] = None
 
+
 # required
+# __locals = list(locals().values())
+# for m in __locals:
+#     if isinstance(m, BaseModel):
+#         m.update_forward_refs()
 WebFolder.update_forward_refs()
+Folder.update_forward_refs()

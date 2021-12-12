@@ -2,37 +2,15 @@ import json
 import os
 from contextlib import contextmanager
 from os.path import join
+from pathlib import PurePath
 from sqlite3 import Connection, Cursor, connect, Row
 from typing import List, Tuple, Optional, Union, AbstractSet, Mapping, Any, Dict, Callable, Set
 
 from pydantic import BaseModel
 
-from FileTagServer import config
-from FileTagServer.DBI.old_models import Tag, File, Folder
+from FileTagServer.DBI.models import Tag, File, Folder
 
 
-def find_src_root():
-    # Lazy implimentation
-    # This is at src\FileTagServer\DBI\common.py
-    # Therefore....
-    root = os.path.abspath(fr"{__file__}\..\..\..")
-    # Should be src
-    return root
-
-
-src_root = find_src_root()
-
-
-def read_sql_file(file: str, strip_terminal=False, force_src_root: bool = True):
-    if force_src_root:
-        file = os.path.abspath(join(src_root, file))
-
-    with open(file, "r") as f:
-        r = f.read()
-        if strip_terminal and r[-1] == ';':
-            return r[:-1]
-        else:
-            return r
 
 
 def validate_fields(value: str, fields: Union[List[str], Dict[str, Any], Set[str]]) -> str:
@@ -66,21 +44,14 @@ def row_to_tag(r: Row) -> Tag:
     return Tag(**r)
 
 
-@contextmanager
-def _connect(path: str = None, **kwargs) -> Tuple[Connection, Cursor]:
-    path = path or config.db_path
-    with connect(path, **kwargs) as conn:
-        conn.execute("PRAGMA foreign_keys = 1")
-        cursor = conn.cursor()
-        cursor.row_factory = Row
-        yield conn, cursor
 
 
-def initialize_database(path: str = None):
-    with _connect(path) as (conn, cursor):
+def initialize_database(db_path: str = None, sql_folder: str = None):
+    dbi = AbstractDBI(db_path, sql_folder)
+    with dbi.connect() as (conn, cursor):
         dirs = ['file', 'tag', 'file_tag', 'folder', 'folder_tag', 'folder_file', 'folder_folder']
         for dir in dirs:
-            sql_part = read_sql_file(f"../static/sql/{dir}/create.sql")
+            sql_part = dbi.read_sql_file(f"{dir}/create.sql")
             cursor.execute(sql_part)
 
 
@@ -229,14 +200,27 @@ def replace_kwargs(s: str, **kwargs):
 
 
 class AbstractDBI:
-    def __init__(self, db_filepath: str):
+    def __init__(self, db_filepath: str, sql_root: str):
         self.__path = db_filepath
+        self.__sql_root = PurePath(sql_root)
 
     @property
     def database_file(self) -> str:
         return self.__path
 
     @contextmanager
-    def connect(self) -> Tuple[Connection, Cursor]:
-        with _connect(self.__path) as (conn, curs):
-            yield conn, curs
+    def connect(self, **kwargs) -> Tuple[Connection, Cursor]:
+        with connect(self.__path, **kwargs) as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
+            cursor = conn.cursor()
+            cursor.row_factory = Row
+            yield conn, cursor
+
+    def read_sql_file(self, file: str, strip_terminal=False):
+        full_path = self.__sql_root / file
+        with open(full_path, "r") as f:
+            r = f.read()
+            if strip_terminal and r[-1] == ';':
+                return r[:-1]
+            else:
+                return r
