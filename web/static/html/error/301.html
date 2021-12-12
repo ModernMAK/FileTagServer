@@ -4,31 +4,27 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>See Other - 303</title>
-    <link href="/css/bootstrap.css" rel="stylesheet">
-
+    <title>Moved Permanently - 301</title>
+    {{> global_css}}
 </head>
 <body>
 {{> navbar}}
 <div class="text-center">
     <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
         <main role="main" class="inner cover my-auto">
-            <h2 class="cover-heading">Redirecting,</h2>
-            <h1 class="cover-heading">Please Continue.</h1>
-            <p class="lead">Click the link below if you are still here after a few moments.</p>
+            <h2 class="cover-heading">Hold up,</h2>
+            <h1 class="cover-heading">Moved Permanently!</h1>
+            <p class="lead">Sorry for the inconvenience.</p>
 
             <p class="lead">
                 <a href="{{path}}" class="btn btn-lg btn-secondary {{^path}}disabled{{/path}}">Go To Page</a>
             </p>
-            <p class="lead">Alternatively, click here to return home.</p>
             <p class="lead">
                 <a href="/" class="btn btn-lg btn-secondary">Go Back Home</a>
             </p>
         </main>
     </div>
 </div>
-<script src="/js/node-jquery.js"></script>
-<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>-->
-<script src="/js/bootstrap.bundle.js"></script>
+{{> global_js}}
 </body>
 </html>

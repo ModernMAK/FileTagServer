@@ -1,0 +1,2 @@
+-r shared_requirements.txt
+pytest~=6.2.2 # Only required for tests
