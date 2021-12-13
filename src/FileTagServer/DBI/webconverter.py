@@ -78,6 +78,8 @@ class WebConverter:
             **kwargs
         )
     def __is_previewable(self, mimetype:str):
+        return True
+        # We rely on serving preview to serve a default if we aren't previewable
         return content.supports_preview(mimetype)
 
 

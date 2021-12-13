@@ -1,8 +1,9 @@
+import json
 from os.path import dirname
 from typing import List, Dict, Optional
 
 from fastapi import Header
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, FileResponse
 
 from FileTagServer.DBI.common import Util
 from FileTagServer.DBI.database import Database
@@ -76,14 +77,29 @@ def build_context(conv: WebConverter, name: str, description: str, ancestry: Lis
     files = [conv.file(f, tag_lookup) for f in files] if files else []
     # Use lookup to avoid reconverting, otherwise convert
     tags = ([conv.tag(t) for t in tags] if not tag_lookup else [tag_lookup[t.id] for t in tags]) if tags else []
+    files_json = Util.json(files)  # [f.json() for f in files]
+    folders_json = Util.json(folders)  # [f.json() for f in folders]
+
+    files = Util.dict(files)
+    for i, f in enumerate(files):
+        f['file_index'] = i
+
+    folders = Util.dict(folders)
+    for i, f in enumerate(folders):
+        f['folder_index'] = i
+
+    tags = Util.dict(tags)
 
     return {
         'ancestry': ancestry,
         'name': name,
         'desc': description,
-        'files': Util.dict(files),
-        'folders': Util.dict(folders),
-        'tags': Util.dict(tags)
+        'files': files,
+        'folders': folders,
+        'tags': tags,
+
+        'files_json': files_json,
+        'folders_json': folders_json
     }
 
 
@@ -147,6 +163,13 @@ def add_routes(app: WebsiteApp):
     def file_preview(file_id: int, range: Optional[str] = Header(None)):
         file = app.database.file.get_file(file_id)
         if content.supports_preview(file.mime):
-            buffer = content.image_preview(file.path)
-            return serve_streamable_buffer(buffer, range)  # , file.name) supplying a name treats the file as an attachment
-        return HTMLResponse(status_code=204)
+            preview_path = app.previews.get_preview_path(file)
+            if not preview_path.exists():
+                app.previews.generate_preview(file)
+            if preview_path.exists():
+                return serve_streamable_file(str(preview_path), range)
+            broken = app.local_pathing.img / "preview/broken.svg"
+            return serve_streamable_file(str(broken), range)
+        else:
+            missing = app.local_pathing.img / "preview/missing.svg"
+            return serve_streamable_file(str(missing), range)

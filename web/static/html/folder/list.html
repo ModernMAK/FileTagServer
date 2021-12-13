@@ -8,51 +8,64 @@
     {{> global_css}}
 </head>
 <body>
-<div id="content">
-    <div class="container">
-        <div>
-            {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
-            {{^last}}<a href="{{page}}">{{name}}</a> <b>&gt;</b> {{/last}}{{/ancestry}}
-        </div>
-        <h5 class="row">Folders</h5>
-        <div class="row">
-            {{#folders}}
-            <div class="col-sm-5 col-md-4 col-lg-3 col-xl-2 py-2">
-                <a class="btn btn-outline-secondary dbl-click-link text-left text-truncate w-100" href="{{page}}"><i class="bi {{icon}}"></i> {{name}}</a>
+<script id="files_json" type="application/json">{{{files_json}}}</script>
+<script id="folders_json" type="application/json">{{{folders_json}}}</script>
+<script id="infobar-template" type="text/mustache" src="/js/templates/infobar.mustache"></script>
+<div id="content" class="row">
+<!--    <div id="hotbar" class="col-3"></div>-->
+    <div class="col-8" id="view">
+        <div class="container">
+            <div>
+                {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
+                {{^last}}<a href="{{page}}">{{name}}</a> <b>&gt;</b> {{/last}}{{/ancestry}}
             </div>
-            {{/folders}}
-        </div>
-        <h5 class="row">Files</h5>
-        <div class="row">
-            {{#files}}
-            <div class="col-6 col-sm-4 col-md-3 col-lg-2.2 col-xl-2 py-2">
-                <a class="dbl-click-link" href="{{page}}" style="color: inherit; text-decoration: inherit;">
-                <div class="card aspect-1x1">
-                    {{#preview}}
-                        <img style="object-fit:cover; overflow:hidden; width:100%;" src="{{preview}}" alt="Preview">
-                    {{/preview}}
-                    {{^preview}}
-                        <div class="w-100 h-100 text-center align-middle">
-                            No Preview Available
-                        </div>
-                    {{/preview}}
-                    <div class="card-footer w-100 text-left text-truncate bottom-0">
+            <h5 class="row">Folders</h5>
+            <div class="row">
+                {{#folders}}
+                <div class="col-6 col-sm-4 col-md-4 col-lg-3 col-xl-3 py-2">
+    <!--            <div class="col-6 col-sm-4 col-md-3 col-lg-2.2 col-xl-2 py-2">-->
+                    <a class="btn btn-outline-secondary dbl-click-link text-left text-truncate w-100" href="{{page}}">
                         <i class="bi {{icon}}"></i>&nbsp;{{name}}
-                    </div>
-
+                    </a>
                 </div>
-                </a>
+                {{/folders}}
             </div>
-            {{/files}}
+            <h5 class="row">Files</h5>
+            <div class="row">
+                {{#files}}
+                <div class="col-6 col-sm-4 col-md-4 col-lg-3 col-xl-3 py-2">
+<!--            <div class="col-6 col-sm-4 col-md-3 col-lg-2.2 col-xl-2 py-2">-->
+                    <a class="dbl-click-link update-infobar" data-fts-source="#files_json" data-fts-index="{{file_index}}" href="{{page}}" style="color: inherit; text-decoration: inherit;">
+                        <div class="card aspect-1x1">
+                            {{#preview}}
+                                <img style="object-fit:cover; overflow:hidden; width:100%; height:100%;" src="{{preview}}" alt="Preview">
+                            {{/preview}}
+                            {{^preview}}
+                                <div class="w-100 h-100 text-center align-middle">
+                                    No Preview Available
+                                </div>
+                            {{/preview}}
+                            <div class="card-footer w-100 text-left text-truncate bottom-0">
+                                <i class="bi {{icon}}"></i>&nbsp;{{name}}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {{/files}}
+            </div>
         </div>
     </div>
+    <div id="infobar-region" class="col-4">
+        {{> infobar}}
+    </div>
 </div>
-
-
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.2.0/mustache.min.js" integrity="sha512-CswfmQmJj8DXhm29Qc5eLk5//2EW1CaI6de+RmRhSrWrXRhkBQ3795tuwJvT6DK6EF4IVqJIRmBg8EokL6c87g==" crossorigin="anonymous" referrerpolicy="no-referrer" type="module"></script>
 {{> global_js}}
-<script src="/js/tagsearch.js"></script>
+<!--<script src="/js/tagsearch.js"></script>-->
+<!--<script src="https://raw.github.com/jonnyreeves/jquery-Mustache/master/jquery.mustache.js"></script>-->
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>-->
 <script src="/js/dbl-click-link.js"></script>
+<script src="/js/update-infobar.js"></script>
 <script src="/js/aspect-1x1.js"></script>
 </body>
 </html>

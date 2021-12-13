@@ -4,6 +4,7 @@ from FileTagServer.DBI.database import Database
 from FileTagServer.WEB import error, static, index
 from FileTagServer.WEB.app import WebsiteApp, LocalPathConfig, RemotePathConfig
 from FileTagServer.WEB.common import create_renderer, create_fastapi_kwargs, create_webconv
+from FileTagServer.WEB.content import PreviewManager
 
 
 def init(app: WebsiteApp):
@@ -19,7 +20,8 @@ def init_default(db_path: str, local_pathing: LocalPathConfig=None, remote_pathi
     fastapi_kwargs = create_fastapi_kwargs()
     renderer = create_renderer(local_pathing)
     conv = create_webconv()
-    app = WebsiteApp(renderer, db, conv, local_pathing, remote_pathing, **fastapi_kwargs)
+    previews = PreviewManager(local_pathing.previews)
+    app = WebsiteApp(renderer, db, conv, local_pathing, remote_pathing, previews, **fastapi_kwargs)
     init(app)
     return app
 
