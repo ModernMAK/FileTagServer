@@ -1,3 +1,4 @@
+import hashlib
 import json
 import mimetypes
 import os
@@ -8,6 +9,7 @@ from typing import Dict, List
 from FileTagServer.DBI.common import initialize_database
 from FileTagServer.DBI.database import Database
 from FileTagServer.DBI.file.file import CreateFileQuery, FilePathQuery
+from FileTagServer.DBI.file.models import ModifyFileQuery
 from FileTagServer.DBI.folder.folder import CreateFolderQuery, FolderPathQuery
 
 from FileTagServer.DBI.folder_children import AddSubFolderQuery, AddSubFileQuery, FolderChildrenDBI
@@ -18,6 +20,17 @@ def load_settings(path: str = None) -> Dict:
     path = path or "settings.json"
     with open(path, "r") as settings:
         return json.load(settings)
+
+
+def gen_md5_hash(path: str, chunk_size: int = 1024 * 16):
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def add_and_update_files(db_path, sql_path, paths: List[str]):
@@ -71,6 +84,14 @@ def add_and_update_files(db_path, sql_path, paths: List[str]):
                 except sqlite3.IntegrityError:
                     q = FilePathQuery(path=file_path)
                     f = db.file.query.get_file_by_path(q)
+
+                try:
+                    file_hash = gen_md5_hash(f.path)
+                    stats = os.stat(f.path)
+                    q = ModifyFileQuery(id=f.id, size_bytes=stats.st_size, date_created=stats.st_ctime, date_modified=stats.st_mtime, hash_md5=file_hash)
+                    db.file.query.modify_file(q)
+                except sqlite3.IntegrityError:
+                    pass
 
                 try:
                     q = AddSubFileQuery(folder_id=parent_f.id, file_id=f.id)

@@ -2,9 +2,7 @@
     <div class="accordion-item">
         <a href="{{page}}" class="accordion-header" style="text-decoration:none;">
             <div class="h4 px-1 py-1">
-                    <i class="bi {{#icon}}{{icon}}{{/icon}}{{^icon}}bi-file-earmark-fill"{{/icon}}></i>&nbsp;{{name}}
-
-        <!--            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#infobar-preview">Preview</button>-->
+                    <i class="bi {{#icon}}{{icon}}{{/icon}}{{^icon}}bi-file-earmark-fill{{/icon}}"></i>&nbsp;{{name}}
             </div>
         </a>
     </div>
@@ -52,17 +50,17 @@
                 <tr>
                         <td>Location</td>
                         <td>
-                            {{#file_path}}
+                            {{#path}}
                             <div class="row">
                                 <div class="col-10" id="file_path_selectable">
-                                    {{file_path}}
+                                    {{path}}
                                 </div>
                                 <div class="col-2">
-                                    <button type="button" class="btn px-2 py-1" onclick="/js/copy-to-clipboard.js" data-target="file_path_selectable"><i class="bi bi-pencil-square" style="font-size:1em;"></i></button>
+                                    <button type="button" class="btn px-2 py-1 js-copy-btn" data-target="file_path_selectable"><i class="bi bi-pencil-square" style="font-size:1em;"></i></button>
                                 </div>
                             </div>
-                            {{/file_path}}
-                            {{^file_path}}<span class="text-muted">-</span>{{/file_path}}
+                            {{/path}}
+                            {{^path}}<span class="text-muted">-</span>{{/path}}
                         </td>
                     </tr>
                     <tr>
@@ -75,15 +73,18 @@
                     <tr>
                         <td class="col-4">Size</td>
                         <td class="col-8">
-                            {{#size}}{{value}}&nbsp;{{unit}}{{/size}}
-                            {{^size}}<span class="text-muted">-</span>{{/size}}
+                            {{#size_bytes}}{{size_bytes}}{{/size_bytes}}
+                            {{^size_bytes}}
+                                {{#size}}{{value}}&nbsp;{{unit}}{{/size}}
+                                {{^size}}<span class="text-muted">-</span>{{/size}}
+                            {{/size_bytes}}
                         </td>
                     </tr>
                     <tr>
                         <td class="col-4">MD5</td>
                         <td class="col-8">
-                            {{#md5_hash}}{{md5_hash}}{{/md5_hash}}
-                            {{^md5_hash}}<span class="text-muted">-</span>{{/md5_hash}}
+                            {{#hash_md5}}{{hash_md5}}{{/hash_md5}}
+                            {{^hash_md5}}<span class="text-muted">-</span>{{/hash_md5}}
                         </td>
                     </tr>
                     {{#created_disabled}}<!--Disable Created On Unix Systems-->{{/created_disabled}}
@@ -91,30 +92,30 @@
                     <tr>
                         <td class="col-4">Created</td>
                         <td class="col-8">
-                            {{#creation_date}}{{creation_date}}{{/creation_date}}
-                            {{^creation_date}}<span class="text-muted">-</span>{{/creation_date}}
+                            {{#date_created}}{{date_created}}{{/date_created}}
+                            {{^date_created}}<span class="text-muted">-</span>{{/date_created}}
                         </td>
                     </tr>
                     {{/created_disabled}}
                     <tr>
                         <td class="col-4">Modified</td>
                         <td class="col-8">
-                            {{#modified_date}}{{modified_date}}{{/modified_date}}
-                            {{^modified_date}}<span class="text-muted">-</span>{{/modified_date}}
+                            {{#date_modified}}{{date_modified}}{{/date_modified}}
+                            {{^date_modified}}<span class="text-muted">-</span>{{/date_modified}}
                         </td>
                     </tr>
                     <tr>
                         <td class="col-4">Uploaded</td>
                         <td class="col-8">
-                            {{#uploaded_date}}{{uploaded_date}}{{/uploaded_date}}
-                            {{^uploaded_date}}<span class="text-muted">-</span>{{/uploaded_date}}
+                            {{#date_uploaded}}{{date_uploaded}}{{/date_uploaded}}
+                            {{^date_uploaded}}<span class="text-muted">-</span>{{/date_uploaded}}
                         </td>
                     </tr>
                     <tr>
                         <td class="col-4">Updated</td>
                         <td class="col-8">
-                            {{#updated_date}}{{updated_date}}{{/updated_date}}
-                            {{^updated_date}}<span class="text-muted">-</span>{{/updated_date}}
+                            {{#date_updated}}{{date_updated}}{{/date_updated}}
+                            {{^date_updated}}<span class="text-muted">-</span>{{/date_updated}}
                         </td>
                     </tr>
                     {{#properties}}

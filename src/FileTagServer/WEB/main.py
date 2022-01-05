@@ -1,5 +1,6 @@
 import uvicorn
 
+from FileTagServer.DBI.common import initialize_database
 from FileTagServer.DBI.database import Database
 from FileTagServer.WEB import error, static, index
 from FileTagServer.WEB.app import WebsiteApp, LocalPathConfig, RemotePathConfig
@@ -27,5 +28,6 @@ def init_default(db_path: str, local_pathing: LocalPathConfig=None, remote_pathi
 
 
 def run(db_path: str, local_pathing: LocalPathConfig, remote_pathing: RemotePathConfig = None, **kwargs):
+    initialize_database(db_path,local_pathing.sql)
     app = init_default(db_path, local_pathing, remote_pathing)
     uvicorn.run(app, **kwargs)

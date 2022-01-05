@@ -36,7 +36,17 @@ class FileTagQuery(BaseModel):
         return validate_fields(value, Tag.__fields__)
 
 
-class ModifyFileQuery(BaseModel):
+class FileMetaArgs(BaseModel):
+    size_bytes: Optional[str] = None
+    hash_md5: Optional[str] = None
+    date_created: Optional[str] = None
+    date_modified: Optional[str] = None
+    date_uploaded: Optional[str] = None
+    date_updated: Optional[str] = None
+
+
+class ModifyFileQuery(FileMetaArgs):
+    id: int
     path: Optional[str] = None
     mime: Optional[str] = None
     name: Optional[str] = None
@@ -44,11 +54,8 @@ class ModifyFileQuery(BaseModel):
     tags: Optional[List[int]] = None
 
 
-class FullModifyFileQuery(ModifyFileQuery):
+class SetFileQuery(FileMetaArgs):
     id: int
-
-
-class SetFileQuery(BaseModel):
     # Optional[...] without '= None' means the field is required BUT can be none
     path: str
     mime: Optional[str]
@@ -57,9 +64,6 @@ class SetFileQuery(BaseModel):
     # Tags are special: a put query allows them to be optional, since they can be set at a seperate endpoint
     tags: Optional[List[int]] = None
 
-
-class FullSetFileQuery(SetFileQuery):
-    id: int
 
 
 class FileQuery(BaseModel):
@@ -79,7 +83,7 @@ class FileQuery(BaseModel):
         return FileTagQuery(id=self.id, fields=self.tag_fields)
 
 
-class CreateFileQuery(BaseModel):
+class CreateFileQuery(FileMetaArgs):
     path: str
     mime: Optional[str] = None
     name: Optional[str] = None

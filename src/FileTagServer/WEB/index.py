@@ -1,3 +1,4 @@
+import datetime
 import json
 from os.path import dirname
 from typing import List, Dict, Optional
@@ -70,6 +71,16 @@ def build_ancestry(database: Database, name: str = "", url: str = "", path: str 
     return ancestry
 
 
+class WebJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.timedelta):
+            return (datetime.datetime.min + obj).time().isoformat()
+
+        return super(WebJSONEncoder, self).default(obj)
+
+
 def build_context(conv: WebConverter, name: str, description: str, ancestry: List[Dict], folders: List[Folder], files: List[File], tags: List[Tag], all_tags: List[Tag] = None):
     tag_lookup = {t.id: conv.tag(t) for t in all_tags} if all_tags else None
 
@@ -77,8 +88,8 @@ def build_context(conv: WebConverter, name: str, description: str, ancestry: Lis
     files = [conv.file(f, tag_lookup) for f in files] if files else []
     # Use lookup to avoid reconverting, otherwise convert
     tags = ([conv.tag(t) for t in tags] if not tag_lookup else [tag_lookup[t.id] for t in tags]) if tags else []
-    files_json = Util.json(files)  # [f.json() for f in files]
-    folders_json = Util.json(folders)  # [f.json() for f in folders]
+    files_json = Util.json(files, encoder=WebJSONEncoder, exclude_unset=True, exclude_none=True)  # [f.json() for f in files]
+    folders_json = Util.json(folders, encoder=WebJSONEncoder, exclude_unset=True, exclude_none=True) # [f.json() for f in folders]
 
     files = Util.dict(files)
     for i, f in enumerate(files):

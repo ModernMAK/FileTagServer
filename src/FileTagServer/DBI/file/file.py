@@ -7,7 +7,7 @@ from FileTagServer.DBI.common import SortQuery, Util, row_to_tag, row_to_file
 from FileTagServer.DBI.common import replace_kwargs, AbstractDBI
 from FileTagServer.DBI.error import ApiError
 from FileTagServer.DBI.file import queries
-from FileTagServer.DBI.file.models import FilesQuery, FileQuery, FilePathQuery, CreateFileQuery, DeleteFileQuery, FileTagQuery, FullModifyFileQuery, FullSetFileQuery, FileSearchQuery, FileDataQuery
+from FileTagServer.DBI.file.models import FilesQuery, FileQuery, FilePathQuery, CreateFileQuery, DeleteFileQuery, FileTagQuery, SetFileQuery, FileSearchQuery, FileDataQuery, ModifyFileQuery
 from FileTagServer.DBI.models import File, Tag
 
 
@@ -119,6 +119,7 @@ class FileQueryDBI(AbstractFileDBI):
             conn.commit()
             return query.create_file(id=id, tags=tags)
 
+
     def delete_file(self, query: DeleteFileQuery):
         with self.connect() as (conn, cursor):
             if not self._file_exists(cursor, query.id):
@@ -127,7 +128,7 @@ class FileQueryDBI(AbstractFileDBI):
             cursor.execute(sql, str(query.id))
             conn.commit()
 
-    def modify_file(self, query: FullModifyFileQuery):
+    def modify_file(self, query: ModifyFileQuery) -> None:
         json = query.dict(exclude={'id', 'tags'}, exclude_unset=True)
         parts: List[str] = [f"{key} = :{key}" for key in json]
         sql = f"UPDATE file SET {', '.join(parts)} WHERE id = :id"
@@ -160,7 +161,7 @@ class FileQueryDBI(AbstractFileDBI):
                 cursor.execute(del_sql, args)
 
 
-    def set_file(self, query: FullSetFileQuery) -> None:
+    def set_file(self, query: SetFileQuery) -> None:
         sql = self.read_sql_file("file/update.sql")
         args = query.dict(exclude={'tags'})
         # HACK while tags is not implimented

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel
@@ -11,7 +12,16 @@ class Tag(BaseModel):
     count: Optional[int] = 0
 
 
-class File(BaseModel):
+class FileMeta(BaseModel):
+    size_bytes: Optional[int] = None
+    hash_md5: Optional[str] = None
+    date_created: Optional[datetime] = None
+    date_modified: Optional[datetime] = None
+    date_uploaded: Optional[datetime] = None
+    date_updated: Optional[datetime] = None
+
+
+class File(FileMeta):
     id: int
     path: Optional[str] = None
     name: Optional[str] = None

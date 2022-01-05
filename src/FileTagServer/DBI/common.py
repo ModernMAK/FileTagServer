@@ -119,7 +119,7 @@ class Util:
         # A hack; could use dict and then pump that into jsonbut I don't know if that will work with custom encoders
         if isinstance(self, list):
             as_dict = Util.dict(self, **args)
-            return json.dumps(as_dict, default=encoder, **dumps_kwargs)
+            return json.dumps(as_dict, cls=encoder, **dumps_kwargs)
         else:
             return self.json(encoder=encoder, **args, **dumps_kwargs)
 
@@ -202,7 +202,7 @@ def replace_kwargs(s: str, **kwargs):
 class AbstractDBI:
     def __init__(self, db_filepath: str, sql_root: str):
         self.__path = db_filepath
-        self.__sql_root = PurePath(sql_root)
+        self.__sql_root = PurePath(sql_root) if sql_root else PurePath()
 
     @property
     def database_file(self) -> str:

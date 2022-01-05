@@ -77,11 +77,11 @@ class WebConverter:
             tags=tags,
             **kwargs
         )
-    def __is_previewable(self, mimetype:str):
+
+    def __is_previewable(self, mimetype: str):
         return True
         # We rely on serving preview to serve a default if we aren't previewable
         return content.supports_preview(mimetype)
-
 
     def file(self, file: File, tag_lookup: Dict[int, 'WebTag'] = None) -> 'WebFile':
         tags = (None if not tag_lookup else [tag_lookup[t] for t in file.tags]) if file.tags else None
@@ -93,7 +93,7 @@ class WebConverter:
         if self.__is_previewable(file.mime):
             preview = reformat(self.file_preview_route, file_id=file.id)
         return WebFile(
-            preview = preview,
+            preview=preview,
             page=reformat(self.file_route, file_id=file.id),
             icon=self.file_icon(file.mime),
             tags=tags,

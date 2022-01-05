@@ -4,5 +4,12 @@ CREATE TABLE IF NOT EXISTS file(
     mime TINYTEXT,
     name TINYTEXT,
     description TEXT,
+
+    size_bytes INTEGER,
+    hash_md5 BLOB,
+    date_created INTEGER,
+    date_modified INTEGER,
+    date_uploaded INTEGER,
+    date_updated INTEGER,
     CONSTRAINT path_unique UNIQUE (path)
 );

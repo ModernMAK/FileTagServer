@@ -12,7 +12,7 @@ jQuery(
                 var data = data_set[data_index];
                 var template_path = $('#infobar-template').attr("src");
                 $.get(template_path,
-                    function(tempate)
+                    function(template)
                     {
 //                        $.Mustache.render
 //                        $.mustache.render

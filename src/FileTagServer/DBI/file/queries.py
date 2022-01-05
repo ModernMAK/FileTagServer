@@ -1,4 +1,9 @@
-select = """SELECT file.id, file.path, file.mime, file.name, file.description, GROUP_CONCAT(DISTINCT file_tag.tag_id) as tags, folder_file.folder_id as parent_folder_id FROM file
+select = """SELECT file.id, file.path, file.mime, file.name, file.description, 
+    file.size_bytes, file.hash_md5, file.date_created, file.date_modified, file.date_uploaded, file.date_updated,
+    GROUP_CONCAT(DISTINCT file_tag.tag_id) as tags, 
+    folder_file.folder_id as parent_folder_id
+
+FROM file
 LEFT JOIN file_tag on file_tag.file_id = file.id
 LEFT JOIN folder_file on folder_file.file_id = file.id
 GROUP BY file.id"""
