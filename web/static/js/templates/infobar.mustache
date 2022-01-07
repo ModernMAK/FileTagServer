@@ -6,14 +6,16 @@
             </div>
         </a>
     </div>
+    {{#preview}}
     <div class="accordion-item">
         <div class="accordion-header">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#infobar-preview">Preview</button>
         </div>
         <div id="infobar-preview" class="accordion-collapse collapse show">
-            <img src="{{preview}}" class="w-100" style="object-fit:contain;">
+            <img src="{{preview}}" class="w-100 aspect-4x3" style="object-fit:contain;">
         </div>
     </div>
+    {{/preview}}
     <div class="accordion-item">
         <div class="accordion-header">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#infobar-description">Description</button>
@@ -40,139 +42,99 @@
             {{/tags}}
         </div>
     </div>
-    <div class="accordion-item">
+    <div class="accordian-item">
         <div class="accordion-header">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#infobar-properties">Properties</button>
         </div>
         <div id="infobar-properties" class="accordion-collapse collapse show">
-            <table class="table table-borderless">
-                <tbody>
-                <tr>
-                        <td>Location</td>
-                        <td>
-                            {{#path}}
-                            <div class="row">
-                                <div class="col-10" id="file_path_selectable">
-                                    {{path}}
-                                </div>
-                                <div class="col-2">
-                                    <button type="button" class="btn px-2 py-1 js-copy-btn" data-target="file_path_selectable"><i class="bi bi-pencil-square" style="font-size:1em;"></i></button>
-                                </div>
-                            </div>
-                            {{/path}}
-                            {{^path}}<span class="text-muted">-</span>{{/path}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-4">Type</td>
-                        <td class="col-8">
-                            {{#mime}}{{mime}}{{/mime}}
-                            {{^mime}}<span class="text-muted">-</span>{{/mime}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-4">Size</td>
-                        <td class="col-8">
-                            {{#size_bytes}}{{size_bytes}}{{/size_bytes}}
-                            {{^size_bytes}}
-                                {{#size}}{{value}}&nbsp;{{unit}}{{/size}}
-                                {{^size}}<span class="text-muted">-</span>{{/size}}
-                            {{/size_bytes}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-4">MD5</td>
-                        <td class="col-8">
-                            {{#hash_md5}}{{hash_md5}}{{/hash_md5}}
-                            {{^hash_md5}}<span class="text-muted">-</span>{{/hash_md5}}
-                        </td>
-                    </tr>
-                    {{#created_disabled}}<!--Disable Created On Unix Systems-->{{/created_disabled}}
-                    {{^created_disabled}}
-                    <tr>
-                        <td class="col-4">Created</td>
-                        <td class="col-8">
-                            {{#date_created}}{{date_created}}{{/date_created}}
-                            {{^date_created}}<span class="text-muted">-</span>{{/date_created}}
-                        </td>
-                    </tr>
-                    {{/created_disabled}}
-                    <tr>
-                        <td class="col-4">Modified</td>
-                        <td class="col-8">
-                            {{#date_modified}}{{date_modified}}{{/date_modified}}
-                            {{^date_modified}}<span class="text-muted">-</span>{{/date_modified}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-4">Uploaded</td>
-                        <td class="col-8">
-                            {{#date_uploaded}}{{date_uploaded}}{{/date_uploaded}}
-                            {{^date_uploaded}}<span class="text-muted">-</span>{{/date_uploaded}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-4">Updated</td>
-                        <td class="col-8">
-                            {{#date_updated}}{{date_updated}}{{/date_updated}}
-                            {{^date_updated}}<span class="text-muted">-</span>{{/date_updated}}
-                        </td>
-                    </tr>
-                    {{#properties}}
-                    <tr>
-                        <td class="col-4">{{name}}</td>
-                        <td class="col-8">{{value}}</td>
-                    </tr>
-                    {{/properties}}
-                </tbody>
-            </table>
+            <div class="w-100 px-2">
+                <div class="row">
+                    <div class="col-4">Location</div>
+                    {{#path}}
+                    <div class="col-6">
+                        {{#path_formatted}}{{{path_formatted}}}{{/path_formatted}}
+                        {{^path_formatted}}{{path}}{{/path_formatted}}
+                    </div>
+                    <div class="col-2 px-0 mx-0">
+                        <button type="button" class="btn p-0 mx-0" onclick="/js/copy-to-clipboard.js" data-value="{{path}}"><i class="bi bi-clipboard" style="font-size:1em;"></i></button>
+                    </div>
+                    {{/path}}
+                    {{^path}}<div class="col-8 text-muted">-</div>{{/path}}
+                </div>
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Type</div>
+                    <div class="col-8">
+                        {{#mime}}{{mime}}{{/mime}}
+                        {{^mime}}<span class="text-muted">-</span>{{/mime}}
+                    </div>
+                </div>
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Size</div>
+                    <div class="col-8">
+                        {{#size_bytes}}{{size_bytes}}&nbsp;B{{/size_bytes}}
+                        {{^size_bytes}}
+                            {{#size}}{{value}}&nbsp;{{unit}}{{/size}}
+                            {{^size}}<span class="text-muted">-</span>{{/size}}
+                        {{/size_bytes}}
+                    </div>
+                </div>
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">MD5</div>
+                    {{#hash_md5}}
+                    <div class="col-6" style="overflow-wrap:anywhere;">{{hash_md5}}</div>
+                    <div class="col-2 px-0 mx-0">
+                        <button type="button" class="btn p-0 mx-0" onclick="/js/copy-to-clipboard.js" data-value="{{hash_md5}}"><i class="bi bi-clipboard" style="font-size:1em;"></i></button>
+                    </div>
+                    {{/hash_md5}}
+                    {{^hash_md5}}<div class="col-8"><span class="text-muted">-</span></div>{{/hash_md5}}
+                </div>
+                {{#created_disabled}}<!--Disable Created On Unix Systems-->{{/created_disabled}}
+                {{^created_disabled}}
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Created</div>
+                    <div class="col-8">
+                        {{#date_created}}{{date_created}}{{/date_created}}
+                        {{^date_created}}<span class="text-muted">-</span>{{/date_created}}
+                    </div>
+                </div>
+                {{/created_disabled}}
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Modified</div>
+                    <div class="col-8">
+                        {{#date_modified}}{{date_modified}}{{/date_modified}}
+                        {{^date_modified}}<span class="text-muted">-</span>{{/date_modified}}
+                    </div>
+                </div>
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Uploaded</div>
+                    <div class="col-8">
+                        {{#date_uploaded}}{{date_uploaded}}{{/date_uploaded}}
+                        {{^date_uploaded}}<span class="text-muted">-</span>{{/date_uploaded}}
+                    </div>
+                </div>
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">Updated</div>
+                    <div class="col-8" style="overflow-wrap: anywhere;">
+                        {{#date_updated}}{{date_updated}}{{/date_updated}}
+                        {{^date_updated}}<span class="text-muted">-</span>{{/date_updated}}
+                    </div>
+                </div>
+                {{#properties}}
+                <hr class="my-1 mx-n4">
+                <div class="row">
+                    <div class="col-4">{{name}}</div>
+                    <div class="col-8">{{value}}</div>
+                </div>
+                {{/properties}}
+            </div>
         </div>
     </div>
-    <!-- VH-100 introduces jitter in accordian -->
-    <!-- So we're stuck with this ugly whitespace... for now... -->
+    <div class="accordian-item"></div>
 </div>
-
-<!--        <ul class="list-group h-100">-->
-<!--            <li class="list-group-item">-->
-<!--                <div class="row">-->
-<!--                    <a href="{{page}}">-->
-<!--                        <div class="col-10 h4"><i class="bi bi-file-earmark-fill"></i>&nbsp;{{name}}</div>-->
-<!--                    </a>-->
-<!--                    <div class="col-2"><button type="button" class="btn btn-close"></button></div>-->
-<!--                </div>-->
-<!--            </li>-->
-<!--            <li class="list-group-item p-1">-->
-<!--                <img src="{{preview}}" class="w-100" style="object-fit:contain;">-->
-<!--            </li>-->
-<!--            <li class="list-group-item">-->
-<!--                <div class="row">-->
-<!--                    <div class="col-10 h5">Description</div>-->
-<!--                    <div class="col-2">-->
-<!--                        <button type="button" class="btn px-2 py-1"><i class="bi bi-pencil-square" style="font-size:1em;"></i></button>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    {{#description}}{{description}}{{/description}}-->
-<!--                    {{^description}}<span class="text-muted">No description given.</span>{{/description}}-->
-<!--                </div>-->
-<!--            </li>-->
-<!--            <li class="list-group-item">-->
-<!--                <div class="row">-->
-<!--                    <div class="col-10 h5">Tags</div>-->
-<!--                    <div class="col-2">-->
-<!--                        <button type="button" class="btn px-2 py-1"><i class="bi bi-pencil-square" style="font-size:1em;"></i></button>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    {{#tags}}-->
-<!--                    {{/tags}}-->
-<!--                    {{^tags}}<span class="text-muted">No tags given.</span>{{/tags}}-->
-<!--                </div>-->
-<!--            </li>-->
-<!--            <li class="list-group-item">-->
-<!--                <a class="h5" data-bs-toggle="collapse" href="#infobar-properties">Properties</a>-->
-<!--                <div id="infobar-properties">-->
-<!--                </div>-->
-<!--            </li>-->
-<!--            <li class="list-group-item h-100"></li>-->
-<!--        </ul>-->

@@ -11,19 +11,16 @@
 <script id="files_json" type="application/json">{{{files_json}}}</script>
 <script id="folders_json" type="application/json">{{{folders_json}}}</script>
 <script id="infobar-template" type="text/mustache" src="/js/templates/infobar.mustache"></script>
-<div id="content" class="row">
-<!--    <div id="hotbar" class="col-3"></div>-->
-    <div class="col-8" id="view">
-        <div class="container">
+<div id="content" class="container-fluid">
+    <div class="row">
+        <div id="view" class="col-6 col-md-8 col-xl-9 window-v container">
             <div>
-                {{#ancestry}}{{#last}}<b><a href="{{page}}">{{name}}</a></b>{{/last}}
-                {{^last}}<a href="{{page}}">{{name}}</a> <b>&gt;</b> {{/last}}{{/ancestry}}
+                {{> breadcrumbs}}
             </div>
             <h5 class="row">Folders</h5>
             <div class="row">
                 {{#folders}}
-                <div class="col-6 col-sm-4 col-md-4 col-lg-3 col-xl-3 py-2">
-    <!--            <div class="col-6 col-sm-4 col-md-3 col-lg-2.2 col-xl-2 py-2">-->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 py-2">
                     <a class="btn btn-outline-secondary dbl-click-link text-left text-truncate w-100" href="{{page}}">
                         <i class="bi {{icon}}"></i>&nbsp;{{name}}
                     </a>
@@ -33,12 +30,11 @@
             <h5 class="row">Files</h5>
             <div class="row">
                 {{#files}}
-                <div class="col-6 col-sm-4 col-md-4 col-lg-3 col-xl-3 py-2">
-<!--            <div class="col-6 col-sm-4 col-md-3 col-lg-2.2 col-xl-2 py-2">-->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 py-2">
                     <a class="dbl-click-link update-infobar" data-fts-source="#files_json" data-fts-index="{{file_index}}" href="{{page}}" style="color: inherit; text-decoration: inherit;">
-                        <div class="card aspect-1x1">
+                        <div class="card">
                             {{#preview}}
-                                <img style="object-fit:cover; overflow:hidden; width:100%; height:100%;" src="{{preview}}" alt="Preview">
+                                <img class="aspect-1x1" style="object-fit:cover; overflow:hidden;" src="{{preview}}" alt="Preview">
                             {{/preview}}
                             {{^preview}}
                                 <div class="w-100 h-100 text-center align-middle">
@@ -54,19 +50,14 @@
                 {{/files}}
             </div>
         </div>
-    </div>
-    <div id="infobar-region" class="col-4">
-        {{> infobar}}
+        <div id="infobar-region" class="col-6 col-md-4 col-xl-3 window-v container-fluid px-0">
+            {{> infobar}}
+        </div>
     </div>
 </div>
-<script
-src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.1.3/mustache.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.1.3/mustache.js"></script>
 {{> global_js}}
-<!--<script src="/js/tagsearch.js"></script>-->
-<!--<script src="https://raw.github.com/jonnyreeves/jquery-Mustache/master/jquery.mustache.js"></script>-->
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>-->
 <script src="/js/dbl-click-link.js"></script>
 <script src="/js/update-infobar.js"></script>
-<script src="/js/aspect-1x1.js"></script>
 </body>
 </html>

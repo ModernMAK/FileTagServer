@@ -1,0 +1,10 @@
+<nav>
+    <ol class="breadcrumb">
+        {{#breadcrumbs}}
+        <li class="breadcrumb-item {{#current}}active{{/current}}">
+            {{#current}}{{text}}{{/current}}
+            {{^current}}<a href="{{link}}">{{text}}</a>{{/current}}
+        </li>
+        {{/breadcrumbs}}
+    </ol>
+</nav>
