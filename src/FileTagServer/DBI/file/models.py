@@ -37,12 +37,12 @@ class FileTagQuery(BaseModel):
 
 
 class FileMetaArgs(BaseModel):
-    size_bytes: Optional[str] = None
+    size_bytes: Optional[int] = None
     hash_md5: Optional[str] = None
-    date_created: Optional[str] = None
-    date_modified: Optional[str] = None
-    date_uploaded: Optional[str] = None
-    date_updated: Optional[str] = None
+    date_created: Optional[int] = None
+    date_modified: Optional[int] = None
+    date_uploaded: Optional[int] = None
+    date_updated: Optional[int] = None
 
 
 class ModifyFileQuery(FileMetaArgs):

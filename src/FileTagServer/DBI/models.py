@@ -68,6 +68,7 @@ class WebFile(File, WebModel, WebAncestryModel, WebIcon):
     preview: Optional[str] = None
     parent: Optional['WebFolder'] = None
     tags: Optional[List[WebTag]] = None
+    path_formatted:Optional[str] = None
 
 
 class WebFolder(Folder, WebModel, WebAncestryModel, WebIcon):

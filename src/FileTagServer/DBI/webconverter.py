@@ -92,11 +92,15 @@ class WebConverter:
         preview = None
         if self.__is_previewable(file.mime):
             preview = reformat(self.file_preview_route, file_id=file.id)
+
+        WBR = "<wbr>"
+        pretty_path = file.path.replace("/","/"+WBR).replace("\\","\\"+WBR)
         return WebFile(
             preview=preview,
             page=reformat(self.file_route, file_id=file.id),
             icon=self.file_icon(file.mime),
             tags=tags,
+            path_formatted=pretty_path,
             **kwargs
         )
 
