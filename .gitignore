@@ -16,6 +16,8 @@ tests/test_playground/*
 # Ignore generated content
 web/dynamic/generated/*
 *.db
+*.old
+**/settings.json
 
 # Ignore personal settings/configs
 # No longer in use
