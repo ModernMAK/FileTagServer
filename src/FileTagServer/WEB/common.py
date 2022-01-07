@@ -25,7 +25,7 @@ def create_fastapi_kwargs(**kwargs) -> Dict:
 
 def create_renderer(local_pathing: LocalPathConfig = None, **kwargs):
     if "search_dirs" not in kwargs and local_pathing:
-        kwargs["search_dirs"] = str(local_pathing.templates)
+        kwargs["search_dirs"] = [str(local_pathing.html_templates), str(local_pathing.js_templates)]
     return Renderer(**kwargs)
 
 

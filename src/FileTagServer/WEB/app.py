@@ -17,7 +17,8 @@ class LocalPathConfig:
         self.css = self.static / "css"
         self.js = self.static / "js"
         self.img = self.static / "img"
-        self.templates = self.html / "templates"
+        self.html_templates = self.html / "templates"
+        self.js_templates = self.js / "templates"
         self.sql = self.static / "sql"
         self.generated = self.root / (generated or "generated")
         self.previews = self.generated / "previews"
