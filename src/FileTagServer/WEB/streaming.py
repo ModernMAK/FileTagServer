@@ -25,7 +25,7 @@ def parse_byte_range(byte_range: Optional[str]) -> Tuple[Optional[int], Optional
 
 def file_byte_generator(path: str, start_byte: int, end_byte: int, chunk_size: int):
     with open(path, "rb") as stream:
-        stream_byte_generator(stream, start_byte, end_byte, chunk_size)
+        return stream_byte_generator(stream, start_byte, end_byte, chunk_size)
 
 
 def stream_byte_generator(stream: BinaryIO, start_byte: int, end_byte: int, chunk_size: int, should_close: bool = False):

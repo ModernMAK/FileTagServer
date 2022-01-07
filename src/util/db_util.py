@@ -2,7 +2,7 @@ import sqlite3
 from typing import List, Union, Tuple, Set
 
 
-class Conwrapper():
+class Conwrapper:
     def __init__(self, db_path: str):
         try:
             self.con = sqlite3.connect(db_path)
