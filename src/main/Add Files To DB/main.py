@@ -3,7 +3,7 @@ import json
 import mimetypes
 import os
 import sqlite3
-from os.path import join, abspath
+from os.path import join, abspath, splitext
 from typing import Dict, List
 
 from FileTagServer.DBI.common import initialize_database
@@ -33,7 +33,7 @@ def gen_md5_hash(path: str, chunk_size: int = 1024 * 16):
     return h.hexdigest()
 
 
-def add_and_update_files(db_path, sql_path, paths: List[str]):
+def add_and_update_files(db_path, sql_path, paths: List[str], ext_ignores: List[str]):
     # TODO check if file name exists
     #   Check that Mimetype matches
     #       Generate a hash for the local file
@@ -44,6 +44,7 @@ def add_and_update_files(db_path, sql_path, paths: List[str]):
     # Currently, only adds all paths
     db = Database(db_path, sql_path)
     for path in paths:
+
         print(path)
         q = CreateFolderQuery(path=path, name=path)
         try:
@@ -75,6 +76,9 @@ def add_and_update_files(db_path, sql_path, paths: List[str]):
 
             print("\t\t", "Files")
             for file in files:
+                _, ext = splitext(file)
+                if ext in ext_ignores:
+                    continue
                 print("\t\t\t", file)
                 file_path = join(cur_dir, file)
                 mime = mimetypes.guess_type(file_path)[0]
@@ -108,4 +112,5 @@ if __name__ == "__main__":
     sql_path = str(local_pathing.sql)
     initialize_database(db_path, sql_path)
     paths = settings.get('paths', [])
-    add_and_update_files(db_path, sql_path, paths)
+    ignore_exts = settings.get("exts", {}).get("ignore", [])
+    add_and_update_files(db_path, sql_path, paths, ignore_exts)
